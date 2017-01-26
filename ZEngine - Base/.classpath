@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8"/>
+	<classpathentry kind="lib" path="/Libraries/lib/lwjgl/org.lwjgl/lwjgl.jar" sourcepath="/Libraries/lib/lwjgl/org.lwjgl/lwjgl-sources.jar">
+		<attributes>
+			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="Libraries/lib/lwjgl/native"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="/Libraries/lib/lwjgl/org.lwjgl.nuklear/lwjgl-nuklear.jar" sourcepath="/Libraries/lib/lwjgl/org.lwjgl.nuklear/lwjgl-nuklear-sources.jar">
+		<attributes>
+			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="Libraries/lib/lwjgl/native"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="/Libraries/lib/vecmath-1.5.2.jar"/>
+	<classpathentry kind="lib" path="/Libraries/lib/lwjgl/org.lwjgl.nanovg/lwjgl-nanovg.jar" sourcepath="/Libraries/lib/lwjgl/org.lwjgl.nanovg/lwjgl-nanovg-sources.jar"/>
+	<classpathentry kind="lib" path="/Libraries/lib/lwjgl/org.lwjgl.stb/lwjgl-stb.jar" sourcepath="/Libraries/lib/lwjgl/org.lwjgl.stb/lwjgl-stb-sources.jar"/>
+	<classpathentry kind="lib" path="/Libraries/lib/bridj/bridj-0.7.0.jar" sourcepath="/Libraries/lib/bridj/bridj-0.7.0-sources.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
