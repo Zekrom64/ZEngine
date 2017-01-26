@@ -1,0 +1,9 @@
+#ifndef __STDLIB_LIGHTING_GLFS
+#define __STDLIB_LIGHTING_GLFS
+
+#include "lighting.glis"
+
+layout uniform vec4 stdAmbientLightColor;
+layout uniform stdLightMaterial stdCurrentMaterial;
+
+#endif
