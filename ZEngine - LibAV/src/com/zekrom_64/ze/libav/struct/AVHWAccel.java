@@ -9,10 +9,10 @@ import org.bridj.ann.Field;
 import com.zekrom_64.ze.libav.enums.AVCodecID;
 import com.zekrom_64.ze.libav.enums.AVMediaType;
 import com.zekrom_64.ze.libav.enums.AVPixelFormat;
-import com.zekrom_64.ze.nat.Struct;
+import com.zekrom_64.ze.nat.ZEStruct;
 
 @org.bridj.ann.Struct
-public class AVHWAccel extends Struct<AVHWAccel> {
+public class AVHWAccel extends ZEStruct<AVHWAccel> {
 	
 	static {
 		BridJ.register();
@@ -159,21 +159,46 @@ public class AVHWAccel extends Struct<AVHWAccel> {
 		io.setIntField(this, 10, frame_priv_data_size);
 	}
 	
-	public static abstract class AVHWAccelDecodeCallback extends Callback<AVHWAccelDecodeCallback> {
+	public static abstract class AVHWAccelInitCallback extends Callback<AVHWAccelInitCallback> {
 		
-		// TODO: Implement MpegEncContext struct fully
-		public abstract void invoke(Pointer<?> s);
+		public abstract int invoke(Pointer<AVCodecContext> avctx);
 		
 	}
 	
 	@Field(11)
-	public Pointer<AVHWAccelDecodeCallback> decode_mb() {
+	public Pointer<AVHWAccelInitCallback> init() {
 		return io.getPointerField(this, 11);
 	}
 	
 	@Field(11)
-	public void decode_mb(Pointer<AVHWAccelDecodeCallback> decode_mb) {
-		io.setPointerField(this, 11, decode_mb);
+	public void init(Pointer<AVHWAccelInitCallback> init) {
+		io.setPointerField(this, 11, init);
+	}
+	
+	public static abstract class AVHWAccelUninitCallback extends Callback<AVHWAccelUninitCallback> {
+		
+		public abstract int invoke(Pointer<AVCodecContext> avctx);
+		
+	}
+	
+	@Field(12)
+	public Pointer<AVHWAccelUninitCallback> uninit() {
+		return io.getPointerField(this, 12);
+	}
+	
+	@Field(12)
+	public void uninit(Pointer<AVHWAccelUninitCallback> uninit) {
+		io.setPointerField(this, 12, uninit);
+	}
+	
+	@Field(13)
+	public int priv_data_size() {
+		return io.getIntField(this, 13);
+	}
+	
+	@Field(13)
+	public void priv_data_size(int priv_data_size) {
+		io.setIntField(this, 13, priv_data_size);
 	}
 	
 }

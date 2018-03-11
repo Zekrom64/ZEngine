@@ -3,8 +3,6 @@ package com.zekrom_64.ze.content.phys;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import com.zekrom_64.ze.base.err.ZEngineInternalException;
-
 /** An element abstracts the different isotopes for elements and allows basic chemistry to be performed. Every
  * Element object can be cast to an Isotope.
  * 
@@ -72,6 +70,7 @@ public abstract class ZEElement implements ZEChemistryType {
 		return null;
 	}
 	
+	// TODO: Finish implementing periodic table
 	// Periodic elements, there are technically infinite numbers of these, but these are the only (relatively) stable
 	public static final ZEIsotope HYDROGEN_1 = new ZEIsotope(1, 1, "H", true);
 	public static final ZEIsotope HYDROGEN_2 = new ZEIsotope(1, 2, "H", false);
@@ -116,6 +115,15 @@ public abstract class ZEElement implements ZEChemistryType {
 	public static final ZEIsotope ARGON_36 = new ZEIsotope(18, 36, "Ar", false);
 	public static final ZEIsotope ARGON_38 = new ZEIsotope(18, 38, "Ar", false);
 	public static final ZEIsotope ARGON_40 = new ZEIsotope(18, 40, "Ar", true);
+	public static final ZEIsotope POTASSIUM_39 = new ZEIsotope(19, 39, "K", true);
+	public static final ZEIsotope POTASSIUM_40 = new ZEIsotope(19, 40, "K", false);
+	public static final ZEIsotope POTASSIUM_41 = new ZEIsotope(19, 41, "K", false);
+	public static final ZEIsotope CALCIUM_40 = new ZEIsotope(20, 40, "Ca", true);
+	public static final ZEIsotope CALCIUM_42 = new ZEIsotope(20, 42, "Ca", false);
+	public static final ZEIsotope CALCIUM_43 = new ZEIsotope(20, 43, "Ca", false);
+	public static final ZEIsotope CALCIUM_44 = new ZEIsotope(20, 44, "Ca", false);
+	public static final ZEIsotope CALCIUM_46 = new ZEIsotope(20, 46, "Ca", false);
+	public static final ZEIsotope CALCIUM_48 = new ZEIsotope(20, 48, "Ca", false);
 	
 	// Common elements
 	public static final ZEIsotope HYDROGEN = HYDROGEN_1;
@@ -131,6 +139,13 @@ public abstract class ZEElement implements ZEChemistryType {
 	public static final ZEIsotope SODIUM = SODIUM_23;
 	public static final ZEIsotope MAGNESIUM = MAGNESIUM_24;
 	public static final ZEIsotope ALUMINUM = ALUMINUM_27;
+	public static final ZEIsotope SILICON = SILICON_28;
+	public static final ZEIsotope PHOSPHORUS = PHOSPHORUS_31;
+	public static final ZEIsotope SULFUR = SULFUR_32;
+	public static final ZEIsotope CHLORINE = CHLORINE_35;
+	public static final ZEIsotope ARGON = ARGON_40;
+	public static final ZEIsotope POTASSIUM = POTASSIUM_39;
+	public static final ZEIsotope CALCIUM = CALCIUM_40;
 	
 	// Well-known names of elements
 	public static final ZEIsotope DEUTERIUM = HYDROGEN_2;
@@ -152,7 +167,7 @@ public abstract class ZEElement implements ZEChemistryType {
 	// This is used by the Isotope class for registering new custom isotopes
 	ZEElement(int isotopeNumber, ZEIsotope base, String symbol) {
 		if (base==null) {
-			if (nextCustomElement>=0xFFFF) ZEngineInternalException.throwInternallyNoExcept("Out of element ids");
+			if (nextCustomElement>=0xFFFF) throw new IllegalStateException("Out of element IDs");
 			isCommonForm = true;
 			id = nextCustomElement++;
 			customElements[id] = (ZEIsotope)this;

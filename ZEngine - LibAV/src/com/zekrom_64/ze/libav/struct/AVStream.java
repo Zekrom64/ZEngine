@@ -9,10 +9,10 @@ import org.bridj.ann.Field;
 
 import com.zekrom_64.ze.libav.enums.AVDiscard;
 import com.zekrom_64.ze.libav.enums.AVStreamParseType;
-import com.zekrom_64.ze.nat.Struct;
+import com.zekrom_64.ze.nat.ZEStruct;
 
 @org.bridj.ann.Struct
-public class AVStream extends Struct<AVStream> {
+public class AVStream extends ZEStruct<AVStream> {
 
 	static {
 		BridJ.register();

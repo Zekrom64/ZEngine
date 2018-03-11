@@ -2,19 +2,27 @@
 <classpath>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8"/>
-	<classpathentry kind="lib" path="/Libraries/lib/lwjgl/org.lwjgl.opengl/lwjgl-opengl.jar" sourcepath="/Libraries/lib/lwjgl/org.lwjgl.opengl/lwjgl-opengl-sources.jar"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/ZEngine - GLFW"/>
-	<classpathentry kind="lib" path="/Libraries/lib/lwjgl/org.lwjgl.stb/lwjgl-stb.jar" sourcepath="/Libraries/lib/lwjgl/org.lwjgl.stb/lwjgl-stb-sources.jar"/>
-	<classpathentry kind="lib" path="/Libraries/lib/lwjgl/org.lwjgl.util.par/lwjgl-par.jar" sourcepath="/Libraries/lib/lwjgl/org.lwjgl.util.par/lwjgl-par-sources.jar"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/ZEngine - LWJGL"/>
-	<classpathentry kind="lib" path="/Libraries/lib/lwjgl/org.lwjgl/lwjgl-natives-linux.jar"/>
-	<classpathentry kind="lib" path="/Libraries/lib/lwjgl/org.lwjgl/lwjgl-natives-macos.jar"/>
-	<classpathentry kind="lib" path="/Libraries/lib/lwjgl/org.lwjgl/lwjgl-natives-windows.jar"/>
-	<classpathentry kind="lib" path="/Libraries/lib/lwjgl/org.lwjgl.glfw/lwjgl-glfw-natives-linux.jar"/>
-	<classpathentry kind="lib" path="/Libraries/lib/lwjgl/org.lwjgl.glfw/lwjgl-glfw-natives-macos.jar"/>
-	<classpathentry kind="lib" path="/Libraries/lib/lwjgl/org.lwjgl.glfw/lwjgl-glfw-natives-windows.jar"/>
-	<classpathentry kind="lib" path="/Libraries/lib/lwjgl/org.lwjgl.stb/lwjgl-stb-natives-linux.jar"/>
-	<classpathentry kind="lib" path="/Libraries/lib/lwjgl/org.lwjgl.stb/lwjgl-stb-natives-macos.jar"/>
-	<classpathentry kind="lib" path="/Libraries/lib/lwjgl/org.lwjgl.stb/lwjgl-stb-natives-windows.jar"/>
+	<classpathentry kind="lib" path="/Libraries/lib/lwjgl3.1.2/lwjgl-glfw-natives-linux.jar"/>
+	<classpathentry kind="lib" path="/Libraries/lib/lwjgl3.1.2/lwjgl-glfw-natives-macos.jar"/>
+	<classpathentry kind="lib" path="/Libraries/lib/lwjgl3.1.2/lwjgl-glfw-natives-windows.jar"/>
+	<classpathentry kind="lib" path="/Libraries/lib/lwjgl3.1.2/lwjgl-natives-linux.jar"/>
+	<classpathentry kind="lib" path="/Libraries/lib/lwjgl3.1.2/lwjgl-natives-macos.jar"/>
+	<classpathentry kind="lib" path="/Libraries/lib/lwjgl3.1.2/lwjgl-natives-windows.jar"/>
+	<classpathentry kind="lib" path="/Libraries/lib/lwjgl3.1.2/lwjgl-glfw.jar" sourcepath="/Libraries/lib/lwjgl3.1.2/lwjgl-glfw-sources.jar"/>
+	<classpathentry kind="lib" path="/Libraries/lib/lwjgl3.1.2/lwjgl.jar" sourcepath="/Libraries/lib/lwjgl3.1.2/lwjgl-sources.jar"/>
+	<classpathentry kind="lib" path="/Libraries/lib/lwjgl3.1.2/lwjgl-opengl.jar" sourcepath="/Libraries/lib/lwjgl3.1.2/lwjgl-opengl-sources.jar"/>
+	<classpathentry kind="lib" path="/Libraries/lib/lwjgl3.1.2/lwjgl-par.jar" sourcepath="/Libraries/lib/lwjgl3.1.2/lwjgl-par-sources.jar"/>
+	<classpathentry kind="lib" path="/Libraries/lib/lwjgl3.1.2/lwjgl-par-natives-linux.jar"/>
+	<classpathentry kind="lib" path="/Libraries/lib/lwjgl3.1.2/lwjgl-par-natives-macos.jar"/>
+	<classpathentry kind="lib" path="/Libraries/lib/lwjgl3.1.2/lwjgl-par-natives-windows.jar"/>
+	<classpathentry kind="lib" path="/Libraries/lib/lwjgl3.1.2/lwjgl-opengl-natives-linux.jar"/>
+	<classpathentry kind="lib" path="/Libraries/lib/lwjgl3.1.2/lwjgl-opengl-natives-macos.jar"/>
+	<classpathentry kind="lib" path="/Libraries/lib/lwjgl3.1.2/lwjgl-opengl-natives-windows.jar"/>
+	<classpathentry kind="lib" path="/Libraries/lib/lwjgl3.1.2/lwjgl-stb-natives-linux.jar"/>
+	<classpathentry kind="lib" path="/Libraries/lib/lwjgl3.1.2/lwjgl-stb-natives-macos.jar"/>
+	<classpathentry kind="lib" path="/Libraries/lib/lwjgl3.1.2/lwjgl-stb-natives-windows.jar"/>
+	<classpathentry kind="lib" path="/Libraries/lib/lwjgl3.1.2/lwjgl-stb.jar" sourcepath="/Libraries/lib/lwjgl3.1.2/lwjgl-stb-sources.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

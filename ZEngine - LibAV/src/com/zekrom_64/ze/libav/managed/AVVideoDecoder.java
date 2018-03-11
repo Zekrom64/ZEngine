@@ -2,6 +2,7 @@ package com.zekrom_64.ze.libav.managed;
 
 import com.zekrom_64.ze.libav.struct.AVCodecContext;
 
+@Deprecated
 public class AVVideoDecoder {
 
 	public AVVideoConsumer videoConsumer;

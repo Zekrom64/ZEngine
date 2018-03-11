@@ -36,7 +36,7 @@ public class ZEIsotope extends ZEElement {
 	
 	public static double predictHalfLife(int neutrons, int protons) {
 		// TODO: Implement half life prediction method
-		return Double.MAX_VALUE;
+		return Double.POSITIVE_INFINITY;
 	}
 	
 	public static double predictHalfLife(ZEIsotope iso) {

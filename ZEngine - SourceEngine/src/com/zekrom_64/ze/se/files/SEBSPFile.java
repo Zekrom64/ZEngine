@@ -4,11 +4,38 @@ import javax.vecmath.Vector3f;
 
 public class SEBSPFile {
 	
-	public class SEBSPFIlePlane {
+	public class SEBSPFilePlane {
 		
 		public final Vector3f normal = new Vector3f();
 		public float dist;
 		public int type;
+		
+	}
+	
+	public class SEBSPFilePlaneLump {
+		
+		public SEBSPFilePlane[] planes;
+		
+	}
+	
+	public class SEBSPFileVertexLump {
+		
+		// Each vertex is 3 floats, tightly packed in the array
+		public float[] vertexArray;
+		
+	}
+	
+	public class SEBSPFileEdgeLump {
+		
+		// Each edge is a pair of vertex indices, tightly packed
+		public short[] edgeArray;
+		
+	}
+	
+	public class SEBSPFileSurfedgeLump {
+		
+		// Each surfedge is a pair of vertex indices, tightly packed
+		public int[] surfedgeArray;
 		
 	}
 	
@@ -38,11 +65,29 @@ public class SEBSPFile {
 		
 	}
 	
+	public class SEBSPFileFaceLump {
+		
+		public SEBSPFileFace[] faces;
+		
+	}
+	
+	public class SEBSPFileOriginalFaceLump {
+		
+		public SEBSPFileFace[] originalFaces;
+		
+	}
+	
 	public class SEBSPFileBrush {
 		
 		public int firstside;
 		public int numsides;
 		public int contents;
+		
+	}
+	
+	public class SEBSPFileBrushLump {
+		
+		public SEBSPFileBrush[] brushes;
 		
 	}
 	
@@ -97,6 +142,12 @@ public class SEBSPFile {
 		
 	}
 	
+	public class SEBSPFileBrushSideLump {
+		
+		public SEBSPFileBrushSide[] brushSides;
+		
+	}
+	
 	public class SEBSPFileNode {
 		
 		public int planenum;
@@ -109,6 +160,12 @@ public class SEBSPFile {
 		public short numfaces;
 		public short area;
 		public short padding;
+		
+	}
+	
+	public class SEBSPFileNodeLump {
+		
+		public SEBSPFileNode[] nodes;
 		
 	}
 	
@@ -131,12 +188,123 @@ public class SEBSPFile {
 		
 	}
 	
-	public class SEBSPFileTexture {
+	public class SEBSPFileLeafLump {
+		
+		public SEBSPFileLeaf[] leaves;
+		
+	}
+	
+	public class SEBSPFileLeafFaceLump {
+		
+		// Unsigned
+		public short[] faceMap;
+		
+	}
+	
+	public class SEBSPFileLeafBrushLump {
+		
+		// Unsigned
+		public short[] brushMap;
+		
+	}
+	
+	public enum SEBSPFileTextureFlags {
+		SURF_LIGHT(0x0001),
+		SURF_SKY2D(0x0002),
+		SURF_SKY(0x0004),
+		SURF_WARP(0x0008),
+		SURF_TRANS(0x0010),
+		SURF_NOPORTAL(0x0020),
+		SURF_TRIGGER(0x0040),
+		SURF_NODRAW(0x0080),
+		SURF_HINT(0x0100),
+		SURF_SKIP(0x0200),
+		SURF_NOLIGHT(0x0400),
+		SURF_BUMPLIGHT(0x0800),
+		SURF_NOSHADOWS(0x1000),
+		SURF_NODECALS(0x2000),
+		SURF_NOCHOP(0x4000),
+		SURF_HITBOX(0x8000);
+		
+		public final int value;
+		
+		private SEBSPFileTextureFlags(int val) {
+			value = val;
+		}
+	}
+	
+	public class SEBSPFileTextureInfoLump {
 		
 		public final float[][] textureVecs = new float[2][4];
 		public final float[][] lightmapVecs = new float[2][4];
 		public int flags;
 		public int texdata;
+		
+	}
+	
+	public class SEBSPFileTextureDataEntry {
+		
+		public Vector3f reflectivity = new Vector3f();
+		public int nameStringTableID;
+		public int width, height;
+		public int view_width, view_height;
+		
+	}
+	
+	public class SEBSPFileTextureDataLump {
+		
+		public SEBSPFileTextureDataEntry[] entries;
+		
+	}
+	
+	public class SEBSPFileTextureStringTable {
+	
+		public int[] offsets;
+		
+	}
+	
+	public class SEBSPFileTextureStringData {
+		
+		public String[] names;
+		
+	}
+	
+	public class ZEBSPFileModelLump {
+		
+		public Vector3f mins = new Vector3f(), maxs = new Vector3f();
+		public float[] origin = new float[3];
+		public int headnode;
+		public int firstface, numfaces;
+		
+	}
+	
+	public class SEBSPFileVisibilityLump {
+		
+		// TODO: Figure out what this structure actually is
+		
+	}
+	
+	public class SEBSPFileEntityLump {
+		
+		public String entityText;
+		
+	}
+	
+	public class SEBSPFileGameLumpEntry {
+		
+		public int id;
+		// Unsigned
+		public short flags;
+		// Unsigned
+		public short version;
+		public int fileofs;
+		public int filelen;
+		
+	}
+	
+	public class SEBSPFileGameLump {
+		
+		public SEBSPFileGameLumpEntry[] entries;
 		
 	}
 	
@@ -151,6 +319,24 @@ public class SEBSPFile {
 			System.arraycopy(ident, 0, identifier, 0, identifier.length);
 			type = t;
 		}
+		
+	}
+	
+	public class SEBSPFileDispInfoLump {
+		
+		public Vector3f startPosition = new Vector3f();
+		public int dispVertStart;
+		public int dispTriStart;
+		public int power;
+		public int minTess;
+		public float smoothingAngle;
+		public int contents;
+		// Unsigned
+		public short mapFace;
+		public int lightmapAlphaStart;
+		public int lightmapSamplePositionStart;
+		
+		public int[] allowedVerts = new int[10];
 		
 	}
 	
@@ -229,7 +415,7 @@ public class SEBSPFile {
 		LUMP_OVERLAY_FADES(60),
 		LUMP_OVERLAY_SYSTEM_LEVELS(61),
 		LUMP_PHYSLEVEL(62),
-		DISP_MULTIBLEND(63);
+		LUMP_DISP_MULTIBLEND(63);
 		
 		public final int value;
 		private SEBSPLumpType() {

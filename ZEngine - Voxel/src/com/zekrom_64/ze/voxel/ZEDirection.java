@@ -25,10 +25,17 @@ public enum ZEDirection {
 	
 	/** Normals for this direction */
 	public final int x, y, z;
+	
+	/** Axis the direction is on */
+	public final ZEAxis axis;
+	
 	private ZEDirection(int x, int y, int z) {
 		this.x = x;
 		this.y = y;
 		this.z = z;
+		if (x != 0) axis = ZEAxis.X;
+		else if (y != 0) axis = ZEAxis.Y;
+		else axis = ZEAxis.Z;
 	}
 	
 	private static final int[] opposite = new int[] {1, 0, 3, 2, 5, 4};
@@ -42,21 +49,50 @@ public enum ZEDirection {
 		// This will never be called, because this will always be one of the above
 	}
 	
-	private static final int[][] clockwise = new int[][] {
-			new int[] {2, 0, 4},
-			new int[] {3, 1, 5},
-			new int[] {1, 4, 2},
-			new int[] {0, 5, 3},
-			new int[] {4, 3, 0},
-			new int[] {5, 2, 1}
+	private static final ZEDirection[][] rotationMatrix = new ZEDirection[][] {
+			new ZEDirection[] {UP, UP, EAST, WEST, SOUTH, NORTH},
+			new ZEDirection[] {DOWN, DOWN, WEST, EAST, NORTH, SOUTH},
+			new ZEDirection[] {EAST, WEST, NORTH, NORTH, UP, DOWN},
+			new ZEDirection[] {WEST, EAST, SOUTH, SOUTH, DOWN, UP},
+			new ZEDirection[] {NORTH, SOUTH, DOWN, UP, EAST, EAST},
+			new ZEDirection[] {SOUTH, NORTH, UP, DOWN, WEST, WEST}
 	};
 	
-	private static final int[][] counterclockwise = new int[][] {
-		
+	private static final ZEDirection[][] clockwise = new ZEDirection[][] {
+			new ZEDirection[] {SOUTH, UP, EAST},
+			new ZEDirection[] {NORTH, DOWN, WEST},
+			new ZEDirection[] {UP, EAST, NORTH},
+			new ZEDirection[] {DOWN, WEST, SOUTH},
+			new ZEDirection[] {EAST, SOUTH, DOWN},
+			new ZEDirection[] {WEST, NORTH, UP}
 	};
 	
+	/** Rotates this direction clockwise about a vector in the given direction.
+	 * 
+	 * @param around Rotation vector
+	 * @return Result of rotation
+	 */
+	public ZEDirection rotate(ZEDirection around) {
+		return rotationMatrix[ordinal()][around.ordinal()];
+	}
+	
+	/** Rotates clockwise about the given axis.
+	 * 
+	 * @param about Axis to rotate about
+	 * @return Result of rotation
+	 */
 	public ZEDirection rotateClockwise(ZEAxis about) {
-		return values[clockwise[ordinal()][about.ordinal()]];
+		return clockwise[ordinal()][about.ordinal()];
+	}
+	
+	/** Rotates counter-clockwise about the given axis.
+	 * 
+	 * @param about Axis to rotate about
+	 * @return Result of rotation
+	 */
+	public ZEDirection rotateCounterclockwise(ZEAxis about) {
+		if (axis != about) return clockwise[ordinal()][about.ordinal()];
+		else return this;
 	}
 	
 }

@@ -1,6 +1,7 @@
 package com.zekrom_64.ze.glfw;
 
 import java.awt.Dimension;
+import java.awt.Rectangle;
 import java.nio.DoubleBuffer;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
@@ -31,7 +32,7 @@ import com.zekrom_64.ze.base.input.ZEInputSource;
 import com.zekrom_64.ze.base.input.ZEWindowListener;
 import com.zekrom_64.ze.base.input.ZEWindowSource;
 import com.zekrom_64.ze.gl.GLContext;
-import com.zekrom_64.ze.nat.StructUtils;
+import com.zekrom_64.ze.nat.ZEStructUtils;
 
 public class GLFWWindow implements GLContext, ZEInputSource, ZEWindowSource {
 
@@ -295,7 +296,7 @@ public class GLFWWindow implements GLContext, ZEInputSource, ZEWindowSource {
 	/** Makes the window fullscreen if the window is in windowed mode or the window is fullscreen on another monitor.
 	 * This function destroys the old window and creates a new fullscreen one at the same resolution as the monitor
 	 * it is created on. Keeping the same resolution as the native display can provide better performance sometimes,
-	 * as no mode sitching needs to be performed.
+	 * as no mode switching needs to be performed.
 	 * 
 	 * @param monitor The monitor to make fullscreen on
 	 */
@@ -322,6 +323,8 @@ public class GLFWWindow implements GLContext, ZEInputSource, ZEWindowSource {
 	public void unmakeFullscreeen() {
 		if (window==0) return;
 		if (GLFW.glfwGetWindowMonitor(window)==0) return;
+		Dimension size = getSize();
+		GLFW.glfwSetWindowMonitor(window, 0, 0, 0, size.width, size.height, GLFW.GLFW_DONT_CARE);
 	}
 	
 	/** Returns true if the window is fullscreen on any monitor.
@@ -422,6 +425,13 @@ public class GLFWWindow implements GLContext, ZEInputSource, ZEWindowSource {
 		if (window!=0) GLFW.glfwIconifyWindow(window);
 	}
 	
+	/** Maximizes the window.
+	 * 
+	 */
+	public void maximize() {
+		if (window!=0) GLFW.glfwMaximizeWindow(window);
+	}
+	
 	/** Restores the window from an iconified or maximized state to a windowed state.
 	 * 
 	 */
@@ -435,7 +445,7 @@ public class GLFWWindow implements GLContext, ZEInputSource, ZEWindowSource {
 	 */
 	public void setIcons(ZEImage[] images) {
 		if (window!=0) {
-			GLFWImage.Buffer buf = StructUtils.createStructBuffer(images.length, GLFWImage.class);
+			GLFWImage.Buffer buf = ZEStructUtils.createStructBuffer(images.length, GLFWImage.class);
 			for(ZEImage img : images) {
 				GLFWImage image = buf.get();
 				image.width(img.width);
@@ -445,13 +455,6 @@ public class GLFWWindow implements GLContext, ZEInputSource, ZEWindowSource {
 			buf.rewind();
 			GLFW.glfwSetWindowIcon(window, buf);
 		}
-	}
-	
-	/** Maximizes the window.
-	 * 
-	 */
-	public void maximize() {
-		if (window!=0) GLFW.glfwMaximizeWindow(window);
 	}
 	
 	/** Sets the size limits for this window. If a parameter is set as {@link GLFW#GLFW_DONT_CARE GLFW_DONT_CARE},
@@ -490,6 +493,55 @@ public class GLFWWindow implements GLContext, ZEInputSource, ZEWindowSource {
 	public long getGLFWMonitor() {
 		if (window==0) return 0;
 		return GLFW.glfwGetWindowMonitor(window);
+	}
+
+	@Override
+	public boolean isBound() {
+		return GLFW.glfwGetCurrentContext() == window;
+	}
+	
+	/** Gets the given GLFW attribute for the window.
+	 * 
+	 * @param attrib Window attribute
+	 * @return Attribute value
+	 */
+	public int getGLFWAttrib(int attrib) {
+		return GLFW.glfwGetWindowAttrib(window, attrib);
+	}
+	
+	/** Gets the position of the window.
+	 * 
+	 * @return Window position
+	 */
+	public Dimension getPosition() {
+		int[] x = new int[1], y = new int[1];
+		GLFW.glfwGetWindowPos(window, x, y);
+		return new Dimension(x[0],y[0]);
+	}
+	
+	/** Gets the position and size of the window.
+	 * 
+	 * @return Window position and size
+	 */
+	public Rectangle getWindowArea() {
+		Rectangle rect = new Rectangle();
+		int[] a1 = new int[1], a2 = new int[1];
+		GLFW.glfwGetWindowPos(window, a1, a2);
+		rect.x = a1[0];
+		rect.y = a2[0];
+		GLFW.glfwGetWindowSize(window, a1, a2);
+		rect.width = a1[0];
+		rect.height = a2[0];
+		return rect;
+	}
+	
+	/** Sets the position of the window if it is in windowed mode.
+	 * 
+	 * @param x X position
+	 * @param y Y position
+	 */
+	public void setPosition(int x, int y) {
+		GLFW.glfwSetWindowPos(window, x, y);
 	}
 
 }

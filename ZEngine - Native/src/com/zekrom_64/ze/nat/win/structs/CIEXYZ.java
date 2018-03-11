@@ -4,14 +4,14 @@ package com.zekrom_64.ze.nat.win.structs;
 import org.bridj.ann.CLong;
 import org.bridj.ann.Field;
 
-import com.zekrom_64.ze.nat.Struct;
+import com.zekrom_64.ze.nat.ZEStruct;
 
 /** The <b>CIEXYZ</b> structure contains the <i>x</i>,<i>y</i>, and <i>z</i> coordinaztes of a specific color in a specified color space.
  * 
  * @author Zekrom_64
  *
  */
-public class CIEXYZ extends Struct<CIEXYZ> {
+public class CIEXYZ extends ZEStruct<CIEXYZ> {
 
 	/** The x coordinate in fix point (2.30).
 	 */

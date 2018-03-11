@@ -2,12 +2,12 @@ package com.zekrom_64.ze.nat.lin;
 
 import org.bridj.ann.Field;
 
-import com.zekrom_64.ze.nat.Struct;
+import com.zekrom_64.ze.nat.ZEStruct;
 
 /**
  * Data structure for setting window attributes.
  */
-public class XSetWindowAttributes extends Struct<XSetWindowAttributes> {
+public class XSetWindowAttributes extends ZEStruct<XSetWindowAttributes> {
 
 	/** background or None or ParentRelative */
 	@Field(0)

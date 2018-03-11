@@ -7,10 +7,10 @@ import org.bridj.ann.Array;
 import org.bridj.ann.Field;
 
 import com.zekrom_64.ze.libav.enums.AVSubtitleType;
-import com.zekrom_64.ze.nat.Struct;
+import com.zekrom_64.ze.nat.ZEStruct;
 
 @org.bridj.ann.Struct
-public class AVSubtitleRect extends Struct<AVSubtitleRect> {
+public class AVSubtitleRect extends ZEStruct<AVSubtitleRect> {
 	
 	static {
 		BridJ.register();

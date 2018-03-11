@@ -1,6 +1,6 @@
 package com.zekrom_64.ze.base.backend.render;
 
-import com.zekrom_64.ze.base.threading.ZEEvent;
+import com.zekrom_64.ze.base.concurrent.ZEEvent;
 
 /** A render event is a special type of event that can be used in render work.
  * 

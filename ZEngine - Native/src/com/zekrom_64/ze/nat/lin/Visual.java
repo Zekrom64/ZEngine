@@ -3,12 +3,12 @@ package com.zekrom_64.ze.nat.lin;
 import org.bridj.Pointer;
 import org.bridj.ann.Field;
 
-import com.zekrom_64.ze.nat.Struct;
+import com.zekrom_64.ze.nat.ZEStruct;
 
 /**
  * Visual structure; contains information about colormapping possible.
  */
-public class Visual extends Struct<Visual> {
+public class Visual extends ZEStruct<Visual> {
 
 	/** hook for extension to hang data */
 	@Field(0)

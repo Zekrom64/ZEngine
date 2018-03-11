@@ -3,7 +3,7 @@ package com.zekrom_64.ze.base.io;
 /** A byteable object is one that can be converted to a byte array. In order to be reconstructed from
  * the byte array, the object's class is saved and then a new instance is created using a constructor
  * with a byte array argument. The constructor may throw an IOException if an exception occurs when
- * reading the byte array.
+ * converting from the byte array.
  * 
  * @author Zekrom_64
  *

@@ -10,7 +10,7 @@ import org.bridj.ann.Struct;
  *
  */
 @Struct(size=44)
-public class BITMAPINFO extends com.zekrom_64.ze.nat.Struct<BITMAPINFO> {
+public class BITMAPINFO extends com.zekrom_64.ze.nat.ZEStruct<BITMAPINFO> {
 
 	/** A {@link BITMAPINFOHEADER} structure that contains information about the dimensions of color format. */
 	@Field(0)

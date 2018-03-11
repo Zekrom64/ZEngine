@@ -5,10 +5,10 @@ import org.bridj.DynamicFunction;
 import org.bridj.Pointer;
 import org.bridj.ann.Field;
 
-import com.zekrom_64.ze.nat.Struct;
+import com.zekrom_64.ze.nat.ZEStruct;
 
 @org.bridj.ann.Struct
-public class AVBuffer extends Struct<AVBuffer> {
+public class AVBuffer extends ZEStruct<AVBuffer> {
 	
 	static {
 		BridJ.register();

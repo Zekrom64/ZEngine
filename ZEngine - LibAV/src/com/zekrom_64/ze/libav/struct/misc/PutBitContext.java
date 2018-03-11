@@ -3,9 +3,9 @@ package com.zekrom_64.ze.libav.struct.misc;
 import org.bridj.Pointer;
 import org.bridj.ann.Field;
 
-import com.zekrom_64.ze.nat.Struct;
+import com.zekrom_64.ze.nat.ZEStruct;
 
-public class PutBitContext extends Struct<PutBitContext> {
+public class PutBitContext extends ZEStruct<PutBitContext> {
 	
 	@Field(0) 
 	public int bit_buf() {

@@ -1,5 +1,7 @@
 package com.zekrom_64.ze.glfw;
 
+import java.nio.ByteBuffer;
+
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWImage;
 import org.lwjgl.glfw.GLFWNativeGLX;
@@ -10,7 +12,8 @@ import org.lwjgl.system.SharedLibrary;
 
 import com.zekrom_64.ze.base.image.ZEImage;
 import com.zekrom_64.ze.base.image.ZEImageLoader;
-import com.zekrom_64.ze.nat.StructUtils;
+import com.zekrom_64.ze.base.image.ZEPixelFormat;
+import com.zekrom_64.ze.nat.ZEStructUtils;
 
 public class GLFWU {
 
@@ -30,7 +33,7 @@ public class GLFWU {
 	 */
 	@Deprecated()
 	public static void glfwuSetWindowIcon(long window, GLFWImage icon) {
-		GLFWImage.Buffer buf = StructUtils.createStructBuffer(1, GLFWImage.class);
+		GLFWImage.Buffer buf = ZEStructUtils.createStructBuffer(1, GLFWImage.class);
 		buf.put(0, icon);
 		GLFW.glfwSetWindowIcon(window, buf);
 		/*
@@ -96,11 +99,13 @@ public class GLFWU {
 	 * 
 	 * @param window GLFW window
 	 * @param icons Icon images
+	 * 
+	 * @deprecated Functions built into GLFW 3.2 and the GLFWWindow class
 	 */
 	@Deprecated
 	public static void glfwuSetWindowIcons(long window, GLFWImage[] icons) {
 		if (icons.length==0) return;
-		GLFWImage.Buffer buf = StructUtils.createStructBuffer(icons.length, GLFWImage.class);
+		GLFWImage.Buffer buf = ZEStructUtils.createStructBuffer(icons.length, GLFWImage.class);
 		for(int i = 0; i < icons.length; i++) buf.put(i, icons[i]);
 		GLFW.glfwSetWindowIcon(window, buf);
 		/*
@@ -164,7 +169,16 @@ public class GLFWU {
 		GLFWImage img = GLFWImage.create();
 		img.width(image.width);
 		img.height(image.height);
-		img.pixels(ZEImageLoader.rgbaToArgb(image.buffer));
+		ByteBuffer pixels;
+		switch(image.format) {
+		case A8R8G8B8_UINT: pixels = image.buffer; break;
+		case R8G8B8A8_UINT:
+			pixels = image.buffer;
+			ZEImageLoader.argbToRgbaNoCopy(pixels);
+			break;
+		default: pixels = image.transcode(ZEPixelFormat.A8R8G8B8_UINT).buffer;
+		}
+		img.pixels(pixels);
 		return img;
 	}
 	

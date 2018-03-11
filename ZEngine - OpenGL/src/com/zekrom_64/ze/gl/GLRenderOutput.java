@@ -1,8 +1,8 @@
 package com.zekrom_64.ze.gl;
 
-import com.zekrom_64.ze.base.backend.render.ZERenderOutput;
+import com.zekrom_64.ze.base.backend.render.ZERenderContext;
 
-public class GLRenderOutput implements ZERenderOutput<GLRenderBackend> {
+public class GLRenderOutput implements ZERenderContext<GLRenderBackend> {
 
 	public final GLContext context;
 	
@@ -10,9 +10,8 @@ public class GLRenderOutput implements ZERenderOutput<GLRenderBackend> {
 		this.context = context;
 	}
 
-	@Override
-	public void doOutput(GLRenderBackend backend) {
-		context.bind();
+	public void output() {
+		if (!context.isBound()) context.bind();
 		context.swapBuffers();
 	}
 

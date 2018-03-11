@@ -1,5 +1,6 @@
 package com.zekrom_64.ze.base.input;
 
+// TODO: Remove GLFW usage
 /** Implementation of an object that can listen to mouse and keyboard input.
  * 
  * @author Zekrom_64

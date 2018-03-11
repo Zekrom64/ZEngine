@@ -42,8 +42,8 @@ public class Bytes {
 	
 	/** Converts a short array to an array of two bytes in little-endian order.
 	 * 
-	 * @param s
-	 * @return
+	 * @param s Short
+	 * @return Short bytes
 	 */
 	public static byte[] getLittleEndian(short s) {
 		return new byte[] {
@@ -52,11 +52,21 @@ public class Bytes {
 		};
 	}
 	
+	/** Converts an int to an array of 4 bytes in the native endianness
+	 * 
+	 * @param i Integer
+	 * @return Integer bytes
+	 */
 	public static byte[] get(int i) {
 		if (NATIVE_ENDIANNESS==ByteOrder.BIG_ENDIAN) return getBigEndian(i);
 		else return getLittleEndian(i);
 	}
 	
+	/** Converts an int to an array of 4 bytes in big-endian order.
+	 * 
+	 * @param i Integer
+	 * @return Integer bytes
+	 */
 	public static byte[] getBigEndian(int i) {
 		return new byte[] {
 				(byte)(i >> 24),
@@ -65,7 +75,12 @@ public class Bytes {
 				(byte)(i & 0xFF)
 		};
 	}
-	
+
+	/** Converts an int to an array of 4 bytes in little-endian order.
+	 * 
+	 * @param i Integer
+	 * @return Integer bytes
+	 */
 	public static byte[] getLittleEndian(int i) {
 		return new byte[] {
 				(byte)(i & 0xFF),
@@ -74,12 +89,22 @@ public class Bytes {
 				(byte)(i >> 24)
 		};
 	}
-	
+
+	/** Converts a long to an array of 8 bytes in the native endianness.
+	 * 
+	 * @param l Long
+	 * @return Integer bytes
+	 */
 	public static byte[] get(long l) {
 		if (NATIVE_ENDIANNESS==ByteOrder.BIG_ENDIAN) return getBigEndian(l);
 		else return getLittleEndian(l);
 	}
 	
+	/** Converts a long to an array of 8 bytes in big-endian order.
+	 * 
+	 * @param l Long
+	 * @return Long bytes
+	 */
 	public static byte[] getBigEndian(long l) {
 		return new byte[] {
 				(byte)(l >> 56),
@@ -92,7 +117,12 @@ public class Bytes {
 				(byte)(l & 0xFF)
 		};
 	}
-	
+
+	/** Converts a long to an array of 8 bytes in little-endian order.
+	 * 
+	 * @param l Long
+	 * @return Long bytes
+	 */
 	public static byte[] getLittleEndian(long l) {
 		return new byte[] {
 				(byte)(l & 0xFF),
@@ -106,10 +136,20 @@ public class Bytes {
 		};
 	}
 	
+	/** Converts a float to an array of 4 bytes in the native endianness.
+	 * 
+	 * @param f Float
+	 * @return Float bytes
+	 */
 	public static byte[] get(float f) {
 		return get(Float.floatToRawIntBits(f));
 	}
 	
+	/** Converts a double to an array of 8 bytes in the native endianness.
+	 * 
+	 * @param d Double
+	 * @return Double bytes
+	 */
 	public static byte[] get(double d) {
 		return get(Double.doubleToRawLongBits(d));
 	}
@@ -119,12 +159,22 @@ public class Bytes {
 		return bytes;
 	}
 	
+	/** Converts a byte array to a short in the native endianness.
+	 * 
+	 * @param bytes Byte array
+	 * @return Short
+	 */
 	public static short toShort(byte[] bytes) {
 		bytes = ensureBytes(bytes, 2);
 		if (NATIVE_ENDIANNESS==ByteOrder.BIG_ENDIAN) return toShortBigEndian(bytes);
 		else return toShortLittleEndian(bytes);
 	}
 	
+	/** Converts a byte array to a short in big-endian order.
+	 * 
+	 * @param bytes Byte array
+	 * @return Short
+	 */
 	public static short toShortBigEndian(byte[] bytes) {
 		bytes = ensureBytes(bytes, 2);
 		return (short)(
@@ -133,6 +183,11 @@ public class Bytes {
 		);
 	}
 	
+	/** Converts a byte array to a short in little-endian order.
+	 * 
+	 * @param bytes Byte array
+	 * @return Short
+	 */
 	public static short toShortLittleEndian(byte[] bytes) {
 		bytes = ensureBytes(bytes, 2);
 		return (short)(
@@ -141,11 +196,21 @@ public class Bytes {
 		);
 	}
 	
+	/** Converts a byte array to an int in the native endianness.
+	 * 
+	 * @param bytes Byte array
+	 * @return Integer
+	 */
 	public static int toInt(byte[] bytes) {
 		if (NATIVE_ENDIANNESS==ByteOrder.BIG_ENDIAN) return toIntBigEndian(bytes);
 		else return toIntLittleEndian(bytes);
 	}
 	
+	/** Converts a byte array to an int in big-endian order.
+	 * 
+	 * @param bytes Byte array
+	 * @return Integer
+	 */
 	public static int toIntBigEndian(byte[] bytes) {
 		bytes = ensureBytes(bytes, 4);
 		return	(bytes[0] << 24) |
@@ -154,6 +219,11 @@ public class Bytes {
 				(bytes[3]);
 	}
 	
+	/** Converts a byte array to an int in little-endian order.
+	 * 
+	 * @param bytes Byte array
+	 * @return Integer
+	 */
 	public static int toIntLittleEndian(byte[] bytes) {
 		bytes = ensureBytes(bytes, 2);
 		return	(bytes[3] << 24) |
@@ -162,11 +232,21 @@ public class Bytes {
 				(bytes[0]);
 	}
 	
+	/** Converts a byte array to a long in the native endianness.
+	 * 
+	 * @param bytes Byte array
+	 * @return Long
+	 */
 	public static long toLong(byte[] bytes) {
 		if (NATIVE_ENDIANNESS==ByteOrder.BIG_ENDIAN) return toLongBigEndian(bytes);
 		else return toLongLittleEndian(bytes);
 	}
 	
+	/** Converts a byte array to a long in big-endian order.
+	 * 
+	 * @param bytes Byte array
+	 * @return Long
+	 */
 	public static long toLongBigEndian(byte[] bytes) {
 		bytes = ensureBytes(bytes, 8);
 		return	(bytes[0] << 56) |
@@ -179,6 +259,11 @@ public class Bytes {
 				bytes[7];
 	}
 	
+	/** Converts a byte array to a long in little-endian order.
+	 * 
+	 * @param bytes Byte array
+	 * @return Long
+	 */
 	public static long toLongLittleEndian(byte[] bytes) {
 		bytes = ensureBytes(bytes, 8);
 		return	(bytes[7] << 56) |
@@ -191,36 +276,77 @@ public class Bytes {
 				bytes[0];
 	}
 	
+	/** Converts a byte array to a float in the native endianness.
+	 * 
+	 * @param bytes Byte array
+	 * @return Float
+	 */
 	public static float toFloat(byte[] bytes) {
 		return Float.intBitsToFloat(toInt(bytes));
 	}
 	
+	/** Converts a byte array to a float in big-endian order.
+	 * 
+	 * @param bytes Byte array
+	 * @return Float
+	 */
 	public static float toFloatBigEndian(byte[] bytes) {
 		return Float.intBitsToFloat(toIntBigEndian(bytes));
 	}
 	
+	/** Converts a byte array to a float in little-endian order.
+	 * 
+	 * @param bytes Byte array
+	 * @return Float
+	 */
 	public static float toFloatLittleEndian(byte[] bytes) {
 		return Float.intBitsToFloat(toIntLittleEndian(bytes));
 	}
 	
+	/** Converts a byte array to a double in the native endianness.
+	 * 
+	 * @param bytes Byte array
+	 * @return Double
+	 */
 	public static double toDouble(byte[] bytes) {
 		return Double.longBitsToDouble(toLong(bytes));
 	}
 	
+	/** Converts a byte array to a double in big-endian order.
+	 * 
+	 * @param bytes Byte array
+	 * @return Double
+	 */
 	public static double toDoubleBigEndian(byte[] bytes) {
 		return Double.longBitsToDouble(toLongBigEndian(bytes));
 	}
 	
+	/** Converts a byte array to a double in little-endian order.
+	 * 
+	 * @param bytes Byte array
+	 * @return Double
+	 */
 	public static double toDoubleLittleEndian(byte[] bytes) {
 		return Double.longBitsToDouble(toLongLittleEndian(bytes));
 	}
 	
 	// Array conversion
 	
+	/** Converts an array of shorts to an array of bytes in the native endianness.
+	 * 
+	 * @param shorts Short array
+	 * @return Byte array
+	 */
 	public static byte[] get(short ... shorts) {
 		return get(NATIVE_ENDIANNESS, shorts);
 	}
 	
+	/** Converts an array of shorts to an array of bytes in the given endianness.
+	 * 
+	 * @param order Endianness
+	 * @param shorts Short array
+	 * @return Byte array
+	 */
 	public static byte[] get(ByteOrder order, short ... shorts) {
 		MemoryStack sp = MemoryStack.stackGet();
 		boolean useStack = sp.getSize() - sp.getPointer() >= shorts.length * 2;
@@ -235,10 +361,21 @@ public class Bytes {
 		} else return buf.array();
 	}
 	
+	/** Converts an array of ints to an array of bytes in the native endianness.
+	 * 
+	 * @param ints Int array
+	 * @return Byte array
+	 */
 	public static byte[] get(int ... ints) {
 		return get(NATIVE_ENDIANNESS, ints);
 	}
 	
+	/** Converts an array of ints to an array of bytes in the given endianness.
+	 * 
+	 * @param order Endianness
+	 * @param ints Int array
+	 * @return Byte array
+	 */
 	public static byte[] get(ByteOrder order, int ... ints) {
 		MemoryStack sp = MemoryStack.stackGet();
 		boolean useStack = sp.getSize() - sp.getPointer() >= ints.length * 4;
@@ -253,10 +390,21 @@ public class Bytes {
 		} else return buf.array();
 	}
 	
+	/** Converts an array of longs to an array of bytes in the native endianness.
+	 * 
+	 * @param longs Long array
+	 * @return Byte array
+	 */
 	public static byte[] get(long ... longs) {
 		return get(NATIVE_ENDIANNESS, longs);
 	}
 	
+	/** Converts an array of longs to an array of bytes in the given endianness.
+	 * 
+	 * @param order Endianness
+	 * @param longs Long array
+	 * @return Byte array
+	 */
 	public static byte[] get(ByteOrder order, long ... longs) {
 		MemoryStack sp = MemoryStack.stackGet();
 		boolean useStack = sp.getSize() - sp.getPointer() >= longs.length * 8;
@@ -271,10 +419,21 @@ public class Bytes {
 		} else return buf.array();
 	}
 	
+	/** Converts an array of floats to an array of bytes in the native endianness.
+	 * 
+	 * @param floats Float array
+	 * @return Byte array
+	 */
 	public static byte[] get(float ... floats) {
 		return get(NATIVE_ENDIANNESS, floats);
 	}
 	
+	/** Converts an array of floats to an array of bytes in the given endianness.
+	 * 
+	 * @param order Endianness
+	 * @param floats Float array
+	 * @return Byte array
+	 */
 	public static byte[] get(ByteOrder order, float ... floats) {
 		MemoryStack sp = MemoryStack.stackGet();
 		boolean useStack = sp.getSize() - sp.getPointer() >= floats.length * 4;
@@ -289,10 +448,21 @@ public class Bytes {
 		} else return buf.array();
 	}
 	
+	/** Converts an array of doubles to an array of bytes in the native endianness.
+	 * 
+	 * @param doubles Double array
+	 * @return Byte array
+	 */
 	public static byte[] get(double ... doubles) {
 		return get(NATIVE_ENDIANNESS, doubles);
 	}
 	
+	/** Converts an array of doubles to an array of bytes in the given endianness.
+	 * 
+	 * @param order Endianness
+	 * @param doubles Double array
+	 * @return Byte array
+	 */
 	public static byte[] get(ByteOrder order, double ... doubles) {
 		MemoryStack sp = MemoryStack.stackGet();
 		boolean useStack = sp.getSize() - sp.getPointer() >= doubles.length * 8;
@@ -307,10 +477,21 @@ public class Bytes {
 		} else return buf.array();
 	}
 	
+	/** Converts an array of bytes to an array of shorts  in the native endianness.
+	 * 
+	 * @param bytes Byte array
+	 * @return Short array
+	 */
 	public static short[] toShortArray(byte[] bytes) {
 		return toShortArray(NATIVE_ENDIANNESS, bytes);
 	}
 	
+	/** Converts an array of bytes to an array of shorts in the given endianness.
+	 * 
+	 * @param order Endianness
+	 * @param bytes Byte array
+	 * @return Short array
+	 */
 	public static short[] toShortArray(ByteOrder order, byte[] bytes) {
 		MemoryStack sp = MemoryStack.stackGet();
 		int size = bytes.length / 2, sizeBytes = size * 2;
@@ -324,10 +505,21 @@ public class Bytes {
 		return array;
 	}
 	
+	/** Converts an array of bytes to an array of ints in the native endianness.
+	 * 
+	 * @param bytes Byte array
+	 * @return Integer array
+	 */
 	public static int[] toIntArray(byte[] bytes) {
 		return toIntArray(NATIVE_ENDIANNESS, bytes);
 	}
 	
+	/** Converts an array of bytes to an array of ints in the given endianness.
+	 * 
+	 * @param order Endianness
+	 * @param bytes Byte array
+	 * @return Integer array
+	 */
 	public static int[] toIntArray(ByteOrder order, byte[] bytes) {
 		MemoryStack sp = MemoryStack.stackGet();
 		int size = bytes.length / 4, sizeBytes = size * 4;
@@ -341,10 +533,21 @@ public class Bytes {
 		return array;
 	}
 	
+	/** Converts an array of bytes to an array of longs in the native endianness.
+	 * 
+	 * @param bytes Byte array
+	 * @return Long array
+	 */
 	public static long[] toLongArray(byte[] bytes) {
 		return toLongArray(NATIVE_ENDIANNESS, bytes);
 	}
 	
+	/** Converts an array of bytes to an array of longs in the given endianness.
+	 * 
+	 * @param order Endianness
+	 * @param bytes Byte array
+	 * @return Long array
+	 */
 	public static long[] toLongArray(ByteOrder order, byte[] bytes) {
 		MemoryStack sp = MemoryStack.stackGet();
 		int size = bytes.length / 8, sizeBytes = size * 8;
@@ -358,10 +561,21 @@ public class Bytes {
 		return array;
 	}
 	
+	/** Converts an array of bytes to an array of floats in the native endianness.
+	 * 
+	 * @param bytes Byte array
+	 * @return Float array
+	 */
 	public static float[] toFloatArray(byte[] bytes) {
 		return toFloatArray(NATIVE_ENDIANNESS, bytes);
 	}
 	
+	/** Converts an array of bytes to an array of floats in the given endianness.
+	 * 
+	 * @param order Endianness
+	 * @param bytes Byte array
+	 * @return Float array
+	 */
 	public static float[] toFloatArray(ByteOrder order, byte[] bytes) {
 		MemoryStack sp = MemoryStack.stackGet();
 		int size = bytes.length / 4, sizeBytes = size * 4;
@@ -375,10 +589,21 @@ public class Bytes {
 		return array;
 	}
 	
+	/** Converts an array of bytes to an array of doubles in the native endianness.
+	 * 
+	 * @param bytes Byte array
+	 * @return Double array
+	 */
 	public static double[] toDoubleArray(byte[] bytes) {
 		return toDoubleArray(NATIVE_ENDIANNESS, bytes);
 	}
 	
+	/** Converts an array of bytes to an array of doubles in the given endianness.
+	 * 
+	 * @param order Endianness
+	 * @param bytes Byte array
+	 * @return Double array
+	 */
 	public static double[] toDoubleArray(ByteOrder order, byte[] bytes) {
 		MemoryStack sp = MemoryStack.stackGet();
 		int size = bytes.length / 8, sizeBytes = size * 8;

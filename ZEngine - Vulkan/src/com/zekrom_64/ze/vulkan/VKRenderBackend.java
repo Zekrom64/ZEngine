@@ -1,32 +1,37 @@
 package com.zekrom_64.ze.vulkan;
 
-import java.awt.Rectangle;
-import java.nio.Buffer;
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.Consumer;
 
-import org.lwjgl.BufferUtils;
-import org.lwjgl.system.MemoryUtil;
+import org.lwjgl.system.MemoryStack;
 import org.lwjgl.vulkan.VK10;
-import org.lwjgl.vulkan.VkBufferCopy;
-import org.lwjgl.vulkan.VkBufferImageCopy;
-import org.lwjgl.vulkan.VkCommandBuffer;
-import org.lwjgl.vulkan.VkImageBlit;
-import org.lwjgl.vulkan.VkImageCopy;
+import org.lwjgl.vulkan.VkBufferCreateInfo;
+import org.lwjgl.vulkan.VkEventCreateInfo;
+import org.lwjgl.vulkan.VkMemoryAllocateInfo;
 
 import com.zekrom_64.ze.base.backend.render.ZEBuffer;
-import com.zekrom_64.ze.base.backend.render.ZEIndexBuffer;
-import com.zekrom_64.ze.base.backend.render.ZEPipeline;
 import com.zekrom_64.ze.base.backend.render.ZERenderBackend;
-import com.zekrom_64.ze.base.backend.render.ZERenderOutput;
-import com.zekrom_64.ze.base.backend.render.ZEShader;
-import com.zekrom_64.ze.base.backend.render.ZEShaderCompiler;
+import com.zekrom_64.ze.base.backend.render.ZERenderCommandBuffer;
+import com.zekrom_64.ze.base.backend.render.ZERenderEvent;
+import com.zekrom_64.ze.base.backend.render.ZERenderContext;
 import com.zekrom_64.ze.base.backend.render.ZETexture;
-import com.zekrom_64.ze.base.backend.render.ZEVertexBuffer;
+import com.zekrom_64.ze.base.backend.render.input.ZEIndexBuffer;
+import com.zekrom_64.ze.base.backend.render.input.ZEVertexBuffer;
+import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipeline;
+import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBuilder;
+import com.zekrom_64.ze.base.backend.render.shader.ZEShader;
+import com.zekrom_64.ze.base.backend.render.shader.ZEShaderCompiler;
 import com.zekrom_64.ze.base.image.ZEPixelFormat;
-import com.zekrom_64.ze.base.threading.ZEEvent;
+import com.zekrom_64.ze.base.util.PrimitiveType;
+import com.zekrom_64.ze.vulkan.objects.VKBuffer;
+import com.zekrom_64.ze.vulkan.objects.VKRenderEvent;
+import com.zekrom_64.ze.vulkan.objects.VKTexture;
 
+/** Vulkan render backend implementation.
+ * 
+ * @author Zekrom_64
+ *
+ */
 public class VKRenderBackend implements ZERenderBackend<VKRenderBackend> {
 
 	private static final List<String> __features;
@@ -55,13 +60,74 @@ public class VKRenderBackend implements ZERenderBackend<VKRenderBackend> {
 		__features = Arrays.asList(features);
 	}
 	
+	/** The Vulkan context for the render backend. */
+	public final VKContext context;
+	/** The Vulkan logical device used by the render backend. */
+	public final VKLogicalDevice device;
+	
+	/** Creates a new Vulkan render backed using the given logical device.
+	 * 
+	 * @param device Logical device
+	 */
+	public VKRenderBackend(VKLogicalDevice device) {
+		this.device = device;
+		this.context = device.instance;
+	}
+	
+	private static class VulkanLocalInfo {
+
+		// Vulkan pipeline staging flags
+		private int pipelineFlags = VK10.VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
+		
+	}
+	
+	private static ThreadLocal<VulkanLocalInfo> localInfo = new ThreadLocal<>();
+	
+	private static VulkanLocalInfo getLocalInfo() {
+		VulkanLocalInfo info = localInfo.get();
+		if (info == null) {
+			info = new VulkanLocalInfo();
+			localInfo.set(info);
+		}
+		return info;
+	}
+	
+	/** Sets flags to use for the next command requiring pipeline staging flags.
+	 * 
+	 * @param flags Pipeline staging flags
+	 */
+	public void setPipelineStageFlags(int flags) {
+		getLocalInfo().pipelineFlags = flags;
+	}
+	
+	/** Gets the flags to use for pipeline staging.
+	 * 
+	 * @return Pipeline staging flags
+	 */
+	public int getPipelineStageFlags() {
+		return getLocalInfo().pipelineFlags;
+	}
+	
+	/** Form of {@link #getPipelineStageFlags()} that resets the flags to
+	 * {@link org.lwjgl.vulkan.VK10#VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT
+	 * VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT} on return.
+	 * 
+	 * @return Pipeline staging flags
+	 */
+	public int getAndResetPipelineStageFlags() {
+		VulkanLocalInfo info = getLocalInfo();
+		int flags = info.pipelineFlags;
+		info.pipelineFlags = VK10.VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
+		return flags;
+	}
+	
 	@Override
 	public boolean supportsFeature(String feature) {
 		return __features.contains(feature);
 	}
 
 	@Override
-	public void init(ZERenderOutput<VKRenderBackend> backend) {
+	public void init(ZERenderContext<VKRenderBackend> backend) {
 		
 	}
 
@@ -71,298 +137,171 @@ public class VKRenderBackend implements ZERenderBackend<VKRenderBackend> {
 	}
 
 	@Override
-	public ZEPipeline createPipeline() {
+	public ZEPipeline getDefaultPipeline() {
 		return null;
 	}
 
 	@Override
-	public void reschedule(ZERenderWork ... work) {
+	public ZEPipelineBuilder createPipelineBuilder() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public ZEShaderCompiler getShaderCompiler() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public ZERenderEvent createRenderEvent() {
+		try(MemoryStack sp = MemoryStack.stackPush()) {
+			VkEventCreateInfo createInfo = VkEventCreateInfo.mallocStack(sp);
+			createInfo.set(VK10.VK_STRUCTURE_TYPE_EVENT_CREATE_INFO, 0, 0);
+			long[] pEvent = new long[1];
+			int err = VK10.vkCreateEvent(device.logicalDevice, createInfo, context.allocCallbacks, pEvent);
+			if (err != VK10.VK_SUCCESS) throw new VulkanException("Failed to create Vulkan event", err);
+			return new VKRenderEvent(pEvent[0], device.logicalDevice);
+		}
+	}
+
+	@Override
+	public ZEBuffer allocateBuffer(int size, int flags) {
+		try (MemoryStack sp = MemoryStack.stackPush()) {
+			VkBufferCreateInfo bufferInfo = VkBufferCreateInfo.mallocStack(sp);
+			bufferInfo.set(
+					VK10.VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+					0,
+					0,
+					size,
+					usage,
+					sharingMode,
+					pQueueFamilyIndices
+			);
+
+			long[] pBuffer = new long[1];
+			int err = VK10.vkCreateBuffer(device.logicalDevice, bufferInfo, context.allocCallbacks, pBuffer);
+			if (err != VK10.VK_SUCCESS) throw new VulkanException("Failed to create memory buffer", err);
+			
+			VkMemoryAllocateInfo allocInfo = VkMemoryAllocateInfo.mallocStack(sp);
+			allocInfo.set(
+					VK10.VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+					0,
+					size,
+					memoryTypeIndex
+			);
+			
+			long[] pMem = new long[1];
+			err = VK10.vkAllocateMemory(device.logicalDevice, allocInfo, context.allocCallbacks, pMem);
+			if (err != VK10.VK_SUCCESS) {
+				VK10.vkDestroyBuffer(device.logicalDevice, pBuffer[0], context.allocCallbacks);
+				throw new VulkanException("Failed to allocate device memory for buffer", err);
+			}
+			
+			err = VK10.vkBindBufferMemory(device.logicalDevice, pBuffer[0], pMem[0], 0);
+			if (err != VK10.VK_SUCCESS) {
+				VK10.vkDestroyBuffer(device.logicalDevice, pBuffer[0], context.allocCallbacks);
+				VK10.vkFreeMemory(device.logicalDevice, pMem[0], context.allocCallbacks);
+			}
+			
+			return new VKBuffer(device.logicalDevice, pBuffer[0], size, pMem[0], 0, flags);
+		}
+	}
+
+	@Override
+	public ZEBuffer[] allocateBuffers(int[] sizes, int[] flags) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void freeBuffer(ZEBuffer buffer) {
+		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
-	public void scheduleOnce(ZERenderWork[] work, Consumer<Void> finished) {
+	public void freeBuffer(ZEBuffer... buffers) {
+		// TODO Auto-generated method stub
 		
 	}
-	
-	public static interface VKRenderWork extends ZERenderWork {
-		
-		public void queueWork(VkCommandBuffer buffer);
-		
-		public default Runnable getRunnable() {
-			return null;
-		}
-		
-	}
-	
-	public static class VKRenderWorkFactory implements ZERenderWorkFactory {
-
-		@Override
-		public VKRenderWork inlineWork(Runnable r) {
-			return new VKRenderWork() {
-
-				@Override
-				public void queueWork(VkCommandBuffer buffer) { }
-				
-				@Override
-				public Runnable getRunnable() {
-					return r;
-				}
-				
-			};
-		}
-
-		@Override
-		public ZECompoundRenderWork compoundWork(ZERenderWork[] components) {
-			return null;
-		}
-
-		@Override
-		public VKRenderWork bindPipeline(ZEPipeline pipeline) {
-			return null;
-		}
-
-		@Override
-		public VKRenderWork setScissor(Rectangle[] scissors) {
-			return null;
-		}
-
-		@Override
-		public VKRenderWork setLineWidth(float width) {
-			return new VKRenderWork() {
-
-				@Override
-				public void queueWork(VkCommandBuffer buffer) {
-					VK10.vkCmdSetLineWidth(buffer, width);
-				}
-				
-			};
-		}
-
-		@Override
-		public VKRenderWork setDepthBounds(double min, double max) {
-			return new VKRenderWork() {
-
-				@Override
-				public void queueWork(VkCommandBuffer buffer) {
-					VK10.vkCmdSetDepthBounds(buffer, (float)min, (float)max);
-				}
-				
-			};
-		}
-
-		@Override
-		public VKRenderWork bindVertexBuffer(ZEVertexBuffer buffer) {
-			return null;
-		}
-
-		@Override
-		public VKRenderWork bindIndexBuffer(ZEIndexBuffer buffer) {
-			return null;
-		}
-
-		@Override
-		public VKRenderWork draw(int nVertices, int start) {
-			return new VKRenderWork() {
-
-				@Override
-				public void queueWork(VkCommandBuffer buffer) {
-					VK10.vkCmdDraw(buffer, nVertices, 1, start, 0);
-				}
-				
-			};
-		}
-
-		@Override
-		public VKRenderWork drawIndexed(int nIndices, int startIndex, int startVertex) {
-			return new VKRenderWork() {
-
-				@Override
-				public void queueWork(VkCommandBuffer buffer) {
-					VK10.vkCmdDrawIndexed(buffer, nIndices, 1, startIndex, startVertex, 0);
-				}
-				
-			};
-		}
-
-		@Override
-		public VKRenderWork setEvent(ZEEvent event) {
-			return new VKRenderWork() {
-
-				@Override
-				public void queueWork(VkCommandBuffer buffer) {
-					VK10.vkCmdSetEvent(buffer, 0, 0); // TODO: Determine the VkPipelineStageFlagBits to use for this
-				}
-				
-			};
-		}
-
-		@Override
-		public VKRenderWork resetEvent(ZEEvent event) {
-			return new VKRenderWork() {
-
-				@Override
-				public void queueWork(VkCommandBuffer buffer) {
-					VK10.vkCmdResetEvent(buffer, 0, 0); // TODO: Determine the VKPipelineStageFlagBits to use for this
-				}
-				
-			};
-		}
-
-		@Override
-		public VKRenderWork blitBuffer(ZEBuffer src, ZEBuffer dst, int srcIndex, int dstIndex, int size) {
-			VkBufferCopy.Buffer bufCopy = new VkBufferCopy.Buffer(BufferUtils.createByteBuffer(VkBufferCopy.SIZEOF));
-			bufCopy.get(0).set(srcIndex, dstIndex, size);
-			return new VKRenderWork() {
-				
-				@Override
-				public void queueWork(VkCommandBuffer buffer) {
-					VK10.vkCmdCopyBuffer(buffer, ((VKBuffer)src).buffer, ((VKBuffer)dst).buffer, bufCopy);
-				}
-				
-			};
-		}
-		
-		public VKRenderWork vkBlitBuffer(ZEBuffer src, ZEBuffer dst, VkBufferCopy ... regions) {
-			VkBufferCopy.Buffer pRegions = new VkBufferCopy.Buffer(BufferUtils.createByteBuffer(VkBufferCopy.SIZEOF * regions.length));
-			for(int i = 0; i < regions.length; i++) pRegions.put(i, regions[i]);
-			return new VKRenderWork() {
-
-				@Override
-				public void queueWork(VkCommandBuffer buffer) {
-					VK10.vkCmdCopyBuffer(buffer, ((VKBuffer)src).buffer, ((VKBuffer)dst).buffer, pRegions);
-				}
-				
-			};
-		}
-		
-		public VKRenderWork vkCopyImage(ZETexture src, ZETexture dst, VkImageCopy ... regions) {
-			VkImageCopy.Buffer pRegions = new VkImageCopy.Buffer(BufferUtils.createByteBuffer(VkImageCopy.SIZEOF * regions.length));
-			for(int i = 0; i < regions.length; i++) pRegions.put(i, regions[i]);
-			return new VKRenderWork() {
-
-				@Override
-				public void queueWork(VkCommandBuffer buffer) {
-					VK10.vkCmdCopyImage(buffer, ((VKTexture)src).image, ((VKTexture)src).imageLayout, ((VKTexture)dst).image, 
-							((VKTexture)dst).imageLayout, pRegions);
-				}
-				
-			};
-		}
-		
-		public VKRenderWork vkBlitImage(ZETexture src, ZETexture dst, int filter, VkImageBlit ... regions) {
-			VkImageBlit.Buffer pRegions = new VkImageBlit.Buffer(BufferUtils.createByteBuffer(VkImageBlit.SIZEOF * regions.length));
-			for(int i = 0; i < regions.length; i++) pRegions.put(i, regions[i]);
-			return new VKRenderWork() {
-
-				@Override
-				public void queueWork(VkCommandBuffer buffer) {
-					VK10.vkCmdBlitImage(buffer, ((VKTexture)src).image, ((VKTexture)src).imageLayout, ((VKTexture)dst).image, 
-							((VKTexture)dst).imageLayout, pRegions, filter);
-				}
-			
-			};
-		}
-		
-		public VKRenderWork vkCopyImageToBuffer(ZETexture src, ZEBuffer dst, VkBufferImageCopy ... regions) {
-			VkBufferImageCopy.Buffer pRegions = new VkBufferImageCopy.Buffer(
-					BufferUtils.createByteBuffer(VkBufferImageCopy.SIZEOF * regions.length));
-			return new VKRenderWork() {
-
-				@Override
-				public void queueWork(VkCommandBuffer buffer) {
-					VK10.vkCmdCopyImageToBuffer(buffer, ((VKTexture)src).image, ((VKTexture)src).imageLayout,
-							((VKBuffer)dst).buffer, pRegions);
-				}
-				
-			};
-		}
-		
-		public VKRenderWork vkCopyBufferToImage(ZEBuffer src, ZETexture dst, VkBufferImageCopy ... regions) {
-			VkBufferImageCopy.Buffer pRegions = new VkBufferImageCopy.Buffer(
-					BufferUtils.createByteBuffer(VkBufferImageCopy.SIZEOF * regions.length));
-			return new VKRenderWork() {
-
-				@Override
-				public void queueWork(VkCommandBuffer buffer) {
-					VK10.vkCmdCopyBufferToImage(buffer, ((VKBuffer)src).buffer, ((VKTexture)dst).image,
-							((VKTexture)dst).imageLayout, pRegions);
-				}
-				
-			};
-		}
-		
-		public VKRenderWork vkFillBuffer(ZEBuffer dst, long offset, long size, int data) {
-			return new VKRenderWork() {
-
-				@Override
-				public void queueWork(VkCommandBuffer buffer) {
-					VK10.vkCmdFillBuffer(buffer, ((VKBuffer)dst).buffer, offset, size, data);
-				}
-				
-			};
-		}
-		
-		public VKRenderWork vkSetDepthBias(float constFactor, float clamp, float slopeFactor) {
-			return new VKRenderWork() {
-
-				@Override
-				public void queueWork(VkCommandBuffer buffer) {
-					VK10.vkCmdSetDepthBias(buffer, constFactor, clamp, slopeFactor);
-				}
-				
-			};
-		}
-		
-		public VKRenderWork vkDrawIndirect(ZEBuffer buffer, long offset, int drawCount, int stride) {
-			return new VKRenderWork() {
-
-				@Override
-				public void queueWork(VkCommandBuffer buf) {
-					VK10.vkCmdDrawIndirect(buf, ((VKBuffer)buffer).buffer, offset, drawCount, stride);
-				}
-			
-			};
-		}
-		
-		public VKRenderWork vkDrawIndexedIndirect(ZEBuffer buffer, long offset, int drawCount, int stride) {
-			return new VKRenderWork() {
-
-				@Override
-				public void queueWork(VkCommandBuffer buf) {
-					VK10.vkCmdDrawIndexedIndirect(buf, ((VKBuffer)buffer).buffer, offset, drawCount, stride);
-				}
-				
-			};
-		}
-		
-		public VKRenderWork vkUpdateBuffer(final ZEBuffer buffer, long offset, long size, Buffer data) {
-			return new VKRenderWork() {
-
-				@Override
-				public void queueWork(VkCommandBuffer buf) {
-					VK10.nvkCmdUpdateBuffer(buf, ((VKBuffer)buffer).buffer, offset, size, MemoryUtil.memAddress0(data));
-				}
-				
-			};
-		}
-		
-	}
-	
-	// It doesn't technically need to be per render backend instance, but it could be useful in the future
-	private final VKRenderWorkFactory factory = new VKRenderWorkFactory();
 
 	@Override
-	public ZERenderWorkFactory getWorkFactory() {
-		return factory;
+	public ZEVertexBuffer createVertexBuffer(ZEBuffer buffer) {
+		// TODO Auto-generated method stub
+		return null;
 	}
-	
-	public static int getVkFormat(ZEPixelFormat fmt) {
-		switch(fmt) {
-		case A8R8G8B8: return VK10.VK_FORMAT_A8B8G8R8_UNORM_PACK32;
-		case R8G8B8A8: return VK10.VK_FORMAT_R8G8B8A8_UNORM;
+
+	@Override
+	public ZETexture createTexture(int width, int height, ZEPixelFormat format) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public ZETexture[] createTextures(int[] width, int[] height, ZEPixelFormat[] format) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void destroyTexture(ZETexture texture) {
+		VKTexture vktex = (VKTexture)texture;
+		VK10.vkDestroyImageView(device.logicalDevice, vktex.imageView, context.allocCallbacks);
+		VK10.vkDestroyImage(device.logicalDevice, vktex.image, context.allocCallbacks);
+		VK10.vkFreeMemory(device.logicalDevice, vktex.imageMemory, context.allocCallbacks);
+	}
+
+	@Override
+	public void destroyPipeline(ZEPipeline pipeline) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public ZEIndexBuffer createIndexBuffer(ZEBuffer buffer, PrimitiveType indexType) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void destroyTexture(ZETexture... textures) {
+		for(ZETexture tex : textures) {
+			VKTexture vktex = (VKTexture)tex;
+			VK10.vkDestroyImageView(device.logicalDevice, vktex.imageView, context.allocCallbacks);
+			VK10.vkDestroyImage(device.logicalDevice, vktex.image, context.allocCallbacks);
+			VK10.vkFreeMemory(device.logicalDevice, vktex.imageMemory, context.allocCallbacks);
 		}
-		return VK10.VK_FORMAT_UNDEFINED;
+	}
+
+	@Override
+	public ZERenderCommandBuffer createCommandBuffer(boolean multipleRecords) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public ZERenderCommandBuffer createCommandBuffers(int count, boolean multipleRecords) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void destroyCommandBuffer(ZERenderCommandBuffer cmdBuf) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void desotryCommandBuffers(ZERenderCommandBuffer... cmdBufs) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void submitCommands(ZERenderCommandBuffer cmdBuf) {
+		// TODO Auto-generated method stub
+		
 	}
 
 }

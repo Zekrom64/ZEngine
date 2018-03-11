@@ -7,10 +7,10 @@ import org.bridj.ann.Field;
 import org.bridj.ann.Union;
 
 import com.zekrom_64.ze.libav.enums.AVOptionType;
-import com.zekrom_64.ze.nat.Struct;
+import com.zekrom_64.ze.nat.ZEStruct;
 
 @org.bridj.ann.Struct
-public class AVOption extends Struct<AVOption> {
+public class AVOption extends ZEStruct<AVOption> {
 
 	static {
 		BridJ.register();
@@ -62,7 +62,7 @@ public class AVOption extends Struct<AVOption> {
 	}
 	
 	@Union
-	public class AVOption_union extends Struct<AVOption_union> {
+	public class AVOption_union extends ZEStruct<AVOption_union> {
 		
 		@Field(0)
 		public long i64() {

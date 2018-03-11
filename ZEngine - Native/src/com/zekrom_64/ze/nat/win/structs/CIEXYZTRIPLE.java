@@ -2,7 +2,7 @@ package com.zekrom_64.ze.nat.win.structs;
 
 import org.bridj.ann.Field;
 
-import com.zekrom_64.ze.nat.Struct;
+import com.zekrom_64.ze.nat.ZEStruct;
 
 /** The <b>CIEXYZTRIPLE</b> structure contains the <i>x</i>,<i>y</i>, and <i>z</i> coordinates of the three colors that correspond
  * to the red, green, and blue endpoints for a specified logical color space.
@@ -10,7 +10,7 @@ import com.zekrom_64.ze.nat.Struct;
  * @author Zekrom_64
  *
  */
-public class CIEXYZTRIPLE extends Struct<CIEXYZTRIPLE> {
+public class CIEXYZTRIPLE extends ZEStruct<CIEXYZTRIPLE> {
 
 	/** The xyz coordinates of red endpoint.
 	 */

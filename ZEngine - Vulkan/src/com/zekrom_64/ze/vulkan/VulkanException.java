@@ -7,10 +7,23 @@ import org.lwjgl.vulkan.KHRSwapchain;
 import org.lwjgl.vulkan.NVGLSLShader;
 import org.lwjgl.vulkan.VK10;
 
-public class VulkanException extends Exception {
+/** A Vulkan exception is an exception caused by some error
+ * caused by or in relation to Vulkan.
+ * 
+ * @author Zekrom_64
+ *
+ */
+public class VulkanException extends RuntimeException {
 
 	private static final long serialVersionUID = 6730423186819842285L;
 
+	/** Gets a string describing a Vulkan error code. If an appropriate
+	 * string is not known, the string "<tt>Unknown error (0x<errorcode>)</tt>"
+	 * is returned.
+	 * 
+	 * @param err Vulkan error code
+	 * @return Descriptive string
+	 */
 	public static final String getExceptionString(int err) {
 		switch(err) {
 		case VK10.VK_ERROR_DEVICE_LOST: return "Device lost";
@@ -27,20 +40,50 @@ public class VulkanException extends Exception {
 		case VK10.VK_ERROR_TOO_MANY_OBJECTS: return "Too many objects";
 		case KHRSurface.VK_ERROR_NATIVE_WINDOW_IN_USE_KHR: return "Display surface native window already in use";
 		case KHRSurface.VK_ERROR_SURFACE_LOST_KHR: return "Display surface lost";
-		case KHRSwapchain.VK_ERROR_OUT_OF_DATE_KHR: return "Swapchain has become incompatible with display surface";
+		case KHRSwapchain.VK_ERROR_OUT_OF_DATE_KHR: return "Swapchain is no longer usable with display surface";
 		case KHRDisplaySwapchain.VK_ERROR_INCOMPATIBLE_DISPLAY_KHR: return "Swapchain is incompatible with display";
 		case EXTDebugReport.VK_ERROR_VALIDATION_FAILED_EXT: return "Validation failed";
 		case NVGLSLShader.VK_ERROR_INVALID_SHADER_NV: return "Invalid GLSL shader (Nvidia)";
 		}
-		return "Unknown error (0x" + Integer.toHexString(err) + ")";
+		return "Unknown error (0x" + String.format("%08x", err) + ")";
 	}
 	
+	/** Creates a Vulkan exception with the given message.
+	 * 
+	 * @param msg Error message
+	 */
+	public VulkanException(String msg) {
+		super(msg);
+	}
+	
+	/** Creates a Vulkan exception with a string describing the given
+	 * error, retrieved using {@link #getExceptionString(int)}.
+	 * 
+	 * @param err Vulkan error code
+	 */
 	public VulkanException(int err) {
 		super(getExceptionString(err));
 	}
 	
-	public VulkanException(int err, String msg) {
-		super(getExceptionString(err) + ": " + msg);
+	/** Creates a Vulkan exception with the given message,
+	 * appending a string describing the error retrieved
+	 * using {@link #getExceptionString(int)}.
+	 * 
+	 * @param msg Error message
+	 * @param err Vulkan error code
+	 */
+	public VulkanException(String msg, int err) {
+		super(msg + ": " + getExceptionString(err));
+	}
+	
+	/** Creates a Vulkan exception with the given message
+	 * and a Throwable that caused this exception.
+	 * 
+	 * @param msg Error message
+	 * @param cause Cause of exception
+	 */
+	public VulkanException(String msg, Throwable cause) {
+		super(msg, cause);
 	}
 	
 }

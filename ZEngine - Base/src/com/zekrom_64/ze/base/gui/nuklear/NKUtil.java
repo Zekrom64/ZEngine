@@ -13,6 +13,7 @@ import org.lwjgl.nuklear.NkUserFont;
 import org.lwjgl.nuklear.NkUserFontGlyph;
 import org.lwjgl.system.MemoryUtil;
 
+@Deprecated
 public class NKUtil {
 	
 	// FontRenderContext w/ anti-aliasing on and fractional metrics off

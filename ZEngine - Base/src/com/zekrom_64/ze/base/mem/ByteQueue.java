@@ -10,7 +10,7 @@ import org.lwjgl.BufferUtils;
  * @author Zekrom_64
  *
  */
-public class ByteQueue extends Queue {
+public class ByteQueue extends MemoryQueue {
 	
 	private byte[] array = new byte[0];
 	
@@ -56,6 +56,7 @@ public class ByteQueue extends Queue {
 		int needed = position+n;
 		if (needed>array.length) {
 			int toadd = needed - array.length;
+			toadd = Math.max(toadd, 2048);
 			array = Arrays.copyOf(array, array.length+toadd);
 		}
 	}

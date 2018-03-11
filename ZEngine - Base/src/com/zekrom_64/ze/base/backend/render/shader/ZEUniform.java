@@ -8,12 +8,6 @@ package com.zekrom_64.ze.base.backend.render.shader;
  */
 public interface ZEUniform {
 
-	/** Gets the shader type of the uniform.
-	 * 
-	 * @return Uniform type
-	 */
-	public ZEUniformType getType();
-
 	/** Gets the name of the uniform in the shader program.
 	 * 
 	 * @return Uniform name
@@ -21,7 +15,7 @@ public interface ZEUniform {
 	public String getName();
 	
 	/** Gets the number of elements in the uniform. If this is 1, this is either a single value, or an array of
-	 * length 1 (why?). Otherwise, this is the length of the array in elements. This should never return a value
+	 * length 1. Otherwise, this is the length of the array in elements. This should never return a value
 	 * less than 0.
 	 * 
 	 * @return Array size of uniform
@@ -29,5 +23,11 @@ public interface ZEUniform {
 	public default int getLength() {
 		return 1;
 	}
+	
+	/** Gets the shader type of the uniform.
+	 * 
+	 * @return Shader uniform type
+	 */
+	public ZEShaderType getShaderType();
 	
 }

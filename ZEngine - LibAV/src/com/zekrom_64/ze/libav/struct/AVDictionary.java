@@ -4,10 +4,10 @@ import org.bridj.BridJ;
 import org.bridj.Pointer;
 import org.bridj.ann.Field;
 
-import com.zekrom_64.ze.nat.Struct;
+import com.zekrom_64.ze.nat.ZEStruct;
 
 @org.bridj.ann.Struct
-public class AVDictionary extends Struct<AVDictionary> {
+public class AVDictionary extends ZEStruct<AVDictionary> {
 	
 	static {
 		BridJ.register();

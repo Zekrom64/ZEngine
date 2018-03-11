@@ -2,7 +2,7 @@ package com.zekrom_64.ze.nat.win;
 
 import org.bridj.BridJ;
 
-import com.zekrom_64.ze.nat.Struct;
+import com.zekrom_64.ze.nat.ZEStruct;
 
 public class WinTypes {
 
@@ -10,9 +10,9 @@ public class WinTypes {
 		BridJ.register();
 	}
 	
-	public static class HANDLE<T extends HANDLE<?>> extends Struct<T> { }
+	public static class HANDLE<T extends HANDLE<?>> extends ZEStruct<T> { }
 	
-	public static class HGDIOBJ<T extends HGDIOBJ<?>> extends Struct<T> { }
+	public static class HGDIOBJ<T extends HGDIOBJ<?>> extends ZEStruct<T> { }
 	
 	
 	

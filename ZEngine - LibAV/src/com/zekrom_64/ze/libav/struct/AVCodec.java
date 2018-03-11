@@ -10,10 +10,10 @@ import com.zekrom_64.ze.libav.enums.AVCodecID;
 import com.zekrom_64.ze.libav.enums.AVMediaType;
 import com.zekrom_64.ze.libav.enums.AVPixelFormat;
 import com.zekrom_64.ze.libav.enums.AVSampleFormat;
-import com.zekrom_64.ze.nat.Struct;
+import com.zekrom_64.ze.nat.ZEStruct;
 
 @org.bridj.ann.Struct
-public class AVCodec extends Struct<AVCodec> {
+public class AVCodec extends ZEStruct<AVCodec> {
 
 	static {
 		BridJ.register();

@@ -5,10 +5,6 @@
 	<classpathentry combineaccessrules="false" kind="src" path="/ZEngine - Base"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/ZEngine - Native"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/ZEngine - OpenGL"/>
-	<classpathentry kind="lib" path="/Libraries/lib/lwjgl/org.lwjgl/lwjgl.jar" sourcepath="/Libraries/lib/lwjgl/org.lwjgl/lwjgl-sources.jar">
-		<attributes>
-			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="Libraries/lib/lwjgl/native"/>
-		</attributes>
-	</classpathentry>
+	<classpathentry kind="lib" path="/Libraries/lib/lwjgl3.1.2/lwjgl.jar" sourcepath="/Libraries/lib/lwjgl3.1.2/lwjgl-sources.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

@@ -10,9 +10,9 @@ import org.bridj.ann.Field;
 import com.zekrom_64.ze.libav.callback.AVFormatControlMessage;
 import com.zekrom_64.ze.libav.enums.AVCodecID;
 import com.zekrom_64.ze.libav.enums.AVDurationEstimationMethod;
-import com.zekrom_64.ze.nat.Struct;
+import com.zekrom_64.ze.nat.ZEStruct;
 
-public class AVFormatContext extends Struct<AVFormatContext> {
+public class AVFormatContext extends ZEStruct<AVFormatContext> {
 
 	public AVFormatContext() {}
 	

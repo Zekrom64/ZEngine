@@ -2,14 +2,14 @@ package com.zekrom_64.ze.nat.win.structs;
 
 import org.bridj.ann.Field;
 
-import com.zekrom_64.ze.nat.Struct;
+import com.zekrom_64.ze.nat.ZEStruct;
 
 /** The <b>RGBQUAD</b> structure describes a color consisting of relative intensities of red, green, and blue.
  * 
  * @author Zekrom_64
  *
  */
-public class RGBQUAD extends Struct<RGBQUAD> {
+public class RGBQUAD extends ZEStruct<RGBQUAD> {
 
 	/** The intensity of blue in the color. */
 	@Field(0)

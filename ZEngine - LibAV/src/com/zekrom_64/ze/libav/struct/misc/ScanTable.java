@@ -4,9 +4,9 @@ import org.bridj.Pointer;
 import org.bridj.ann.Array;
 import org.bridj.ann.Field;
 
-import com.zekrom_64.ze.nat.Struct;
+import com.zekrom_64.ze.nat.ZEStruct;
 
-public class ScanTable extends Struct<ScanTable> {
+public class ScanTable extends ZEStruct<ScanTable> {
 
 	@Field(0)
 	public Pointer<Byte> scantable() {

@@ -6,10 +6,10 @@ import org.bridj.Pointer;
 import org.bridj.ann.Field;
 
 import com.zekrom_64.ze.libav.enums.AVCodecID;
-import com.zekrom_64.ze.nat.Struct;
+import com.zekrom_64.ze.nat.ZEStruct;
 
 @org.bridj.ann.Struct
-public class AVCodecTag extends Struct<AVCodecTag> {
+public class AVCodecTag extends ZEStruct<AVCodecTag> {
 
 	static {
 		BridJ.register();

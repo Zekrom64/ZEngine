@@ -17,4 +17,17 @@ public interface GLContext {
 	 */
 	public void swapBuffers();
 	
+	/** Tests if the OpenGL context is bound to the current thread.
+	 * 
+	 */
+	public boolean isBound();
+	
+	/** Tests {@link #isBound()} and if false calls {@link #bind()}.
+	 * 
+	 */
+	public default void ensureBound() {
+		if (!isBound()) bind();
+	}
+	
+	
 }

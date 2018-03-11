@@ -64,6 +64,10 @@ public class GLVersion implements Comparable<GLVersion> {
 		return Integer.compare(minor, arg0.minor);
 	}
 	
+	public boolean greaterOrEqual(GLVersion other) {
+		return compareTo(other) >= 0;
+	}
+	
 	public static boolean extensionExists(String name) {
 		String exts = GL11.glGetString(GL11.GL_EXTENSIONS);
 		return exts.contains(name);

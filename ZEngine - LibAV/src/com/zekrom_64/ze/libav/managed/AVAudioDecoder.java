@@ -8,6 +8,7 @@ import com.zekrom_64.ze.libav.enums.AVMediaType;
 import com.zekrom_64.ze.libav.struct.AVCodec;
 import com.zekrom_64.ze.libav.struct.AVCodecContext;
 
+@Deprecated
 public class AVAudioDecoder implements AVContext, AVSeekable{
 
 	public AVAudioConsumer consumer = AVAudioConsumer.NULL;

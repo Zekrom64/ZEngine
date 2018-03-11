@@ -12,10 +12,10 @@ import com.zekrom_64.ze.libav.enums.AVColorRange;
 import com.zekrom_64.ze.libav.enums.AVColorSpace;
 import com.zekrom_64.ze.libav.enums.AVColorTransferCharacteristic;
 import com.zekrom_64.ze.libav.enums.AVPictureType;
-import com.zekrom_64.ze.nat.Struct;
+import com.zekrom_64.ze.nat.ZEStruct;
 
 @org.bridj.ann.Struct
-public class AVFrame extends Struct<AVFrame> {
+public class AVFrame extends ZEStruct<AVFrame> {
 	
 	static {
 		BridJ.register();

@@ -5,7 +5,7 @@ import org.bridj.CLong;
 import org.bridj.Pointer;
 import org.bridj.ann.Library;
 
-import com.zekrom_64.ze.nat.Struct;
+import com.zekrom_64.ze.nat.ZEStruct;
 
 @Library("x11")
 public class X11 {
@@ -14,7 +14,7 @@ public class X11 {
 		BridJ.register();
 	}
 	
-	public class Display extends Struct<Display> { }
+	public class Display extends ZEStruct<Display> { }
 
 	public static final int
 		True = 1,

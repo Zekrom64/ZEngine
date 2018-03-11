@@ -5,7 +5,6 @@ import java.nio.IntBuffer;
 
 import org.bridj.Pointer;
 import org.lwjgl.BufferUtils;
-import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GLX;
 import org.lwjgl.opengl.WGL;
 import org.lwjgl.system.Platform;
@@ -93,8 +92,7 @@ public class GLCanvas extends Canvas implements GLContext {
 			
 			XVisualInfo vi = GLX.glXChooseVisual(dpy, 0, att);
 			if (vi.address()==0) return;
-			
-			glcontext = GLX.glXCreateContext(dpy, vi, ctx, GL11.GL_TRUE);
+			glcontext = GLX.glXCreateContext(dpy, vi, ctx, true);
 			
 			XComponentPeer peer = (XComponentPeer)this.getPeer();
 			win = peer.getContentWindow();
@@ -123,6 +121,7 @@ public class GLCanvas extends Canvas implements GLContext {
 		glcontext = 0;
 	}
 	
+	@Override
 	public void swapBuffers() {
 		if (platform==Platform.WINDOWS) {
 			GDI32.SwapBuffers(hdc);
@@ -155,6 +154,12 @@ public class GLCanvas extends Canvas implements GLContext {
 	@Override
 	protected void finalize() {
 		deinitGL();
+	}
+
+	@Override
+	public boolean isBound() {
+		if (platform==Platform.WINDOWS) return WGL.wglGetCurrentContext() == glcontext;
+		else return GLX.glXGetCurrentContext() == glcontext;
 	}
 
 }

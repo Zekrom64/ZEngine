@@ -26,4 +26,6 @@ public class WGL {
 	
 	public static native boolean wglShareLists(Pointer<HGLRC> hglrc1, Pointer<HGLRC> hglrc2);
 	
+	public static native Pointer<HGLRC> wglGetCurrentContext();
+	
 }

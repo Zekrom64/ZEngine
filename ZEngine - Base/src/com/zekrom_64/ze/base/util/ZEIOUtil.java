@@ -6,6 +6,11 @@ import java.io.Reader;
 
 import com.zekrom_64.ze.base.mem.ByteQueue;
 
+/** Class for I/O utility methods.
+ * 
+ * @author Zekrom_64
+ *
+ */
 public class ZEIOUtil {
 
 	/** Reads all of the data from a reader and puts it into a string.

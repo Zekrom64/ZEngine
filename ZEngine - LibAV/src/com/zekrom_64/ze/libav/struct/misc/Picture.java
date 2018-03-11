@@ -7,9 +7,9 @@ import org.bridj.ann.Field;
 import com.zekrom_64.ze.libav.LibAVCodec;
 import com.zekrom_64.ze.libav.struct.AVBufferRef;
 import com.zekrom_64.ze.libav.struct.AVFrame;
-import com.zekrom_64.ze.nat.Struct;
+import com.zekrom_64.ze.nat.ZEStruct;
 
-public class Picture extends Struct<Picture> {
+public class Picture extends ZEStruct<Picture> {
 	
 	@Field(0) 
 	public Pointer<AVFrame > f() {

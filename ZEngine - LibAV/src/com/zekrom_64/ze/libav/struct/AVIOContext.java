@@ -6,10 +6,10 @@ import org.bridj.Pointer;
 import org.bridj.ann.CLong;
 import org.bridj.ann.Field;
 
-import com.zekrom_64.ze.nat.Struct;
+import com.zekrom_64.ze.nat.ZEStruct;
 
 @org.bridj.ann.Struct
-public class AVIOContext extends Struct<AVIOContext> {
+public class AVIOContext extends ZEStruct<AVIOContext> {
 	public static abstract class read_packet_callback extends Callback<read_packet_callback > {
 		public abstract int apply(Pointer<? > opaque, Pointer<Byte > buf, int buf_size);
 	}

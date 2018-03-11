@@ -2,14 +2,14 @@ package com.zekrom_64.ze.nat.win.structs;
 
 import org.bridj.ann.Field;
 
-import com.zekrom_64.ze.nat.Struct;
+import com.zekrom_64.ze.nat.ZEStruct;
 
 /** The <b>BITMAPINFOHEADER</b> structure contains information about the dimensions and color format of a DIB.
  * 
  * @author Zekrom_64
  *
  */
-public class BITMAPINFOHEADER extends Struct<BITMAPINFOHEADER> {
+public class BITMAPINFOHEADER extends ZEStruct<BITMAPINFOHEADER> {
 
 	/** The number of bytes required by the structure */
 	@Field(0)

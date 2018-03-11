@@ -3,7 +3,7 @@ package com.zekrom_64.ze.nat.win.structs;
 import org.bridj.ann.CLong;
 import org.bridj.ann.Field;
 
-import com.zekrom_64.ze.nat.Struct;
+import com.zekrom_64.ze.nat.ZEStruct;
 
 /** The <b>BITMAPV5HEADER</b> structure is the bitmap information header file. It is an extended version of the
  * {@link BITMAPINFOHEADER} structure.
@@ -11,7 +11,7 @@ import com.zekrom_64.ze.nat.Struct;
  * @author Zekrom_64
  *
  */
-public class BITMAPV5HEADER extends Struct<BITMAPV5HEADER> {
+public class BITMAPV5HEADER extends ZEStruct<BITMAPV5HEADER> {
 
 	/** The number of bytes required by the structure. Applications should use this member to determine which bitmap information header
 	 * structure is being used.

@@ -6,8 +6,9 @@ import org.lwjgl.opengl.GL30;
 /** Types defined by OpenGL
  * 
  * @author Zekrom_64
- *
+ * @deprecated Use {@link com.zekrom_64.ze.base.util.PrimitiveType PrimitiveType} instead.
  */
+@Deprecated
 public enum GLType {
 
 	BYTE(GL11.GL_BYTE, 1, true, false),

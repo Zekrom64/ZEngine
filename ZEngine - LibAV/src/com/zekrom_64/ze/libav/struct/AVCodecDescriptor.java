@@ -7,10 +7,10 @@ import org.bridj.ann.Field;
 
 import com.zekrom_64.ze.libav.enums.AVCodecID;
 import com.zekrom_64.ze.libav.enums.AVMediaType;
-import com.zekrom_64.ze.nat.Struct;
+import com.zekrom_64.ze.nat.ZEStruct;
 
 @org.bridj.ann.Struct
-public class AVCodecDescriptor extends Struct<AVCodecDescriptor> {
+public class AVCodecDescriptor extends ZEStruct<AVCodecDescriptor> {
 
 	static {
 		BridJ.register();

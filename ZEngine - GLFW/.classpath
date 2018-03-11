@@ -6,7 +6,7 @@
 	<classpathentry combineaccessrules="false" kind="src" path="/ZEngine - OpenGL"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/ZEngine - Vulkan"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/ZEngine - Native"/>
-	<classpathentry kind="lib" path="/Libraries/lib/lwjgl/org.lwjgl.glfw/lwjgl-glfw.jar" sourcepath="/Libraries/lib/lwjgl/org.lwjgl.glfw/lwjgl-glfw-sources.jar"/>
-	<classpathentry kind="lib" path="/Libraries/lib/lwjgl/org.lwjgl/lwjgl.jar" sourcepath="/Libraries/lib/lwjgl/org.lwjgl/lwjgl-sources.jar"/>
+	<classpathentry kind="lib" path="/Libraries/lib/lwjgl3.1.2/lwjgl-glfw.jar" sourcepath="/Libraries/lib/lwjgl3.1.2/lwjgl-glfw-sources.jar"/>
+	<classpathentry kind="lib" path="/Libraries/lib/lwjgl3.1.2/lwjgl.jar" sourcepath="/Libraries/lib/lwjgl3.1.2/lwjgl-sources.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

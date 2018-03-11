@@ -6,10 +6,10 @@ import org.bridj.Pointer;
 import org.bridj.ann.Array;
 import org.bridj.ann.Field;
 
-import com.zekrom_64.ze.nat.Struct;
+import com.zekrom_64.ze.nat.ZEStruct;
 
 @org.bridj.ann.Struct
-public class AVCodecParser extends Struct<AVCodecParser> {
+public class AVCodecParser extends ZEStruct<AVCodecParser> {
 
 	static {
 		BridJ.register();

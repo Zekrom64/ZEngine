@@ -6,9 +6,9 @@ import org.bridj.Pointer;
 import org.bridj.ann.Field;
 
 import com.zekrom_64.ze.libav.enums.AVDiscard;
-import com.zekrom_64.ze.nat.Struct;
+import com.zekrom_64.ze.nat.ZEStruct;
 
-public class AVProgram extends Struct<AVProgram> {
+public class AVProgram extends ZEStruct<AVProgram> {
 	static {
 		BridJ.register();
 	}

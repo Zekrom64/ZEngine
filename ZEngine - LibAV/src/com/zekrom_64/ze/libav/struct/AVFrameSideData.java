@@ -6,10 +6,10 @@ import org.bridj.Pointer;
 import org.bridj.ann.Field;
 
 import com.zekrom_64.ze.libav.enums.AVFrameSideDataType;
-import com.zekrom_64.ze.nat.Struct;
+import com.zekrom_64.ze.nat.ZEStruct;
 
 @org.bridj.ann.Struct
-public class AVFrameSideData extends Struct<AVFrameSideData> {
+public class AVFrameSideData extends ZEStruct<AVFrameSideData> {
 	
 	static {
 		BridJ.register();

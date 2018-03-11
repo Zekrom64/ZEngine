@@ -5,15 +5,6 @@ import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.vecmath.Matrix3f;
-import javax.vecmath.Matrix4f;
-import javax.vecmath.Tuple2f;
-import javax.vecmath.Tuple3f;
-import javax.vecmath.Tuple4f;
-import javax.vecmath.Vector2f;
-import javax.vecmath.Vector3f;
-import javax.vecmath.Vector4f;
-
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GL21;
@@ -25,17 +16,23 @@ import org.lwjgl.opengl.GL41;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
 
-import com.zekrom_64.ze.base.backend.render.ZEShader;
-import com.zekrom_64.ze.base.backend.render.ZEShaderCompiler;
-import com.zekrom_64.ze.base.backend.render.ZEShaderProgram;
+import com.zekrom_64.mathlib.matrix.impl.Matrix3x3Float;
+import com.zekrom_64.mathlib.matrix.impl.Matrix4x4Float;
+import com.zekrom_64.mathlib.tuple.impl.Vector2Float;
+import com.zekrom_64.mathlib.tuple.impl.Vector3Float;
+import com.zekrom_64.mathlib.tuple.impl.Vector4Float;
+import com.zekrom_64.ze.base.backend.render.ZETextureDimension;
 import com.zekrom_64.ze.base.backend.render.shader.ZEAttributeDescription;
+import com.zekrom_64.ze.base.backend.render.shader.ZEShader;
+import com.zekrom_64.ze.base.backend.render.shader.ZEShaderCompiler;
+import com.zekrom_64.ze.base.backend.render.shader.ZEShaderProgram;
+import com.zekrom_64.ze.base.backend.render.shader.ZEShaderType;
+import com.zekrom_64.ze.base.backend.render.shader.ZEShaderType.ZEShaderTypeImageSampler;
+import com.zekrom_64.ze.base.backend.render.shader.ZEShaderType.ZEShaderTypeMatrix;
+import com.zekrom_64.ze.base.backend.render.shader.ZEShaderType.ZEShaderTypePrimitive;
+import com.zekrom_64.ze.base.backend.render.shader.ZEShaderType.ZEShaderTypeVector;
 import com.zekrom_64.ze.base.backend.render.shader.ZEUniform;
 import com.zekrom_64.ze.base.backend.render.shader.ZEUniformBool;
-import com.zekrom_64.ze.base.backend.render.shader.ZEUniformDouble;
-import com.zekrom_64.ze.base.backend.render.shader.ZEUniformFloat;
-import com.zekrom_64.ze.base.backend.render.shader.ZEUniformInt;
-import com.zekrom_64.ze.base.backend.render.shader.ZEUniformType;
-import com.zekrom_64.ze.base.backend.render.shader.ZEUniformUInt;
 import com.zekrom_64.ze.base.backend.render.shader.ZEUniformComplex.ZEUniformBoolArray;
 import com.zekrom_64.ze.base.backend.render.shader.ZEUniformComplex.ZEUniformDoubleArray;
 import com.zekrom_64.ze.base.backend.render.shader.ZEUniformComplex.ZEUniformFloatArray;
@@ -49,15 +46,21 @@ import com.zekrom_64.ze.base.backend.render.shader.ZEUniformComplex.ZEUniformVec
 import com.zekrom_64.ze.base.backend.render.shader.ZEUniformComplex.ZEUniformVec3Array;
 import com.zekrom_64.ze.base.backend.render.shader.ZEUniformComplex.ZEUniformVec4;
 import com.zekrom_64.ze.base.backend.render.shader.ZEUniformComplex.ZEUniformVec4Array;
-import com.zekrom_64.ze.base.err.ZEngineInternalException;
+import com.zekrom_64.ze.base.backend.render.shader.ZEUniformDouble;
+import com.zekrom_64.ze.base.backend.render.shader.ZEUniformFloat;
+import com.zekrom_64.ze.base.backend.render.shader.ZEUniformInt;
+import com.zekrom_64.ze.base.backend.render.shader.ZEUniformUInt;
+import com.zekrom_64.ze.base.util.PrimitiveType;
 
-public class GLShaderCompiler implements ZEShaderCompiler<com.zekrom_64.ze.gl.GLShaderCompiler.GLShader> {
-	
-	static final GLShaderCompiler INSTANCE = new GLShaderCompiler();
+public class GLShaderCompiler implements ZEShaderCompiler {
 	
 	public static class GLShader implements ZEShader {
 
-		private int shaderId = 0;
+		public final int shaderId;
+		
+		public GLShader(int id) {
+			shaderId = id;
+		}
 		
 		@Override
 		public String getShaderType() {
@@ -70,58 +73,63 @@ public class GLShaderCompiler implements ZEShaderCompiler<com.zekrom_64.ze.gl.GL
 			super.finalize();
 		}
 		
-		public static ZEUniformType getUniformType(int glslType) {
+		/** Gets the ZEngine equivalent uniform type from a GLSL uniform type value.
+		 * 
+		 * @param glslType GLSL uniform type
+		 * @return ZEngine uniform type
+		 */
+		public static ZEShaderType getUniformType(int glslType) {
 			if (glslType==-1) return null;
 			switch(glslType) {
-			case GL11.GL_FLOAT: return ZEUniformType.FLOAT;
-			case GL11.GL_INT: return ZEUniformType.INT;
-			case GL11.GL_DOUBLE: return ZEUniformType.DOUBLE;
-			case GL11.GL_UNSIGNED_INT: return ZEUniformType.UINT;
-			case GL20.GL_BOOL: return ZEUniformType.BOOL;
-			case GL20.GL_BOOL_VEC2: return ZEUniformType.BVEC2;
-			case GL20.GL_BOOL_VEC3: return ZEUniformType.BVEC3;
-			case GL20.GL_BOOL_VEC4: return ZEUniformType.BVEC4;
-			case GL20.GL_FLOAT_MAT2: return ZEUniformType.MAT2;
-			case GL20.GL_FLOAT_MAT3: return ZEUniformType.MAT3;
-			case GL20.GL_FLOAT_MAT4: return ZEUniformType.MAT4;
-			case GL20.GL_FLOAT_VEC2: return ZEUniformType.VEC2;
-			case GL20.GL_FLOAT_VEC3: return ZEUniformType.VEC3;
-			case GL20.GL_FLOAT_VEC4: return ZEUniformType.VEC4;
-			case GL20.GL_INT_VEC2: return ZEUniformType.IVEC2;
-			case GL20.GL_INT_VEC3: return ZEUniformType.IVEC3;
-			case GL20.GL_INT_VEC4: return ZEUniformType.IVEC4;
-			case GL20.GL_SAMPLER_1D: return ZEUniformType.SAMPLER1D;
-			case GL20.GL_SAMPLER_2D: return ZEUniformType.SAMPLER2D;
-			case GL20.GL_SAMPLER_3D: return ZEUniformType.SAMPLER3D;
-			case GL20.GL_SAMPLER_CUBE: return ZEUniformType.SAMPLER_CUBE;
-			case GL21.GL_FLOAT_MAT2x3: return ZEUniformType.MAT2X3;
-			case GL21.GL_FLOAT_MAT2x4: return ZEUniformType.MAT2X4;
-			case GL21.GL_FLOAT_MAT3x2: return ZEUniformType.MAT3X2;
-			case GL21.GL_FLOAT_MAT3x4: return ZEUniformType.MAT3X4;
-			case GL21.GL_FLOAT_MAT4x2: return ZEUniformType.MAT4X2;
-			case GL21.GL_FLOAT_MAT4x3: return ZEUniformType.MAT4X3;
-			case GL30.GL_UNSIGNED_INT_VEC2: return ZEUniformType.UIVEC2;
-			case GL30.GL_UNSIGNED_INT_VEC3: return ZEUniformType.UIVEC3;
-			case GL30.GL_UNSIGNED_INT_VEC4: return ZEUniformType.UIVEC4;
-			case GL30.GL_INT_SAMPLER_1D: return ZEUniformType.ISAMPLER1D;
-			case GL30.GL_INT_SAMPLER_2D: return ZEUniformType.ISAMPLER2D;
-			case GL30.GL_INT_SAMPLER_3D: return ZEUniformType.ISAMPLER3D;
-			case GL30.GL_INT_SAMPLER_CUBE: return ZEUniformType.ISAMPLER_CUBE;
-			case GL30.GL_UNSIGNED_INT_SAMPLER_1D: return ZEUniformType.UISAMPLER1D;
-			case GL30.GL_UNSIGNED_INT_SAMPLER_2D: return ZEUniformType.UISAMPLER2D;
-			case GL30.GL_UNSIGNED_INT_SAMPLER_3D: return ZEUniformType.UISAMPLER3D;
-			case GL30.GL_UNSIGNED_INT_SAMPLER_CUBE: return ZEUniformType.UISAMPLER_CUBE;
-			case GL31.GL_SAMPLER_2D_RECT: return ZEUniformType.SAMPLER_RECT;
-			case GL31.GL_SAMPLER_BUFFER: return ZEUniformType.SAMPLER_BUFFER;
-			case GL31.GL_INT_SAMPLER_2D_RECT: return ZEUniformType.ISAMPLER_RECT;
-			case GL31.GL_INT_SAMPLER_BUFFER: return ZEUniformType.ISAMPLER_BUFFER;
-			case GL31.GL_UNSIGNED_INT_SAMPLER_2D_RECT: return ZEUniformType.UISAMPLER_RECT;
-			case GL31.GL_UNSIGNED_INT_SAMPLER_BUFFER: return ZEUniformType.UISAMPLER_BUFFER;
-			case GL40.GL_DOUBLE_MAT2: return ZEUniformType.DMAT2;
-			case GL40.GL_DOUBLE_MAT2x3: return ZEUniformType.DMAT2X3;
-			case GL40.GL_DOUBLE_MAT2x4: return ZEUniformType.DMAT2X4;
+			case GL11.GL_FLOAT: return ZEShaderTypePrimitive.FLOAT;
+			case GL11.GL_INT: return ZEShaderTypePrimitive.INT;
+			case GL11.GL_DOUBLE: return ZEShaderTypePrimitive.DOUBLE;
+			case GL11.GL_UNSIGNED_INT: return ZEShaderTypePrimitive.get(PrimitiveType.UINT);
+			case GL20.GL_BOOL: return ZEShaderTypePrimitive.get(PrimitiveType.INT_BOOL);
+			case GL20.GL_BOOL_VEC2: return ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.INT_BOOL), 2);
+			case GL20.GL_BOOL_VEC3: return ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.INT_BOOL), 3);
+			case GL20.GL_BOOL_VEC4: return ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.INT_BOOL), 4);
+			case GL20.GL_FLOAT_MAT2: return ZEShaderTypeMatrix.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.FLOAT), 2), 2);
+			case GL20.GL_FLOAT_MAT3: return ZEShaderTypeMatrix.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.FLOAT), 3), 3);
+			case GL20.GL_FLOAT_MAT4: return ZEShaderTypeMatrix.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.FLOAT), 4), 4);
+			case GL20.GL_FLOAT_VEC2: return ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.FLOAT), 2);
+			case GL20.GL_FLOAT_VEC3: return ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.FLOAT), 3);
+			case GL20.GL_FLOAT_VEC4: return ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.FLOAT), 4);
+			case GL20.GL_INT_VEC2: return ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.INT), 2);
+			case GL20.GL_INT_VEC3: return ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.INT), 3);
+			case GL20.GL_INT_VEC4: return ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.INT), 4);
+			case GL20.GL_SAMPLER_1D: return ZEShaderTypeImageSampler.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.FLOAT), 4), ZETextureDimension.DIM_1D);
+			case GL20.GL_SAMPLER_2D: return ZEShaderTypeImageSampler.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.FLOAT), 4), ZETextureDimension.DIM_2D);
+			case GL20.GL_SAMPLER_3D: return ZEShaderTypeImageSampler.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.FLOAT), 4), ZETextureDimension.DIM_3D);
+			case GL20.GL_SAMPLER_CUBE: return ZEShaderTypeImageSampler.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.FLOAT), 4), ZETextureDimension.CUBE);
+			case GL21.GL_FLOAT_MAT2x3: return ZEShaderTypeMatrix.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.FLOAT), 3), 2);
+			case GL21.GL_FLOAT_MAT2x4: return ZEShaderTypeMatrix.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.FLOAT), 4), 2);
+			case GL21.GL_FLOAT_MAT3x2: return ZEShaderTypeMatrix.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.FLOAT), 2), 3);
+			case GL21.GL_FLOAT_MAT3x4: return ZEShaderTypeMatrix.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.FLOAT), 4), 3);
+			case GL21.GL_FLOAT_MAT4x2: return ZEShaderTypeMatrix.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.FLOAT), 4), 2);
+			case GL21.GL_FLOAT_MAT4x3: return ZEShaderTypeMatrix.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.FLOAT), 4), 3);
+			case GL30.GL_UNSIGNED_INT_VEC2: return ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.UINT), 2);
+			case GL30.GL_UNSIGNED_INT_VEC3: return ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.UINT), 3);
+			case GL30.GL_UNSIGNED_INT_VEC4: return ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.UINT), 4);
+			case GL30.GL_INT_SAMPLER_1D: return ZEShaderTypeImageSampler.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.INT), 4), ZETextureDimension.DIM_1D);
+			case GL30.GL_INT_SAMPLER_2D: return ZEShaderTypeImageSampler.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.INT), 4), ZETextureDimension.DIM_2D);
+			case GL30.GL_INT_SAMPLER_3D: return ZEShaderTypeImageSampler.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.INT), 4), ZETextureDimension.DIM_3D);
+			case GL30.GL_INT_SAMPLER_CUBE: return ZEShaderTypeImageSampler.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.INT), 4), ZETextureDimension.CUBE);
+			case GL30.GL_UNSIGNED_INT_SAMPLER_1D: return ZEShaderTypeImageSampler.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.UINT), 4), ZETextureDimension.DIM_1D);
+			case GL30.GL_UNSIGNED_INT_SAMPLER_2D: return ZEShaderTypeImageSampler.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.UINT), 4), ZETextureDimension.DIM_2D);
+			case GL30.GL_UNSIGNED_INT_SAMPLER_3D: return ZEShaderTypeImageSampler.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.UINT), 4), ZETextureDimension.DIM_3D);
+			case GL30.GL_UNSIGNED_INT_SAMPLER_CUBE: return ZEShaderTypeImageSampler.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.UINT), 4), ZETextureDimension.CUBE);
+			case GL31.GL_SAMPLER_2D_RECT: return ZEShaderTypeImageSampler.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.FLOAT), 4), ZETextureDimension.RECTANGLE);
+			case GL31.GL_SAMPLER_BUFFER: return ZEShaderTypeImageSampler.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.FLOAT), 4), ZETextureDimension.BUFFER_TEXTURE);
+			case GL31.GL_INT_SAMPLER_2D_RECT: return ZEShaderTypeImageSampler.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.INT), 4), ZETextureDimension.RECTANGLE);
+			case GL31.GL_INT_SAMPLER_BUFFER: return ZEShaderTypeImageSampler.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.INT), 4), ZETextureDimension.BUFFER_TEXTURE);
+			case GL31.GL_UNSIGNED_INT_SAMPLER_2D_RECT: return ZEShaderTypeImageSampler.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.UINT), 4), ZETextureDimension.RECTANGLE);
+			case GL31.GL_UNSIGNED_INT_SAMPLER_BUFFER: return ZEShaderTypeImageSampler.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.UINT), 4), ZETextureDimension.BUFFER_TEXTURE);
+			case GL40.GL_DOUBLE_MAT2: return ZEShaderTypeMatrix.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.DOUBLE), 2), 2);
+			case GL40.GL_DOUBLE_MAT2x3: return ZEShaderTypeMatrix.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.DOUBLE), 3), 2);
+			case GL40.GL_DOUBLE_MAT2x4: return ZEShaderTypeMatrix.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.DOUBLE), 4), 2);
 			}
-			return ZEUniformType.CUSTOM;
+			return null;
 		}
 
 	}
@@ -136,7 +144,11 @@ public class GLShaderCompiler implements ZEShaderCompiler<com.zekrom_64.ze.gl.GL
 		private final boolean canUseFastQuery = GLVersion.extensionExists("ARB_program_interface_query") ||
 				(GLVersion.getFromGL().compareTo(GLVersion.VERSION_4_3) >= 0);
 		*/
-		private int programId = 0;
+		public final int programId;
+		
+		public GLShaderProgram(int id) {
+			programId = id;
+		}
 
 		@Override
 		public ZEUniform getUniform(String name) {
@@ -212,13 +224,6 @@ public class GLShaderCompiler implements ZEShaderCompiler<com.zekrom_64.ze.gl.GL
 			public GLUniform(int loc) {
 				location = loc;
 			}
-			
-			@Override
-			public ZEUniformType getType() {
-				int[] pType = new int[1];
-				GL20.glGetActiveUniform(programId, location, null, null, pType, null);
-				return GLShader.getUniformType(pType[0]);
-			}
 
 			@Override
 			public String getName() {
@@ -237,6 +242,13 @@ public class GLShaderCompiler implements ZEShaderCompiler<com.zekrom_64.ze.gl.GL
 				int[] pSize = new int[1];
 				GL20.glGetActiveUniform(programId, location, null, pSize, null, null);
 				return pSize[0];
+			}
+
+			@Override
+			public ZEShaderType getShaderType() {
+				int[] pType = new int[1];
+				GL20.glGetActiveUniform(programId, location, null, null, pType, null);
+				return GLShader.getUniformType(pType[0]);
 			}
 			
 		}
@@ -342,21 +354,16 @@ public class GLShaderCompiler implements ZEShaderCompiler<com.zekrom_64.ze.gl.GL
 			public GLUniformVec2(int loc) {
 				super(loc);
 			}
-
-			@Override
-			public Tuple2f get() {
-				return getVec();
-			}
 			
 			@Override
-			public Vector2f getVec() {
+			public Vector2Float get() {
 				float[] pVec = new float[2];
 				GL20.glGetUniformfv(programId, location, pVec);
-				return new Vector2f(pVec);
+				return new Vector2Float(pVec);
 			}
 
 			@Override
-			public void set(Tuple2f t) {
+			public void set(Vector2Float t) {
 				set(t.x, t.y);
 			}
 
@@ -376,21 +383,16 @@ public class GLShaderCompiler implements ZEShaderCompiler<com.zekrom_64.ze.gl.GL
 			public GLUniformVec3(int loc) {
 				super(loc);
 			}
-
-			@Override
-			public Tuple3f get() {
-				return getVec();
-			}
 			
 			@Override
-			public Vector3f getVec() {
+			public Vector3Float get() {
 				float[] pVec = new float[3];
 				GL20.glGetUniformfv(programId, location, pVec);
-				return new Vector3f(pVec);
+				return new Vector3Float(pVec);
 			}
 
 			@Override
-			public void set(Tuple3f t) {
+			public void set(Vector3Float t) {
 				set(t.x, t.y, t.z);
 			}
 
@@ -410,21 +412,16 @@ public class GLShaderCompiler implements ZEShaderCompiler<com.zekrom_64.ze.gl.GL
 			public GLUniformVec4(int loc) {
 				super(loc);
 			}
-
-			@Override
-			public Tuple4f get() {
-				return getVec();
-			}
 			
 			@Override
-			public Vector4f getVec() {
+			public Vector4Float get() {
 				float[] pVec = new float[4];
 				GL20.glGetUniformfv(programId, location, pVec);
-				return new Vector4f(pVec);
+				return new Vector4Float(pVec);
 			}
 
 			@Override
-			public void set(Tuple4f t) {
+			public void set(Vector4Float t) {
 				set(t.x, t.y, t.z, t.w);
 			}
 
@@ -442,17 +439,17 @@ public class GLShaderCompiler implements ZEShaderCompiler<com.zekrom_64.ze.gl.GL
 			}
 
 			@Override
-			public Matrix3f get() {
+			public Matrix3x3Float get() {
 				float[] pMat = new float[9];
 				GL20.glGetUniformfv(programId, location, pMat);
-				return new Matrix3f(pMat);
+				return new Matrix3x3Float(pMat);
 			}
 
 			@Override
-			public void set(Matrix3f t) {
+			public void set(Matrix3x3Float t) {
 				float[] pMat = new float[9];
 				for(int x = 0; x < 3; x++)
-					for(int y = 0; y < 3; y++) pMat[x + (y * 3)] = t.getElement(x,  y);
+					for(int y = 0; y < 3; y++) pMat[x + (y * 3)] = t.getFloat(x,  y);
 				if (canUseFastUniforms) GL41.glProgramUniformMatrix3fv(programId, location, false, pMat);
 				else {
 					if (GL11.glGetInteger(GL20.GL_CURRENT_PROGRAM)!=programId) GL20.glUseProgram(programId);
@@ -469,17 +466,17 @@ public class GLShaderCompiler implements ZEShaderCompiler<com.zekrom_64.ze.gl.GL
 			}
 
 			@Override
-			public Matrix4f get() {
+			public Matrix4x4Float get() {
 				float[] pMat = new float[16];
 				GL20.glGetUniformfv(programId, location, pMat);
-				return new Matrix4f(pMat);
+				return new Matrix4x4Float(pMat);
 			}
 
 			@Override
-			public void set(Matrix4f t) {
+			public void set(Matrix4x4Float t) {
 				float[] pMat = new float[16];
 				for(int x = 0; x < 4; x++)
-					for(int y = 0; y < 4; y++) pMat[x + (y * 4)] = t.getElement(x,  y);
+					for(int y = 0; y < 4; y++) pMat[x + (y * 4)] = t.getFloat(x,  y);
 				if (canUseFastUniforms) GL41.glProgramUniformMatrix4fv(programId, location, false, pMat);
 				else {
 					if (GL11.glGetInteger(GL20.GL_CURRENT_PROGRAM)!=programId) GL20.glUseProgram(programId);
@@ -604,23 +601,23 @@ public class GLShaderCompiler implements ZEShaderCompiler<com.zekrom_64.ze.gl.GL
 			}
 
 			@Override
-			public Tuple2f[] get() {
-				Tuple2f[] vals = new Tuple2f[getLength()];
+			public Vector2Float[] get() {
+				Vector2Float[] vals = new Vector2Float[getLength()];
 				float[] pVals = new float[vals.length * 2];
 				GL20.glGetUniformfv(programId, location, pVals);
 				for(int i = 0; i < vals.length; i++) {
 					int j = i * 2;
-					vals[i] = new Vector2f(pVals[j], pVals[j + 1]);
+					vals[i] = new Vector2Float(pVals[j], pVals[j + 1]);
 				}
 				return vals;
 			}
 
 			@Override
-			public void set(Tuple2f[] t) {
+			public void set(Vector2Float[] t) {
 				float[] vals = new float[t.length*2];
 				for(int i = 0; i < t.length; i++) {
 					int j = i * 2;
-					Tuple2f val = t[i];
+					Vector2Float val = t[i];
 					vals[j] = val.x;
 					vals[j + 1] = val.y;
 				}
@@ -640,23 +637,23 @@ public class GLShaderCompiler implements ZEShaderCompiler<com.zekrom_64.ze.gl.GL
 			}
 
 			@Override
-			public Tuple3f[] get() {
-				Tuple3f[] vals = new Tuple3f[getLength()];
+			public Vector3Float[] get() {
+				Vector3Float[] vals = new Vector3Float[getLength()];
 				float[] pVals = new float[vals.length*3];
 				GL20.glGetUniformfv(programId, location, pVals);
 				for(int i = 0; i < vals.length; i++) {
 					int j = i * 3;
-					vals[i] = new Vector3f(pVals[j], pVals[j + 1], pVals[j + 2]);
+					vals[i] = new Vector3Float(pVals[j], pVals[j + 1], pVals[j + 2]);
 				}
 				return vals;
 			}
 
 			@Override
-			public void set(Tuple3f[] t) {
+			public void set(Vector3Float[] t) {
 				float[] pVals = new float[t.length*3];
 				for(int i = 0; i < t.length; i++) {
 					int j = i * 3;
-					Tuple3f val = t[i];
+					Vector3Float val = t[i];
 					pVals[j] = val.x;
 					pVals[j+1] = val.y;
 					pVals[j+2] = val.z;
@@ -677,23 +674,23 @@ public class GLShaderCompiler implements ZEShaderCompiler<com.zekrom_64.ze.gl.GL
 			}
 
 			@Override
-			public Tuple4f[] get() {
-				Tuple4f vals[] = new Tuple4f[getLength()];
+			public Vector4Float[] get() {
+				Vector4Float vals[] = new Vector4Float[getLength()];
 				float[] pVals = new float[vals.length * 4];
 				GL20.glGetUniformfv(programId, location, pVals);
 				for(int i = 0; i < vals.length; i++) {
 					int j = i * 4;
-					vals[i] = new Vector4f(pVals[j], pVals[j+1], pVals[j+2], pVals[j+3]);
+					vals[i] = new Vector4Float(pVals[j], pVals[j+1], pVals[j+2], pVals[j+3]);
 				}
 				return vals;
 			}
 
 			@Override
-			public void set(Tuple4f[] t) {
+			public void set(Vector4Float[] t) {
 				float[] pVals = new float[t.length * 4];
 				for(int i = 0; i < t.length; i++) {
 					int j = i * 4;
-					Tuple4f val = t[i];
+					Vector4Float val = t[i];
 					pVals[j] = val.x;
 					pVals[j+1] = val.y;
 					pVals[j+2] = val.z;
@@ -712,9 +709,7 @@ public class GLShaderCompiler implements ZEShaderCompiler<com.zekrom_64.ze.gl.GL
 	
 	@Override
 	public ZEShader compileShader(Object src, String type, String shaderType) {
-		if (shaderType!=null&&!shaderType.equals(SHADER_SOURCE_TYPE_GLSL)) {
-			ZEngineInternalException.throwInternallyNoExcept("OpenGL compiler does not support shader source type \"" +
-					shaderType + '\"');
+		if (shaderType!=null&&!shaderType.equals(ZEShaderCompiler.SHADER_SOURCE_TYPE_GLSL)) {
 			return null;
 		}
 		int glsType = -1;
@@ -724,21 +719,14 @@ public class GLShaderCompiler implements ZEShaderCompiler<com.zekrom_64.ze.gl.GL
 		case ZEShader.SHADER_TYPE_GEOMETRY: glsType = GL32.GL_GEOMETRY_SHADER; break;
 		case ZEShader.SHADER_TYPE_TESSELLATION_CONTROL: glsType = GL40.GL_TESS_CONTROL_SHADER; break;
 		case ZEShader.SHADER_TYPE_TESSELLATION_EVALUATION: glsType = GL40.GL_TESS_EVALUATION_SHADER; break;
-		default: {
-			ZEngineInternalException.throwInternallyNoExcept("OpenGL compiler does not support shader type \""
-					+ type + '\"');
-			return null;
+		default: { return null;
 		}
 		}
 		int shaderId = GL20.glCreateShader(glsType);
 		if (shaderId==0) {
-			ZEngineInternalException.throwInternallyNoExcept("Failed to create OpenGL shader w/ type \""
-					+ type + '\"');
 			return null;
 		}
-		GLShader shader = new GLShader();
-		shader.shaderId = shaderId;
-		return shader;
+		return new GLShader(shaderId);
 	}
 
 	@Override
@@ -749,14 +737,9 @@ public class GLShaderCompiler implements ZEShaderCompiler<com.zekrom_64.ze.gl.GL
 			shaders[i] = gls.shaderId;
 		}
 		int prgm = GL20.glCreateProgram();
-		if (prgm==0) {
-			ZEngineInternalException.throwInternallyNoExcept("Failed to create OpenGL program");
-			return null;
-		}
+		if (prgm==0) return null;
 		for(int shader : shaders) GL20.glAttachShader(prgm, shader);
-		GLShaderProgram program = new GLShaderProgram();
-		program.programId = prgm;
-		return program;
+		return new GLShaderProgram(prgm);
 	}
 
 }

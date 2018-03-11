@@ -5,10 +5,10 @@ import org.bridj.Callback;
 import org.bridj.Pointer;
 import org.bridj.ann.Field;
 
-import com.zekrom_64.ze.nat.Struct;
+import com.zekrom_64.ze.nat.ZEStruct;
 
 @org.bridj.ann.Struct
-public class AVInputFormat extends Struct<AVInputFormat> {
+public class AVInputFormat extends ZEStruct<AVInputFormat> {
 	
 	static {
 		BridJ.register();

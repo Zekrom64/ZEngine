@@ -1,5 +1,10 @@
 package java.math;
 
+/** Publicly accessible version of MutableBigInteger.
+ * 
+ * @author Zekrom_64
+ *
+ */
 public class PublicBigInteger extends MutableBigInteger {
 
 	public PublicBigInteger() { }

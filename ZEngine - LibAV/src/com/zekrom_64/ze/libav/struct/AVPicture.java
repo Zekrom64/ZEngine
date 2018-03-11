@@ -6,10 +6,10 @@ import org.bridj.ann.Array;
 import org.bridj.ann.Field;
 
 import com.zekrom_64.ze.libav.LibAVCodec;
-import com.zekrom_64.ze.nat.Struct;
+import com.zekrom_64.ze.nat.ZEStruct;
 
 @org.bridj.ann.Struct
-public class AVPicture extends Struct<AVPicture> {
+public class AVPicture extends ZEStruct<AVPicture> {
 	
 	static {
 		BridJ.register();

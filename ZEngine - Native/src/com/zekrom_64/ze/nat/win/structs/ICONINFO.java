@@ -3,7 +3,7 @@ package com.zekrom_64.ze.nat.win.structs;
 import org.bridj.Pointer;
 import org.bridj.ann.Field;
 
-import com.zekrom_64.ze.nat.Struct;
+import com.zekrom_64.ze.nat.ZEStruct;
 import com.zekrom_64.ze.nat.win.WinTypes.HBITMAP;
 
 /** Contains information about an icon or a cursor
@@ -11,7 +11,7 @@ import com.zekrom_64.ze.nat.win.WinTypes.HBITMAP;
  * @author Zekrom_64
  *
  */
-public class ICONINFO extends Struct<ICONINFO> {
+public class ICONINFO extends ZEStruct<ICONINFO> {
 
 	/** Specifies whether this structure defines an icon or a cursor. A value of <b>TRUE</b> specifies an icon; <b>FALSE</b>
 	 * specifies a cursor.

@@ -1,6 +1,5 @@
 package com.zekrom_64.ze.base.image;
 
-import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
@@ -13,11 +12,25 @@ import javax.imageio.ImageIO;
 
 import org.lwjgl.BufferUtils;
 import org.lwjgl.stb.STBImage;
+import org.lwjgl.system.MemoryStack;
+import org.lwjgl.system.libc.LibCStdlib;
 
 import com.zekrom_64.ze.base.io.ZEInput;
 import com.zekrom_64.ze.base.util.ZEIOUtil;
 
-/** Class with methods to load images from compressed formats and convert between different encodings.
+/** Class with methods to load images from compressed formats. This currently uses bindings
+ * from the STB Image library. The currently supported list of formats is:
+ * <ul>
+ * <li>JPEG</li>
+ * <li>PNG (16 bpc not supported)</li>
+ * <li>TGA</li> 
+ * <li>BMP (non-1bpp, non-RLE)</li>
+ * <li>PSD (composited view only, no extra channels, 8/16 bit-per-channel)</li>
+ * <li>GIF</li>
+ * <li>HDR</li>
+ * <li>PIC</li>
+ * <li>PNM (PPM and PGM binary only)</li>
+ * </ul>
  * 
  * @author Zekrom_64
  *
@@ -38,7 +51,7 @@ public class ZEImageLoader {
 		
 		for(int i = 0; i < remainingPixels; i++) {
 			int pixel = rgba.getInt();
-			pixel  = (pixel << 24) | (pixel >> 8);
+			pixel  = Integer.rotateRight(8, pixel);
 			out.putInt(pixel);
 		}
 		
@@ -59,7 +72,7 @@ public class ZEImageLoader {
 		int position = argb.position();
 		for(int i = 0; i < remainingPixels; i++) {
 			int pixel = argb.getInt();
-			pixel = (pixel >> 24) | (pixel << 8);
+			pixel = Integer.rotateLeft(8, pixel);
 			out.putInt(pixel);
 		}
 		argb.position(position);
@@ -80,7 +93,7 @@ public class ZEImageLoader {
 		
 		for(int i = 0; i < remainingPixels; i++) {
 			int pixel = rgba.getInt();
-			rgba.putInt(position + (i << 2), (pixel << 24) | (pixel >> 8));
+			rgba.putInt(position + (i << 2), Integer.rotateRight(8, pixel));
 		}
 		
 		rgba.position(position);
@@ -98,79 +111,169 @@ public class ZEImageLoader {
 		
 		for(int i = 0; i < remainingPixels; i++) {
 			int pixel = argb.getInt();
-			argb.putInt(position + (i << 2), (pixel >> 24) | (pixel << 8));
+			argb.putInt(position + (i << 2), Integer.rotateLeft(8, pixel));
 		}
 		
 		argb.position(position);
 	}
 	
-	/** Attempts to load an image from an input using the {@link javax.imageio.ImageIO ImageIO} class.
-	 * If a problem occurs when loading an image, an IOException is thrown.
-	 * <p>Currently known supported formats:<ul>
-	 * <li>JPEG</li>
-	 * <li>PNG</li>
-	 * <li>BMP</li>
-	 * <li>WBMP</li>
-	 * <li>GIF</li>
-	 * </ul></p>
-	 * <p><b>This method should never return null!</b></p>
+	/** Attempts to read an image from an input. The stream is decoded using
+	 * {@link #loadImage(InputStream)}.
 	 * 
-	 * <p>Note: Support for TIFF images is proposed in Java 9, and may be
-	 * available via javax or another library in the future.</p>
-	 * 
-	 * @param input Input to decode image from
+	 * @param input Input
 	 * @return Decoded image
-	 * @throws IOException If an error occurred
+	 * @throws IOException If an IOException occurs reading the stream
 	 */
 	public static ZEImage loadImage(ZEInput input) throws IOException {
 		return loadImage(input.openInput());
 	}
 	
+	/** Attempts to read an image from an input stream. The stream is first read fully
+	 * into memory, then decoded using {@link #loadImage(byte[])}.
+	 * 
+	 * @param stream Input stream
+	 * @return Decoded image
+	 * @throws IOException If an IOException occurs reading the stream
+	 */
 	public static ZEImage loadImage(InputStream stream) throws IOException {
 		byte[] data = ZEIOUtil.readFully(stream);
 		ByteBuffer buf = BufferUtils.createByteBuffer(data.length);
 		buf.put(data).rewind();
 		return loadImage(buf);
 	}
-	
-	public static ZEImage loadImage(ByteBuffer memory) throws IOException {
-		IntBuffer w = BufferUtils.createIntBuffer(1), h = BufferUtils.createIntBuffer(1);
-		ByteBuffer data = STBImage.stbi_load_from_memory(memory, w, h, null, STBImage.STBI_rgb_alpha);
-		if (data==null) {
-			int pos = memory.position();
-			byte[] buf = new byte[memory.remaining()];
-			memory.get(buf);
-			memory.position(pos);
-			try (ByteArrayInputStream bais = new ByteArrayInputStream(buf)) {
-				BufferedImage img = ImageIO.read(bais);
-				if (img==null) throw new IOException("Failed to read image");
-				return new ZEImage(img);
-			}
+
+	/** Attempts to read an image from a memory buffer. The stream is decoded using
+	 * {@link STBImage#stbi_load_from_memory}. If that fails, it is decoded using
+	 * {@link ImageIO#read(InputStream)}.
+	 * 
+	 * @param memory Memory buffer
+	 * @return Decoded image
+	 * @throws IOException If the image cannot be decoded
+	 */
+	public static ZEImage loadImage(byte[] memory) throws IOException {
+		MemoryStack sp = MemoryStack.stackGet();
+		int bp = sp.getPointer();
+		IntBuffer w = sp.ints(0), h = sp.ints(0), comp = sp.ints(0);
+		
+		boolean stackalloc = sp.getSize() - bp >= memory.length;
+		ByteBuffer pMemory = stackalloc ? sp.bytes(memory) : (ByteBuffer)LibCStdlib.malloc(memory.length).put(memory).rewind();
+		
+		ByteBuffer buf = STBImage.stbi_load_from_memory(pMemory, w, h, comp, 0);
+		int components = comp.get();
+		sp.setPointer(bp);
+		if (!stackalloc) LibCStdlib.free(pMemory);
+		
+		if (buf == null) return new ZEImage(ImageIO.read(new ByteArrayInputStream(memory)));
+		
+		ZEPixelFormat pxfmt = ZEPixelFormat.UNKNOWN;
+		switch(components) {
+		case STBImage.STBI_grey: pxfmt = ZEPixelFormat.R8_UINT; break;
+		case STBImage.STBI_grey_alpha: pxfmt = ZEPixelFormat.R8G8_UINT; break;
+		case STBImage.STBI_rgb: pxfmt = ZEPixelFormat.R8G8B8_UINT; break;
+		case STBImage.STBI_rgb_alpha: pxfmt = ZEPixelFormat.R8G8B8A8_UINT; break;
 		}
-		return new ZEImage(data, w.get(), h.get());
+		return new ZEImage(buf, w.get(), h.get(), pxfmt);
 	}
 	
+	/** Attempts to read an image from a memory buffer. The stream is decoded using
+	 * {@link STBImage#stbi_load_from_memory}. If that fails, it is decoded using
+	 * {@link ImageIO#read(InputStream)}.
+	 * 
+	 * @param memory Memory buffer
+	 * @return Decoded image
+	 * @throws IOException If the image cannot be decoded
+	 */
+	public static ZEImage loadImage(ByteBuffer memory) throws IOException {
+		MemoryStack sp = MemoryStack.stackGet();
+		int bp = sp.getPointer();
+		IntBuffer w = sp.ints(0), h = sp.ints(0), comp = sp.ints(0);
+
+		ByteBuffer buf = STBImage.stbi_load_from_memory(memory, w, h, comp, 0);
+		int components = comp.get();
+		sp.setPointer(bp);
+		
+		if (buf == null) {
+			byte[] array = new byte[memory.remaining()];
+			int pos = memory.position();
+			memory.get(array);
+			memory.position(pos);
+			return new ZEImage(ImageIO.read(new ByteArrayInputStream(array)));
+		}
+
+		ZEPixelFormat pxfmt = ZEPixelFormat.UNKNOWN;
+		switch(components) {
+		case STBImage.STBI_grey: pxfmt = ZEPixelFormat.R8_UINT; break;
+		case STBImage.STBI_grey_alpha: pxfmt = ZEPixelFormat.R8G8_UINT; break;
+		case STBImage.STBI_rgb: pxfmt = ZEPixelFormat.R8G8B8_UINT; break;
+		case STBImage.STBI_rgb_alpha: pxfmt = ZEPixelFormat.R8G8B8A8_UINT; break;
+		}
+		return new ZEImage(buf, w.get(), h.get(), pxfmt);
+	}
+	
+	/** Attempts to read an image from a file. The stream is decoded using
+	 * {@link STBImage#stbi_load}. If that fails, then the stream is
+	 * decoded using {@link ImageIO#read(File)}.
+	 * 
+	 * @param file Image file
+	 * @return Decoded image
+	 * @throws IOException If the image cannot be decoded
+	 */
 	public static ZEImage loadImage(File file) throws IOException {
-		BufferedImage img = ImageIO.read(file);
-		if (img!=null) return new ZEImage(img);
-		IntBuffer w = BufferUtils.createIntBuffer(1), h = BufferUtils.createIntBuffer(1), comp = BufferUtils.createIntBuffer(1);
-		ByteBuffer buf = STBImage.stbi_load(file.getPath(), w, h, comp, STBImage.STBI_rgb_alpha);
-		if (buf==null) throw new IOException("Failed to read image");
-		return new ZEImage(buf, w.get(), h.get());
+		
+		MemoryStack sp = MemoryStack.stackGet();
+		int bp = sp.getPointer();
+		ByteBuffer pPath = sp.ASCII(file.getPath());
+		IntBuffer w = sp.ints(0), h = sp.ints(0), comp = sp.ints(0);
+		
+		ByteBuffer buf = STBImage.stbi_load(pPath, w, h, comp, 0);
+		int components = comp.get();
+		sp.setPointer(bp);
+		
+		if (buf==null) return new ZEImage(ImageIO.read(file));
+		
+		ZEPixelFormat pxfmt = ZEPixelFormat.UNKNOWN;
+		switch(components) {
+		case STBImage.STBI_grey: pxfmt = ZEPixelFormat.R8_UINT; break;
+		case STBImage.STBI_grey_alpha: pxfmt = ZEPixelFormat.R8G8_UINT; break;
+		case STBImage.STBI_rgb: pxfmt = ZEPixelFormat.R8G8B8_UINT; break;
+		case STBImage.STBI_rgb_alpha: pxfmt = ZEPixelFormat.R8G8B8A8_UINT; break;
+		}
+		return new ZEImage(buf, w.get(), h.get(), pxfmt);
 	}
 	
+	/** Attempts to read an image from a resource on the classpath. The stream is
+	 * decoded using {@link #loadImage(InputStream)}.
+	 * 
+	 * @param respath Resource path
+	 * @return Decoded image
+	 * @throws IOException If an IOException occurs reading the stream
+	 */
 	public static ZEImage loadImage(String respath) throws IOException {
 		try (InputStream stream = ClassLoader.getSystemResourceAsStream(respath)) {
 			return loadImage(stream);
 		}
 	}
-	
+	/** Attempts to read an image from a resource available through a class loader.
+	 * The stream is decoded using {@link #loadImage(InputStream)}.
+	 * 
+	 * @param respath Resource path
+	 * @param loader Class loader
+	 * @return Decoded image
+	 * @throws IOException If an IOException occurs reading the stream
+	 */
 	public static ZEImage loadImage(String respath, ClassLoader loader) throws IOException {
 		try (InputStream stream = loader.getResourceAsStream(respath)) {
 			return loadImage(stream);
 		}
 	}
 	
+	/** Attempts to read an image from a URL address. The stream is
+	 * decoded using {@link #loadImage(InputStream)}.
+	 * 
+	 * @param url URL address
+	 * @return Decoded image
+	 * @throws IOException If an IOException occurs reading the stream
+	 */
 	public static ZEImage loadImage(URL url) throws IOException {
 		try (InputStream stream = url.openStream()) {
 			return loadImage(stream);

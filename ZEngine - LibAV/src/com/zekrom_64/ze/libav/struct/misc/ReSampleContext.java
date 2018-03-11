@@ -8,9 +8,9 @@ import org.bridj.ann.Field;
 import com.zekrom_64.ze.libav.enums.AVSampleFormat;
 import com.zekrom_64.ze.libav.struct.AVAudioConvert;
 import com.zekrom_64.ze.libav.struct.AVResampleContext;
-import com.zekrom_64.ze.nat.Struct;
+import com.zekrom_64.ze.nat.ZEStruct;
 
-public class ReSampleContext extends Struct<ReSampleContext> {
+public class ReSampleContext extends ZEStruct<ReSampleContext> {
 	
 	@Field(0) 
 	public Pointer<AVResampleContext > resample_context() {

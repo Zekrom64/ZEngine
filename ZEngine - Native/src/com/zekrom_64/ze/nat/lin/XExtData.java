@@ -4,12 +4,12 @@ import org.bridj.DynamicFunction;
 import org.bridj.Pointer;
 import org.bridj.ann.Field;
 
-import com.zekrom_64.ze.nat.Struct;
+import com.zekrom_64.ze.nat.ZEStruct;
 
 /**
  * Extensions need a way to hang private data on some structures.
  */
-public class XExtData extends Struct<XExtData> {
+public class XExtData extends ZEStruct<XExtData> {
 
 	public static class free_private extends DynamicFunction<Integer> { }
 	

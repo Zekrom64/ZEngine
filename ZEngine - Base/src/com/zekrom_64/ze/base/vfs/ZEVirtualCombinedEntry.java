@@ -22,7 +22,7 @@ public class ZEVirtualCombinedEntry implements ZEVirtualFSDirectory, ZEVirtualFS
 		this.dir = dir;
 		this.file = file;
 		if (!dir.getName().equals(file.getName()))
-			throw new IllegalArgumentException("Directory and file with differenc names cannot be combined");
+			throw new IllegalArgumentException("Directory and file with different names cannot be combined");
 		if (dir.getParent()==null||file.getParent()==null)
 			throw new IllegalArgumentException("Cannot create an orphaned combined entry");
 		if (dir.getParent()!=file.getParent()) 

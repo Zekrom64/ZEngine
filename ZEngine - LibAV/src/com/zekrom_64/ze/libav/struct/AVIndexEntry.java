@@ -5,10 +5,10 @@ import org.bridj.Pointer;
 import org.bridj.ann.Bits;
 import org.bridj.ann.Field;
 
-import com.zekrom_64.ze.nat.Struct;
+import com.zekrom_64.ze.nat.ZEStruct;
 
 @org.bridj.ann.Struct
-public class AVIndexEntry extends Struct<AVIndexEntry> {
+public class AVIndexEntry extends ZEStruct<AVIndexEntry> {
 	
 	static {
 		BridJ.register();

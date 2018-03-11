@@ -24,6 +24,15 @@ public class LWJGLU3 {
 		extractAndLoadNatives(new File("natives"), natives, loader);
 	}
 	
+	public static void extractAndLoadNatives(File nativesFolder, String ... natives) {
+		StringBuilder sb = new StringBuilder();
+		for(int i = 0; i < natives.length; i++) {
+			sb.append(natives[i]);
+			if (i != natives.length - 1) sb.append(';');
+		}
+		extractAndLoadNatives(nativesFolder, sb.toString());
+	}
+	
 	public static void extractAndLoadNatives(File nativesFolder, String natives) {
 		extractAndLoadNatives(nativesFolder, natives, ClassLoader.getSystemClassLoader());
 	}

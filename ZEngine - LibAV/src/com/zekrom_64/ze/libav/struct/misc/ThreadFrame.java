@@ -6,9 +6,9 @@ import org.bridj.ann.Field;
 import com.zekrom_64.ze.libav.struct.AVBufferRef;
 import com.zekrom_64.ze.libav.struct.AVCodecContext;
 import com.zekrom_64.ze.libav.struct.AVFrame;
-import com.zekrom_64.ze.nat.Struct;
+import com.zekrom_64.ze.nat.ZEStruct;
 
-public class ThreadFrame extends Struct<ThreadFrame> {
+public class ThreadFrame extends ZEStruct<ThreadFrame> {
 
 	@Field(0)
 	public Pointer<AVFrame> f() {

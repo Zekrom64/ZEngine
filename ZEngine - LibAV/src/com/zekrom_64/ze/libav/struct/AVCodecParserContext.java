@@ -8,10 +8,10 @@ import org.bridj.ann.Field;
 
 import com.zekrom_64.ze.libav.enums.AVFieldOrder;
 import com.zekrom_64.ze.libav.enums.AVPictureStructure;
-import com.zekrom_64.ze.nat.Struct;
+import com.zekrom_64.ze.nat.ZEStruct;
 
 @org.bridj.ann.Struct
-public class AVCodecParserContext extends Struct<AVCodecParserContext> {
+public class AVCodecParserContext extends ZEStruct<AVCodecParserContext> {
 	
 	static {
 		BridJ.register();
