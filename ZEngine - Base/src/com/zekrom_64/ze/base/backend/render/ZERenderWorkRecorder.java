@@ -4,14 +4,19 @@ import java.nio.ByteBuffer;
 
 import com.zekrom_64.mathlib.shape.Rectangle;
 import com.zekrom_64.mathlib.tuple.impl.Vector3Int;
-import com.zekrom_64.ze.base.backend.render.ZETexture.ZETextureLayout;
-import com.zekrom_64.ze.base.backend.render.input.ZEIndexBuffer;
-import com.zekrom_64.ze.base.backend.render.input.ZEVertexBuffer;
+import com.zekrom_64.ze.base.backend.render.obj.ZEBuffer;
+import com.zekrom_64.ze.base.backend.render.obj.ZEFramebuffer;
+import com.zekrom_64.ze.base.backend.render.obj.ZEIndexBuffer;
+import com.zekrom_64.ze.base.backend.render.obj.ZERenderEvent;
+import com.zekrom_64.ze.base.backend.render.obj.ZETexture;
+import com.zekrom_64.ze.base.backend.render.obj.ZEVertexBuffer;
+import com.zekrom_64.ze.base.backend.render.obj.ZETexture.ZETextureLayout;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEFrontBack;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipeline;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipeline.ZEVertexInput;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBindSet;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBuilder.ZEViewport;
+import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineStage;
 import com.zekrom_64.ze.base.image.ZEPixelFormat;
 
 /** A render work factory abstracts the implementation specifics of render work.
@@ -27,7 +32,9 @@ public interface ZERenderWorkRecorder {
 	 * for command buffer based backends such as Vulkan this incurs synchronization overheads.
 	 * 
 	 * @param r Runnable to invoke
+	 * @deprecated CPU-side code should not be mixed with GPU-side work
 	 */
+	@Deprecated
 	public void inlineWork(Runnable r);
 	
 	/** Executes the commands in a render work buffer. The render backend may or
@@ -52,6 +59,8 @@ public interface ZERenderWorkRecorder {
 	 * @param bindSet Bind set to use
 	 */
 	public void beginPass(ZEPipelineBindSet bindSet, ZEFramebuffer framebuffer);
+	
+	public void nextPass();
 	
 	/** Finishes a render pass.
 	 * 
@@ -93,7 +102,7 @@ public interface ZERenderWorkRecorder {
 	 * DYNAMIC_STATE_DEPTH_BIAS} dynamic state enabled.
 	 * 
 	 * @param constantFactor Constant value added to fragment's depth
-	 * @param clamp Maximum or minimum depth bias of a fragment
+	 * @param clamp Maximum (or minimum) depth bias of a fragment
 	 * @param slopeFactor Constant value added to fragment's slope
 	 */
 	public void setDepthBias(double constantFactor, double clamp, double slopeFactor);
@@ -211,13 +220,15 @@ public interface ZERenderWorkRecorder {
 	 * 
 	 * @param event Render event to set
 	 */
-	public void setEvent(ZERenderEvent event);
+	public void setEvent(ZEPipelineStage stage, ZERenderEvent event);
 	
 	/** Resets an event.
 	 * 
 	 * @param event Render event to reset
 	 */
-	public void resetEvent(ZERenderEvent event);
+	public void resetEvent(ZEPipelineStage stage, ZERenderEvent event);
+	
+	public void waitForEvents(ZEPipelineStage[] signalStages, ZEPipelineStage[] waitingStages, ZERenderEvent ... events);
 	
 	// ------[Memory Operations]------
 	

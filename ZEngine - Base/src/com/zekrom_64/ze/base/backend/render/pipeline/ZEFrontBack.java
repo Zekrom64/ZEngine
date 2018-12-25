@@ -8,10 +8,18 @@ package com.zekrom_64.ze.base.backend.render.pipeline;
 public enum ZEFrontBack {
 	
 	/** "Front" of polygon */
-	FRONT,
+	FRONT(true, false),
 	/** "Back" of polygon */
-	BACK,
+	BACK(false, true),
 	/** Both front and back */
-	FRONT_BACK
+	FRONT_BACK(true, true);
+	
+	/** Boolean value if the side is included in this value */
+	public boolean front, back;
+	
+	private ZEFrontBack(boolean f, boolean b) {
+		front = f;
+		back = b;
+	}
 	
 }

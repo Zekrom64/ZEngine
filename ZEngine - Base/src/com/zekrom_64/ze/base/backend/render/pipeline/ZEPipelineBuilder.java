@@ -9,6 +9,30 @@ import com.zekrom_64.ze.base.backend.render.shader.ZEShaderProgram;
 
 public interface ZEPipelineBuilder {
 	
+	/** A compare op specifies how values are compared for a rendering test.
+	 * 
+	 * @author Zekrom_64
+	 *
+	 */
+	public enum ZECompareOp {
+		/** The depth test always fails */
+		NEVER,
+		/** The depth test always succeeds */
+		ALWAYS,
+		/** The test succeeds if the new depth value is less than the existing depth value */
+		LESS,
+		/** The test succeeds if the new depth value is less than or equal to the existing depth value */
+		LESS_OR_EQUAL,
+		/** The test succeeds if the new depth value is greater than the existing depth value */
+		GREATER,
+		/** The test succeeds if the new depth value is greater than or equal to the existing depth value */
+		GREATER_OR_EQUAL,
+		/** The test succeeds if the new depth value is equal to the existing depth value */
+		EQUAL,
+		/** The test succeeds if the new depth value is not equal to the existing depth value */
+		NOT_EQUAL
+	}
+	
 	// -----------
 	// | SHADERS |
 	// -----------
@@ -249,45 +273,85 @@ public interface ZEPipelineBuilder {
 	 */
 	public void setDepthBounds(float min, float max);
 	
-	/** A depth compare op specifies how depths are compared for the depth test.
+	/** Sets the depth compare operation. By default, this is {@link ZECompareOp#LESS_OR_EQUAL LESS_OR_EQUAL}.
+	 * 
+	 * @param op Depth compare op
+	 */
+	public void setDepthCompare(ZECompareOp op);
+	
+	// -----------
+	// | STENCIL |
+	// -----------
+	
+	/** A stencil modify operation is an operation performed on a value in the stencil buffer if the stencil
+	 * test succeeds.
 	 * 
 	 * @author Zekrom_64
 	 *
 	 */
-	public enum ZEDepthCompare {
-		/** The depth test always fails */
-		NEVER,
-		/** The depth test always succeeds */
-		ALWAYS,
-		/** The test succeeds if the new depth value is less than the existing depth value */
-		LESS,
-		/** The test succeeds if the new depth value is less than or equal to the existing depth value */
-		LESS_OR_EQUAL,
-		/** The test succeeds if the new depth value is greater than the existing depth value */
-		GREATER,
-		/** The test succeeds if the new depth value is greater than or equal to the existing depth value */
-		GREATER_OR_EQUAL,
-		/** The test succeeds if the new depth value is equal to the existing depth value */
-		EQUAL,
-		/** The test succeeds if the new depth value is not equal to the existing depth value */
-		NOT_EQUAL
+	public enum ZEStencilModifyOp {
+		/** The value in the buffer is not modified */
+		KEEP,
+		/** Clear the value in the buffer to zero. */
+		ZERO,
+		/** Replaces the value in the stencil buffer with the reference value ANDed with the write mask */
+		REPLACE,
+		/** Increments the value in the buffer if the new value does not create an integer overflow */
+		INCREMENT_AND_CLAMP,
+		/** Decrements the value in the buffer if the new value does not create an integer underflow */
+		DECREMENT_AND_CLAMP,
+		/** Bitwise inverts the value in the buffer */
+		INVERT,
+		/** Increments the value in the buffer, allowing it to integer overflow */
+		INCREMENT_AND_WRAP,
+		/** Decrements the value in the buffer, allowing it to integer underflow */
+		DECREMENT_AND_WRAP
 	}
 	
-	/** Sets the depth compare operation. By default, this is {@link ZEDepthCompare#LESS_OR_EQUAL LESS_OR_EQUAL}.
+	/** Sets the stencil compare operation for the given face(s).
 	 * 
-	 * @param op Depth compare op
+	 * @param face Polygon face(s)
+	 * @param op Stencil compare operation
 	 */
-	public void setDepthCompare(ZEDepthCompare op);
+	public void setStencilCompareOp(ZEFrontBack face, ZECompareOp op);
 	
-	// ------------
-	// | BUILDING |
-	// ------------
-	
-	/** Builds the pipeline.
+	/** Enumeration of stencil test conditions that can have their modification operations defined.
 	 * 
-	 * @return Built pipeline
+	 * @author Zekrom_64
+	 *
 	 */
-	public ZEPipeline build();
+	public enum ZEStencilTestCondition {
+		/** The stencil test fails, regardless of the depth test */
+		STENCIL_FAILS,
+		/** The stencil test succeeds, but the depth test fails */
+		DEPTH_FAILS,
+		/** Both the stencil and depth test succeed (if the depth test is enabled) */
+		SUCCEEDS
+	}
+	
+	public void setStencilModifyOp(ZEFrontBack face, ZEStencilTestCondition cond, ZEStencilModifyOp op);
+	
+	/** Enumeration of stencil test values that can be assigned.
+	 * 
+	 * @author Zekrom_64
+	 *
+	 */
+	public enum ZEStencilValue {
+		/** Binary mask ANDed with the value to be compared */
+		COMPARE_MASK,
+		/** Binary mask ANDed with a value written to the buffer */
+		WRITE_MASK,
+		/** Constant value used in a stencil comparison operation */
+		COMPARE_REFERENCE
+	}
+	
+	/** Sets a value for use in the stencil test.
+	 * 
+	 * @param face Polygon face(s)
+	 * @param stencilVal The stencil value to set
+	 * @param val Value to set to
+	 */
+	public void setStencilValue(ZEFrontBack face, ZEStencilValue stencilVal, int val);
 	
 	// -----------------
 	// | DYNAMIC STATE |
@@ -299,14 +363,35 @@ public interface ZEPipelineBuilder {
 	public static final String DYNAMIC_STATE_SCISSOR = "ze.dynstate.scissor";
 	/** Dynamic state for modifying line width */
 	public static final String DYNAMIC_STATE_LINE_WIDTH = "ze.dynstate.lineWidth";
+	/** Dynamic state for modifying depth biasing */
 	public static final String DYNAMIC_STATE_DEPTH_BIAS = "ze.dynstate.depthBias";
 	/** Dynamic state for modifying the blend constant */
 	public static final String DYNAMIC_STATE_BLEND_CONSTANTS = "ze.dynstate.blendConstants";
+	/** Dynamic state for modifying the depth bounds */
 	public static final String DYNAMIC_STATE_DEPTH_BOUNDS = "ze.dynstate.depthBounds";
+	/** Dynamic state for modifying the stencil compare mask */
 	public static final String DYNAMIC_STATE_STENCIL_COMPARE_MASK = "ze.dynstate.stencil.compareMask";
+	/** Dynamic state for modifying the stencil write mask */
 	public static final String DYNAMIC_STATE_STENCIL_WRITE_MASK = "ze.dynstate.stencil.writeMask";
+	/** Dynamic state for modifying the stencil reference mask */
 	public static final String DYNAMIC_STATE_STENCIL_REFERENCE = "ze.dynstate.stencil.reference";
 	
+	/** Gets a set containing the pipeline state variables that can be
+	 * modified after creation, called the "dynamic state". The set can
+	 * be modified by the caller to add (or remove?) dynamic states.
+	 * 
+	 * @return Set containing the dynamic state
+	 */
 	public Set<String> dynamicState();
+	
+	// ------------
+	// | BUILDING |
+	// ------------
+	
+	/** Builds the pipeline.
+	 * 
+	 * @return Built pipeline
+	 */
+	public ZEPipeline build();
 	
 }

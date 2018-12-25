@@ -1,7 +1,12 @@
 package com.zekrom_64.ze.base.backend.render;
 
-import com.zekrom_64.ze.base.backend.render.input.ZEIndexBuffer;
-import com.zekrom_64.ze.base.backend.render.input.ZEVertexBuffer;
+import com.zekrom_64.ze.base.backend.render.obj.ZEBuffer;
+import com.zekrom_64.ze.base.backend.render.obj.ZEIndexBuffer;
+import com.zekrom_64.ze.base.backend.render.obj.ZERenderEvent;
+import com.zekrom_64.ze.base.backend.render.obj.ZERenderSemaphore;
+import com.zekrom_64.ze.base.backend.render.obj.ZETexture;
+import com.zekrom_64.ze.base.backend.render.obj.ZETextureDimension;
+import com.zekrom_64.ze.base.backend.render.obj.ZEVertexBuffer;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipeline;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBuilder;
 import com.zekrom_64.ze.base.backend.render.shader.ZEShaderCompiler;
@@ -14,6 +19,8 @@ public interface ZERenderBackend<B extends ZERenderBackend<?>> {
 	// | FEATURE STRINGS |
 	// -------------------
 	
+	// Multithreading / Multi-object
+	
 	/** The render backend supports multithreaded render work */
 	public static final String FEATURE_MULTITHREAD_RENDERING = "ze.feature.multithread.render";
 	/** The render backend supports synchronization tools */
@@ -22,10 +29,21 @@ public interface ZERenderBackend<B extends ZERenderBackend<?>> {
 	public static final String FEATURE_MULTIPLE_PIPELINES = "ze.feature.multi.pipeline";
 	/** The render backend supports multiple framebuffer objects */
 	public static final String FEATURE_MULTIPLE_FRAMEBUFFERS = "ze.feature.multi.framebuffer";
-	/** The render backend supports shader caching */
-	public static final String FEATURE_CAHCEABLE_SHADER = "ze.feature.cache.shader";
+	
+	// Render work features
+	
+	/** The render backend supports multilevel render work buffer recording */
+	public static final String FEATURE_MULTILEVEL_RENDER_WORK_BUFFER = "ze.features.renderWork.multilevelBuffer";
+	
+	// Pipeline features
+	
 	/** The render backend supports pipeline caching */
 	public static final String FEATURE_CACHEABLE_PIPELINE = "ze.feature.cache.pipeline";
+	
+	// Shader features
+	
+	/** The render backend supports shader caching */
+	public static final String FEATURE_CAHCEABLE_SHADER = "ze.feature.cache.shader";
 	/** The render backend supports modular shader usage (i.e. a single shader object can be used for
 	 * multiple shader stages) */
 	public static final String FEATURE_SHADER_MODULAR = "ze.features.shader.modular";
@@ -33,16 +51,27 @@ public interface ZERenderBackend<B extends ZERenderBackend<?>> {
 	public static final String FEATURE_SHADER_COMPUTE_AVAILALE = "ze.features.shader.computeavailable";
 	/** The render backend supports uniform buffer objects */
 	public static final String FEATURE_SHADER_UNIFORM_BUFFER = "ze.features.shader.ubo";
+	
+	// Object features
+	
 	/** The render backend supports generic usage of device memory */
 	public static final String FEATURE_GENERIC_MEMORY = "ze.features.generic.memory";
 	/** The render backend supports generic usage of images */
 	public static final String FEATURE_GENERIC_IMAGE = "ze.features.generic.image";
 	/** The render backend supports generic usage of memory buffers */
 	public static final String FEATURE_GENERIC_BUFFER = "ze.features.generic.buffer";
-	/** The render backend supports multilevel render work buffer recording */
-	public static final String FEATURE_MULTILEVEL_RENDER_WORK_BUFFER = "ze.features.renderWork.multilevelBuffer";
+	
+	// Drawing features
+
 	/** The render backend supports commands for indirect drawing */
 	public static final String FEATURE_COMMAND_DRAW_INDIRECT = "ze.features.command.indirectDraw";
+	
+	// Texture features
+	
+	/** The render backend supports array texture cubemaps */
+	public static final String FEATURE_CUBEMAP_ARRAY = "ze.features.texture.arrayCubemap";
+	/** The render backend supports array textures */
+	public static final String FEATURE_TEXTURE_ARRAY = "ze.features.texture.array";
 
 	// -------------------
 	// | FEATURE SUPPORT |
@@ -157,21 +186,25 @@ public interface ZERenderBackend<B extends ZERenderBackend<?>> {
 	
 	/** Creates a texture with the given size and pixel format.
 	 * 
+	 * @param dim Dimension
 	 * @param width Width
 	 * @param height Height
+	 * @param depth Depth
 	 * @param format Pixel format
 	 * @return Texture
 	 */
-	public ZETexture createTexture(int width, int height, ZEPixelFormat format);
+	public ZETexture createTexture(ZETextureDimension dim, int width, int height, int depth, ZEPixelFormat format);
 	
 	/** Multiple creation version of {@link #createTexture(int, int, ZEPixelFormat) createTexture()}.
 	 * 
+	 * @param dim Dimensions
 	 * @param width Widths
 	 * @param height Heights
+	 * @param depth Depths
 	 * @param format Pixel formats
 	 * @return Textures
 	 */
-	public ZETexture[] createTextures(int[] width, int[] height, ZEPixelFormat[] format);
+	public ZETexture[] createTextures(ZETextureDimension[] dim, int[] width, int[] height, int[] depth, ZEPixelFormat[] format);
 	
 	/** Destroys a texture.
 	 * 
@@ -221,6 +254,16 @@ public interface ZERenderBackend<B extends ZERenderBackend<?>> {
 	 * @param cmdBuf Command buffer
 	 */
 	public void submitCommands(ZERenderCommandBuffer cmdBuf);
+	
+	// --------------------------
+	// | MULTITHREADED COMMANDS |
+	// --------------------------
+	
+	public ZERenderThread[] getRenderThreads();
+	
+	// --------------------------
+	// | INDIRECTION PROPERTIES |
+	// --------------------------
 	
 	/** Indirection parameter for vertex count, unsigned 32-bit integer. */
 	public static final String INDIRECTION_PARAM_VERTEX_COUNT = "paramVertexCount";
@@ -277,7 +320,11 @@ public interface ZERenderBackend<B extends ZERenderBackend<?>> {
 	 */
 	public default String[] getIndexedIndirectionParameters() {
 		return new String[] {
-			INDIRECTION_PARAM_INDEX_COUNT
+			INDIRECTION_PARAM_INDEX_COUNT,
+			INDIRECTION_PARAM_INSTANCE_COUNT,
+			INDIRECTION_PARAM_FIRST_INDEX,
+			INDIRECTION_PARAM_FIRST_VERTEX,
+			INDIRECTION_PARAM_FIRST_INSTANCE
 		};
 	}
 	
@@ -291,4 +338,5 @@ public interface ZERenderBackend<B extends ZERenderBackend<?>> {
 	 */
 	public ZERenderEvent createRenderEvent();
 	
+	public ZERenderSemaphore createRenderSemaphore();
 }

@@ -19,6 +19,15 @@ public interface VectorNumeric<T extends Number> extends Vector<T> {
 	 */
 	public void setDouble(int i, double val);
 	
+	/** Sets the values in this vector to another vector.
+	 * 
+	 * @param other Vector to set this to
+	 */
+	public default void set(VectorNumeric<?> other) {
+		int n = Math.min(size(), other.size());
+		for(int i = 0; i < n; i++) setDouble(i, other.getDouble(i));
+	}
+	
 	/** Computes the length of the vector.
 	 * 
 	 * @return Vector length

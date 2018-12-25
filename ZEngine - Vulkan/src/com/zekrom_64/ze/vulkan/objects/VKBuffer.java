@@ -9,7 +9,7 @@ import org.lwjgl.system.MemoryUtil;
 import org.lwjgl.vulkan.VK10;
 import org.lwjgl.vulkan.VkDevice;
 
-import com.zekrom_64.ze.base.backend.render.ZEBuffer;
+import com.zekrom_64.ze.base.backend.render.obj.ZEBuffer;
 import com.zekrom_64.ze.base.mem.ZEMapMode;
 
 /** Vulkan implementation of a {@link ZEBuffer}.

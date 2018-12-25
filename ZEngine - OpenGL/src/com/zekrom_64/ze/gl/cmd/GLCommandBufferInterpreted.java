@@ -1,11 +1,16 @@
 package com.zekrom_64.ze.gl.cmd;
 
 import java.nio.ByteBuffer;
+import java.nio.DoubleBuffer;
+import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.lwjgl.opengl.EXTPolygonOffsetClamp;
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL14;
 import org.lwjgl.opengl.GL15;
+import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GL21;
 import org.lwjgl.opengl.GL31;
 import org.lwjgl.opengl.GL32;
@@ -19,26 +24,30 @@ import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
 
 import com.zekrom_64.mathlib.shape.Rectangle;
+import com.zekrom_64.mathlib.tuple.impl.Vector2Double;
 import com.zekrom_64.mathlib.tuple.impl.Vector3Int;
-import com.zekrom_64.ze.base.backend.render.ZEBuffer;
-import com.zekrom_64.ze.base.backend.render.ZEFramebuffer;
 import com.zekrom_64.ze.base.backend.render.ZEGeometryType;
 import com.zekrom_64.ze.base.backend.render.ZERenderCommandBuffer;
-import com.zekrom_64.ze.base.backend.render.ZERenderEvent;
 import com.zekrom_64.ze.base.backend.render.ZERenderWorkRecorder;
-import com.zekrom_64.ze.base.backend.render.ZETexture;
-import com.zekrom_64.ze.base.backend.render.ZETexture.ZETextureLayout;
-import com.zekrom_64.ze.base.backend.render.input.ZEIndexBuffer;
-import com.zekrom_64.ze.base.backend.render.input.ZEVertexBuffer;
+import com.zekrom_64.ze.base.backend.render.obj.ZEBuffer;
+import com.zekrom_64.ze.base.backend.render.obj.ZEFramebuffer;
+import com.zekrom_64.ze.base.backend.render.obj.ZEIndexBuffer;
+import com.zekrom_64.ze.base.backend.render.obj.ZERenderEvent;
+import com.zekrom_64.ze.base.backend.render.obj.ZETexture;
+import com.zekrom_64.ze.base.backend.render.obj.ZEVertexBuffer;
+import com.zekrom_64.ze.base.backend.render.obj.ZETexture.ZETextureLayout;
+import com.zekrom_64.ze.base.backend.render.pipeline.ZEFrontBack;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipeline;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipeline.ZEVertexInput;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBindSet;
+import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBuilder.ZEViewport;
 import com.zekrom_64.ze.base.image.ZEPixelFormat;
 import com.zekrom_64.ze.base.util.PrimitiveType;
 import com.zekrom_64.ze.gl.GLException;
 import com.zekrom_64.ze.gl.GLRenderBackend;
+import com.zekrom_64.ze.gl.GLValues;
 import com.zekrom_64.ze.gl.impl.GLPipeline;
-import com.zekrom_64.ze.gl.impl.GLPipelineState;
+import com.zekrom_64.ze.gl.impl.GLPipelineState.GLPipelineGeometryState;
 import com.zekrom_64.ze.gl.objects.GLBuffer;
 import com.zekrom_64.ze.gl.objects.GLIndexBuffer;
 import com.zekrom_64.ze.gl.objects.GLTexture;
@@ -127,15 +136,15 @@ public class GLCommandBufferInterpreted extends GLCommandBuffer {
 		public void bindIndexBuffer(ZEIndexBuffer buffer) {
 			buildingCommands.add(() -> {
 				GL15.glBindBuffer(GL15.GL_ELEMENT_ARRAY_BUFFER, ((GLIndexBuffer)buffer).parent.bufferObject);
-				backend.getCurrentPipeline().pipelineState.setIndexType(buffer.getIndexType());
+				backend.getCurrentPipeline().pipelineState.geometryState.setIndexType(buffer.getIndexType());
 			});
 		}
 
 		@Override
 		public void draw(int nVertices, int start) {
 			buildingCommands.add(() -> {
-				ZEGeometryType geoType = backend.getCurrentPipeline().pipelineState.getInputGeometryType();
-				GL11.glDrawArrays(GLPipelineState.getGLInputGeometryType(geoType), start, nVertices);
+				ZEGeometryType geoType = backend.getCurrentPipeline().pipelineState.geometryState.getInputGeometryType();
+				GL11.glDrawArrays(GLValues.getGLInputGeometryType(geoType), start, nVertices);
 			});
 		}
 
@@ -143,26 +152,26 @@ public class GLCommandBufferInterpreted extends GLCommandBuffer {
 		public void drawIndexed(int nIndices, int startIndex, int startVertex) {
 			if (backend.getCapabilities().glDrawElementsBaseVertex != 0) {
 				buildingCommands.add(() -> {
-					GLPipelineState state = backend.getCurrentPipeline().pipelineState;
+					GLPipelineGeometryState state = backend.getCurrentPipeline().pipelineState.geometryState;
 					ZEGeometryType geoType = state.getInputGeometryType();
 					PrimitiveType indexType = state.getIndexType();
 					GL32.glDrawElementsBaseVertex(
-							GLPipelineState.getGLInputGeometryType(geoType),
+							GLValues.getGLInputGeometryType(geoType),
 							nIndices,
-							GLPipelineState.getGLType(indexType),
+							GLValues.getGLType(indexType),
 							startIndex,
 							startVertex
 						);
 				});
 			} else if (startVertex == 0) {
 				buildingCommands.add(() -> {
-					GLPipelineState state = backend.getCurrentPipeline().pipelineState;
+					GLPipelineGeometryState state = backend.getCurrentPipeline().pipelineState.geometryState;
 					ZEGeometryType geoType = state.getInputGeometryType();
 					PrimitiveType indexType = state.getIndexType();
 					GL11.glDrawElements(
-							GLPipelineState.getGLInputGeometryType(geoType),
+							GLValues.getGLInputGeometryType(geoType),
 							nIndices,
-							GLPipelineState.getGLType(indexType),
+							GLValues.getGLType(indexType),
 							startIndex
 						);
 				});
@@ -236,6 +245,16 @@ public class GLCommandBufferInterpreted extends GLCommandBuffer {
 				/* It is possible that it is faster to copy using framebuffers but
 				 * that is too much of a hack even for me. */
 				if (srcTex.getPixelFormat() == dstTex.getPixelFormat()) {
+					int bytesize = srcTex.getPixelFormat().sizeOf * size.x * size.y * size.z;
+					boolean stackAlloc = bytesize <= 0x7FFF;
+					if (stackAlloc) {
+						buildingCommands.add(() -> {
+							
+						});
+					} else {
+						
+					}
+				} else {
 					
 				}
 			}
@@ -290,7 +309,7 @@ public class GLCommandBufferInterpreted extends GLCommandBuffer {
 						ByteBuffer mem = sp.calloc(format.sizeOf * size.x * Math.min(size.y, 1) * Math.min(size.z, 1));
 						GL11.glBindTexture(GL11.GL_TEXTURE_2D, gltex);
 						GL11.glTexSubImage2D(GL11.GL_TEXTURE_2D, 0, start.x, start.y, size.x, size.y,
-								GLTexture.getGLTextureFormat(format), GLTexture.getGLTextureType(format), mem);
+								GLValues.getGLTextureFormat(format), GLValues.getGLTextureType(format), mem);
 					}
 				});
 			}
@@ -300,8 +319,8 @@ public class GLCommandBufferInterpreted extends GLCommandBuffer {
 		public void imageToBuffer(ZETexture src, Vector3Int srcPos, Vector3Int srcSize, ZEBuffer dst, int dstOffset,
 				int dstRowLength, int dstHeight) {
 			ZEPixelFormat pxfmt = src.getPixelFormat();
-			final int format = GLTexture.getGLTextureFormat(pxfmt);
-			final int type = GLTexture.getGLTextureType(pxfmt);
+			final int format = GLValues.getGLTextureFormat(pxfmt);
+			final int type = GLValues.getGLTextureType(pxfmt);
 			
 			if (srcPos.x == 0 && srcPos.y == 0 && srcPos.z == 0 && srcSize.x == src.getWidth() && srcSize.y == src.getHeight()) {
 				// If it is the full texture, use pixel buffers
@@ -323,8 +342,8 @@ public class GLCommandBufferInterpreted extends GLCommandBuffer {
 		public void bufferToImage(ZEBuffer src, int srcOffset, int srcRowLength, int srcHeight, ZETexture dst,
 				Vector3Int dstPos, Vector3Int dstSize) {
 			ZEPixelFormat pxformat = dst.getPixelFormat();
-			final int format = GLTexture.getGLTextureFormat(pxformat);
-			final int type = GLTexture.getGLTextureType(pxformat);
+			final int format = GLValues.getGLTextureFormat(pxformat);
+			final int type = GLValues.getGLTextureType(pxformat);
 			
 			if (srcRowLength == dst.getWidth() * pxformat.sizeOf && srcHeight == (dst.getWidth() * dst.getHeight() * pxformat.sizeOf)) {
 				// If the stars align and all the values are right we can use glTexSubImage
@@ -349,6 +368,85 @@ public class GLCommandBufferInterpreted extends GLCommandBuffer {
 		@Override
 		public void transitionTextureLayout(ZETexture tex, ZETextureLayout oldLayout, ZETextureLayout newLayout) {
 			// No-op since OpenGL textures do not have (visible) memory layouts
+		}
+
+		@Override
+		public void setViewport(ZEViewport[] viewports, int firstViewport, int numViewports) {
+			if (backend.getCapabilities().glViewportArrayv != 0) {
+				try(MemoryStack sp = MemoryStack.stackPush()) {
+					FloatBuffer viewBuf = sp.mallocFloat(numViewports * 4);
+					DoubleBuffer depthBuf = sp.mallocDouble(numViewports * 2);
+					for(int i = 0; i < numViewports; i++) {
+						ZEViewport vp = viewports[firstViewport + i];
+						viewBuf.put((float)vp.area.position.x);
+						viewBuf.put((float)vp.area.position.y);
+						viewBuf.put((float)vp.area.extent.x);
+						viewBuf.put((float)vp.area.extent.y);
+						depthBuf.put(vp.minDepth);
+						depthBuf.put(vp.maxDepth);
+					}
+					viewBuf.rewind();
+					depthBuf.rewind();
+					GL41.glViewportArrayv(0, viewBuf);
+					GL41.glDepthRangeArrayv(0, depthBuf);
+				}
+			} else {
+				if (numViewports == 0) {
+					ZEViewport vp = viewports[firstViewport];
+					Vector2Double extent = vp.area.extent;
+					Vector2Double position = vp.area.position;
+					GL11.glViewport((int)position.x, (int)position.y, (int)extent.x, (int)extent.y);
+					GL11.glDepthRange(vp.minDepth, vp.maxDepth);
+				}
+			}
+		}
+
+		@Override
+		public void setDepthBias(double constantFactor, double clamp, double slopeFactor) {
+			// TODO: Depth bias in OpenGL is overcomplicated
+			if (backend.getCapabilities().GL_EXT_polygon_offset_clamp) {
+				buildingCommands.add(() -> {
+					GL11.glPolygonOffset((float)constantFactor, (float)slopeFactor);
+					EXTPolygonOffsetClamp.glPolygonOffsetClampEXT((float)constantFactor, (float)slopeFactor, (float)clamp);
+				});
+			} else {
+				
+			}
+		}
+
+		@Override
+		public void setBlendConstants(float... constants) {
+			buildingCommands.add(() -> {
+				GL14.glBlendColor(constants[0], constants[1], constants[2], constants[3]);
+			});
+		}
+
+		@Override
+		public void setStencilCompareMask(ZEFrontBack face, int compareMask) {
+			int glface = GLValues.getGLFace(face);
+			buildingCommands.add(() -> {
+				int func = GL11.glGetInteger(GL11.GL_STENCIL_FUNC);
+				int ref = GL11.glGetInteger(GL11.GL_STENCIL_REF);
+				GL20.glStencilFuncSeparate(glface, func, ref, compareMask);
+			});
+		}
+
+		@Override
+		public void setStencilWriteMask(ZEFrontBack face, int writeMask) {
+			int glface = GLValues.getGLFace(face);
+			buildingCommands.add(() -> {
+				GL20.glStencilMaskSeparate(glface, writeMask);
+			});
+		}
+
+		@Override
+		public void setStencilReference(ZEFrontBack face, int reference) {
+			int glface = GLValues.getGLFace(face);
+			buildingCommands.add(() -> {
+				int func = GL11.glGetInteger(GL11.GL_STENCIL_FUNC);
+				int mask = GL11.glGetInteger(GL11.GL_STENCIL_VALUE_MASK);
+				GL20.glStencilFuncSeparate(glface, func, reference, mask);
+			});
 		}
 		
 	}

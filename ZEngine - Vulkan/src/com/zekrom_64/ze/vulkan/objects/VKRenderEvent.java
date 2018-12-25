@@ -3,7 +3,7 @@ package com.zekrom_64.ze.vulkan.objects;
 import org.lwjgl.vulkan.VK10;
 import org.lwjgl.vulkan.VkDevice;
 
-import com.zekrom_64.ze.base.backend.render.ZERenderEvent;
+import com.zekrom_64.ze.base.backend.render.obj.ZERenderEvent;
 
 /** Vulkan implementation of a {@link ZERenderEvent}.
  * 

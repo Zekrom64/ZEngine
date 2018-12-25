@@ -17,6 +17,6 @@ public interface ZEInput {
 	 * 
 	 * @return The opened stream
 	 */
-	public InputStream openInput() throws IOException ;
+	public InputStream openInput() throws IOException;
 	
 }

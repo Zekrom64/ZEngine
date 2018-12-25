@@ -22,5 +22,11 @@ public class GLPipeline implements ZEPipeline {
 	public ZEPipelineBindPoint[] getBindPoints() {
 		return null;
 	}
+	
+	public GLPipeline clone() {
+		GLPipeline newpipeline = new GLPipeline(backend);
+		newpipeline.pipelineState.set(pipelineState);
+		return newpipeline;
+	}
 
 }

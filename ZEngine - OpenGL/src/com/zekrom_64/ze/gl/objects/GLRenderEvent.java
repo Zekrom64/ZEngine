@@ -1,10 +1,10 @@
 package com.zekrom_64.ze.gl.objects;
 
-import com.zekrom_64.ze.base.backend.render.ZERenderEvent;
+import com.zekrom_64.ze.base.backend.render.obj.ZERenderEvent;
 
 public class GLRenderEvent implements ZERenderEvent {
 
-	public boolean state;
+	public volatile boolean state;
 
 	@Override
 	public boolean isSet() {

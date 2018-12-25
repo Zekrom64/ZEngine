@@ -1,4 +1,4 @@
-package com.zekrom_64.ze.base.backend.render;
+package com.zekrom_64.ze.base.backend.render.obj;
 
 import com.zekrom_64.ze.base.image.ZEPixelFormat;
 
@@ -39,17 +39,25 @@ public interface ZETexture extends ZEBuffer {
 		
 	}
 	
-	/** Gets the width of this texture.
+	/** Gets the width of this texture (X size).
 	 * 
 	 * @return Texture width
 	 */
 	public int getWidth();
 	
-	/** Gets the height of this texture.
+	/** Gets the height of this texture (Y size). Returns zero if
+	 * the texture is not 2D or 3D.
 	 * 
 	 * @return Texture height
 	 */
 	public int getHeight();
+	
+	/** Gets the depth of this texture (Z size). Returns zero if
+	 * the texture is not 3D.
+	 * 
+	 * @return Texture depth
+	 */
+	public int getDepth();
 	
 	/** Gets the pixel format of this texture.
 	 * 
@@ -63,5 +71,11 @@ public interface ZETexture extends ZEBuffer {
 	 * @return Row pitch
 	 */
 	public int getMemoryRowPitch();
+	
+	/** Gets the dimensions the texture uses.
+	 * 
+	 * @return Texture dimensions
+	 */
+	public ZETextureDimension getDimension();
 	
 }

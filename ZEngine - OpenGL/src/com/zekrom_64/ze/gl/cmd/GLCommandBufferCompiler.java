@@ -18,18 +18,20 @@ import org.apache.bcel.generic.Type;
 
 import com.zekrom_64.mathlib.shape.Rectangle;
 import com.zekrom_64.mathlib.tuple.impl.Vector3Int;
-import com.zekrom_64.ze.base.backend.render.ZEBuffer;
-import com.zekrom_64.ze.base.backend.render.ZEFramebuffer;
 import com.zekrom_64.ze.base.backend.render.ZERenderCommandBuffer;
-import com.zekrom_64.ze.base.backend.render.ZERenderEvent;
 import com.zekrom_64.ze.base.backend.render.ZERenderWorkRecorder;
-import com.zekrom_64.ze.base.backend.render.ZETexture;
-import com.zekrom_64.ze.base.backend.render.ZETexture.ZETextureLayout;
-import com.zekrom_64.ze.base.backend.render.input.ZEIndexBuffer;
-import com.zekrom_64.ze.base.backend.render.input.ZEVertexBuffer;
+import com.zekrom_64.ze.base.backend.render.obj.ZEBuffer;
+import com.zekrom_64.ze.base.backend.render.obj.ZEFramebuffer;
+import com.zekrom_64.ze.base.backend.render.obj.ZEIndexBuffer;
+import com.zekrom_64.ze.base.backend.render.obj.ZERenderEvent;
+import com.zekrom_64.ze.base.backend.render.obj.ZETexture;
+import com.zekrom_64.ze.base.backend.render.obj.ZEVertexBuffer;
+import com.zekrom_64.ze.base.backend.render.obj.ZETexture.ZETextureLayout;
+import com.zekrom_64.ze.base.backend.render.pipeline.ZEFrontBack;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipeline;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipeline.ZEVertexInput;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBindSet;
+import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBuilder.ZEViewport;
 import com.zekrom_64.ze.base.image.ZEPixelFormat;
 import com.zekrom_64.ze.gl.GLException;
 import com.zekrom_64.ze.gl.GLRenderBackend;
@@ -201,8 +203,42 @@ public class GLCommandBufferCompiler extends ClassLoader implements ZERenderWork
 
 	@Override
 	public void transitionTextureLayout(ZETexture tex, ZETextureLayout oldLayout, ZETextureLayout newLayout) {
-		// TODO Auto-generated method stub
+		// OpenGL doesn't really have texture layouts
+	}
 
+	@Override
+	public void setViewport(ZEViewport[] viewports, int firstViewport, int numViewports) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void setDepthBias(double constantFactor, double clamp, double slopeFactor) {
+		// TODO Auto-generated method stub
+	}
+
+	@Override
+	public void setBlendConstants(float... constants) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void setStencilCompareMask(ZEFrontBack face, int compareMask) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void setStencilWriteMask(ZEFrontBack face, int writeMask) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void setStencilReference(ZEFrontBack face, int reference) {
+		// TODO Auto-generated method stub
+		
 	}
 	
 	private Method lastMethodGen = null;

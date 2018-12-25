@@ -4,7 +4,7 @@ import java.nio.ByteBuffer;
 
 import org.bridj.Pointer;
 
-import com.zekrom_64.ze.base.backend.render.input.ZEIndexBuffer;
+import com.zekrom_64.ze.base.backend.render.obj.ZEIndexBuffer;
 import com.zekrom_64.ze.base.mem.ZEMapMode;
 import com.zekrom_64.ze.base.util.PrimitiveType;
 

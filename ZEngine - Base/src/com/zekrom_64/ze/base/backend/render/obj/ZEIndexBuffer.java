@@ -1,6 +1,5 @@
-package com.zekrom_64.ze.base.backend.render.input;
+package com.zekrom_64.ze.base.backend.render.obj;
 
-import com.zekrom_64.ze.base.backend.render.ZEBuffer;
 import com.zekrom_64.ze.base.util.PrimitiveType;
 
 /** An index buffer is a specialized form of a buffer that holds the indices of vertices to be rendered.

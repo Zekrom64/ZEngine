@@ -1,7 +1,7 @@
 package com.zekrom_64.ze.gl.objects;
 
-import com.zekrom_64.ze.base.backend.render.ZEFramebufferBuilder;
-import com.zekrom_64.ze.base.backend.render.ZETexture;
+import com.zekrom_64.ze.base.backend.render.obj.ZEFramebufferBuilder;
+import com.zekrom_64.ze.base.backend.render.obj.ZETexture;
 
 public class GLFramebufferBuilder implements ZEFramebufferBuilder {
 

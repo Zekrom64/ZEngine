@@ -1,6 +1,8 @@
 package com.zekrom_64.ze.base.backend.sound;
 
 import java.io.IOException;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.AudioInputStream;
 
 /** A sound input stream is a special type of input stream designed to read frames of audio.
  * 
@@ -28,5 +30,16 @@ public interface ZESoundInputStream extends ZESoundStream {
 	 * @throws IOException If an IOException occurs
 	 */
 	public int readFrame(byte[] frame, int off, int len) throws IOException;
+	
+	public static class ZEAudioInputStream implements ZESoundInputStream {
+		
+		private AudioInputStream ais;
+		
+		public ZEAudioInputStream(AudioInputStream in) {
+			ais = in;
+		}
+		
+		
+	}
 	
 }

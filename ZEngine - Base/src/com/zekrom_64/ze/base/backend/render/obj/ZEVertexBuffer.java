@@ -1,6 +1,4 @@
-package com.zekrom_64.ze.base.backend.render.input;
-
-import com.zekrom_64.ze.base.backend.render.ZEBuffer;
+package com.zekrom_64.ze.base.backend.render.obj;
 
 /** A vertex buffer is a specialized type of buffer for holding vertices.
  * 

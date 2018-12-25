@@ -21,7 +21,7 @@ import com.zekrom_64.mathlib.matrix.impl.Matrix4x4Float;
 import com.zekrom_64.mathlib.tuple.impl.Vector2Float;
 import com.zekrom_64.mathlib.tuple.impl.Vector3Float;
 import com.zekrom_64.mathlib.tuple.impl.Vector4Float;
-import com.zekrom_64.ze.base.backend.render.ZETextureDimension;
+import com.zekrom_64.ze.base.backend.render.obj.ZETextureDimension;
 import com.zekrom_64.ze.base.backend.render.shader.ZEAttributeDescription;
 import com.zekrom_64.ze.base.backend.render.shader.ZEShader;
 import com.zekrom_64.ze.base.backend.render.shader.ZEShaderCompiler;

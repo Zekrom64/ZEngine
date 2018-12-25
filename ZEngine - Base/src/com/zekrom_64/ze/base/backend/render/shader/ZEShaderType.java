@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedMap;
 
-import com.zekrom_64.ze.base.backend.render.ZETextureDimension;
+import com.zekrom_64.ze.base.backend.render.obj.ZETextureDimension;
 import com.zekrom_64.ze.base.util.PrimitiveType;
 
 /** A shader type describes a type used in a shader. Shader types have a base 'variant' that describes how they function

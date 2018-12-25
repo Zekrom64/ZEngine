@@ -12,14 +12,28 @@ import org.lwjgl.system.Platform;
 
 public class LWJGLU3 {
 	
+	/** Name for LWJGL native library */
 	public static final String NATIVES_LWJGL = "lwjgl";
+	/** Name for GLFW native library */
 	public static final String NATIVES_GLFW = "glfw";
+	/** Name for STB native library */
 	public static final String NATIVES_STB = "lwjgl_stb";
 	
+	/** Extracts the given native library and loads
+	 * it into the JVM.
+	 *
+	 * @param natives Native library to load
+	 */
 	public static void extractAndLoadNatives(String natives) {
 		extractAndLoadNatives(natives, ClassLoader.getSystemClassLoader());
 	}
 	
+	/** Version of {@link extractAndLoadNatives} that allows an explicit
+	 * classloader to extract the native library from.
+	 *
+	 * @param natives Native library toload
+	 * @param loader Classloader to get native library
+	 */
 	public static void extractAndLoadNatives(String natives, ClassLoader loader) {
 		extractAndLoadNatives(new File("natives"), natives, loader);
 	}
@@ -37,12 +51,15 @@ public class LWJGLU3 {
 		extractAndLoadNatives(nativesFolder, natives, ClassLoader.getSystemClassLoader());
 	}
 	
+	/** Version of {@link extractAndLoadNatives} that takes a natives folder and class loader.
+	 *
+	 */
 	public static void extractAndLoadNatives(File nativesFolder, String natives, ClassLoader loader) {
 		if (!(nativesFolder.exists() && nativesFolder.isDirectory())) {
 			if (!nativesFolder.mkdirs()) throw new RuntimeException("Failed to create folder for LWJGL natives");
 		}
 		String nameWindows, nameUnix;
-		if (natives.indexOf(';') == -1) nameWindows = nameUnix = natives;
+		if (natives.indexOf(':') == -1) nameWindows = nameUnix = natives;
 		else {
 			String[] names = natives.split("\\:");
 			nameWindows = names[0];

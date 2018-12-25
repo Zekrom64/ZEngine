@@ -7,6 +7,11 @@ import java.io.InputStream;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
+import java.nio.channels.FileChannel;
+import java.util.Collections;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.imageio.ImageIO;
 
@@ -117,6 +122,37 @@ public class ZEImageLoader {
 		argb.position(position);
 	}
 	
+	/** Interface for providing custom image readers. When loading an image,
+	 * instances of this will be called with a memory buffer containing the
+	 * image data.
+	 * 
+	 * @author Zekrom_64
+	 *
+	 */
+	@FunctionalInterface
+	public static interface ZEImageReader {
+		
+		/** Attempt to read an image from the memory buffer. The memory buffer will have
+		 * its position set at the beginning of the image data. If an image was successfully
+		 * read it must be returned. If there is an error, <b>null</b> should be returned.
+		 * 
+		 * @param mem Image data memory buffer
+		 * @return Image read, or <b>null</b>
+		 */
+		public ZEImage attemptRead(ByteBuffer mem);
+		
+	}
+	
+	private static Set<ZEImageReader> customReaders = Collections.newSetFromMap(new ConcurrentHashMap<>());
+	
+	/** Adds a custom image reader to the image loader.
+	 * 
+	 * @param reader Custom reader
+	 */
+	public static void addCustomReader(ZEImageReader reader) {
+		if (reader != null) customReaders.add(reader);
+	}
+	
 	/** Attempts to read an image from an input. The stream is decoded using
 	 * {@link #loadImage(InputStream)}.
 	 * 
@@ -142,9 +178,8 @@ public class ZEImageLoader {
 		return loadImage(buf);
 	}
 
-	/** Attempts to read an image from a memory buffer. The stream is decoded using
-	 * {@link STBImage#stbi_load_from_memory}. If that fails, it is decoded using
-	 * {@link ImageIO#read(InputStream)}.
+	/** Attempts to read an image from a memory buffer. Behavior is identical to
+	 * {@link #loadImage(ByteBuffer)}, except a byte array is used for memory instead.
 	 * 
 	 * @param memory Memory buffer
 	 * @return Decoded image
@@ -153,10 +188,25 @@ public class ZEImageLoader {
 	public static ZEImage loadImage(byte[] memory) throws IOException {
 		MemoryStack sp = MemoryStack.stackGet();
 		int bp = sp.getPointer();
-		IntBuffer w = sp.ints(0), h = sp.ints(0), comp = sp.ints(0);
-		
-		boolean stackalloc = sp.getSize() - bp >= memory.length;
+		boolean stackalloc = sp.getSize() - (bp + 12) >= memory.length;
 		ByteBuffer pMemory = stackalloc ? sp.bytes(memory) : (ByteBuffer)LibCStdlib.malloc(memory.length).put(memory).rewind();
+		
+		Optional<ZEImage> custom = customReaders.stream()
+				.map((ZEImageReader reader) -> {
+					pMemory.rewind();
+					return reader.attemptRead(pMemory);
+				})
+				.filter((ZEImage img) -> img != null)
+				.findFirst();
+		
+		if (custom.isPresent()) {
+			sp.setPointer(bp);
+			if (!stackalloc) LibCStdlib.free(pMemory);
+			return custom.get();
+		}
+		pMemory.rewind();
+		
+		IntBuffer w = sp.ints(0), h = sp.ints(0), comp = sp.ints(0);
 		
 		ByteBuffer buf = STBImage.stbi_load_from_memory(pMemory, w, h, comp, 0);
 		int components = comp.get();
@@ -175,15 +225,28 @@ public class ZEImageLoader {
 		return new ZEImage(buf, w.get(), h.get(), pxfmt);
 	}
 	
-	/** Attempts to read an image from a memory buffer. The stream is decoded using
+	/** Attempts to read an image from a memory buffer. Any custom loader that
+	 * accepts the image data will try to load first. The decoding is then attempted using
 	 * {@link STBImage#stbi_load_from_memory}. If that fails, it is decoded using
-	 * {@link ImageIO#read(InputStream)}.
+	 * {@link ImageIO#read(InputStream)}. If even that is unable to load the image an
+	 * IOException is thrown.
 	 * 
 	 * @param memory Memory buffer
 	 * @return Decoded image
 	 * @throws IOException If the image cannot be decoded
 	 */
 	public static ZEImage loadImage(ByteBuffer memory) throws IOException {
+		int memoryOffset = memory.position();
+		Optional<ZEImage> custom = customReaders.stream()
+				.map((ZEImageReader reader) -> {
+					memory.position(memoryOffset);
+					return reader.attemptRead(memory);
+				})
+				.filter((ZEImage img) -> img != null)
+				.findFirst();
+		if (custom.isPresent()) return custom.get();
+		memory.position(memoryOffset);
+		
 		MemoryStack sp = MemoryStack.stackGet();
 		int bp = sp.getPointer();
 		IntBuffer w = sp.ints(0), h = sp.ints(0), comp = sp.ints(0);
@@ -211,34 +274,31 @@ public class ZEImageLoader {
 	}
 	
 	/** Attempts to read an image from a file. The stream is decoded using
-	 * {@link STBImage#stbi_load}. If that fails, then the stream is
-	 * decoded using {@link ImageIO#read(File)}.
+	 * {@link #loadImage(ByteBuffer)}.
 	 * 
 	 * @param file Image file
 	 * @return Decoded image
 	 * @throws IOException If the image cannot be decoded
 	 */
 	public static ZEImage loadImage(File file) throws IOException {
-		
-		MemoryStack sp = MemoryStack.stackGet();
-		int bp = sp.getPointer();
-		ByteBuffer pPath = sp.ASCII(file.getPath());
-		IntBuffer w = sp.ints(0), h = sp.ints(0), comp = sp.ints(0);
-		
-		ByteBuffer buf = STBImage.stbi_load(pPath, w, h, comp, 0);
-		int components = comp.get();
-		sp.setPointer(bp);
-		
-		if (buf==null) return new ZEImage(ImageIO.read(file));
-		
-		ZEPixelFormat pxfmt = ZEPixelFormat.UNKNOWN;
-		switch(components) {
-		case STBImage.STBI_grey: pxfmt = ZEPixelFormat.R8_UINT; break;
-		case STBImage.STBI_grey_alpha: pxfmt = ZEPixelFormat.R8G8_UINT; break;
-		case STBImage.STBI_rgb: pxfmt = ZEPixelFormat.R8G8B8_UINT; break;
-		case STBImage.STBI_rgb_alpha: pxfmt = ZEPixelFormat.R8G8B8A8_UINT; break;
+		ByteBuffer data = LibCStdlib.malloc(file.length());
+		try {
+			FileChannel channel = FileChannel.open(file.toPath());
+			while(data.hasRemaining()) {
+				int read = channel.read(data);
+				// Stream hit end of file, but its not done reading
+				if (read == -1 && data.hasRemaining()) throw new IOException("Unexpected end of file when reading");
+				// Stream is lagging behind, don't waste CPU time trying to read again immediately
+				if (read == 0) {
+					try {
+						Thread.sleep(5);
+					} catch (InterruptedException e) {}
+				}
+			}
+			return loadImage(data);
+		} finally {
+			LibCStdlib.free(data);
 		}
-		return new ZEImage(buf, w.get(), h.get(), pxfmt);
 	}
 	
 	/** Attempts to read an image from a resource on the classpath. The stream is

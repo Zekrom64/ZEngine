@@ -5,22 +5,24 @@ import java.nio.ByteBuffer;
 import org.bridj.Pointer;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
+import org.lwjgl.opengl.GL13;
 import org.lwjgl.opengl.GL15;
 import org.lwjgl.opengl.GL21;
-import org.lwjgl.opengl.GL30;
 import org.lwjgl.system.MemoryUtil;
 import org.lwjgl.system.libc.LibCStdlib;
 
-import com.zekrom_64.ze.base.backend.render.ZETexture;
+import com.zekrom_64.ze.base.backend.render.obj.ZETexture;
+import com.zekrom_64.ze.base.backend.render.obj.ZETextureDimension;
 import com.zekrom_64.ze.base.image.ZEPixelFormat;
 import com.zekrom_64.ze.base.mem.ZEMapMode;
 import com.zekrom_64.ze.gl.GLNativeContext;
+import com.zekrom_64.ze.gl.GLValues;
 
 /** OpenGL implementation of a {@link ZETexture}. Mapping the texture results in different operations based on the
  * mapping mode. If the mapping mode is read only, a pixel buffer unpacks pixels from the texture into a buffer object.
  * If the mapping is write only, a pixel buffer packs pixels into the texture on unmapping. If the mapping mode is
  * read-write, a buffer is allocated off-heap and filled with the texture data. The buffer is then re-uploaded to the
- * texture and freed when unmapped.
+ * texture and freed when unmapped. If the texture is a buffer texture, it is accessed through its buffer object.
  * 
  * @author Zekrom_64
  *
@@ -30,35 +32,89 @@ public class GLTexture implements ZETexture {
 	/** The OpenGL texture ID */
 	public final int texID;
 	private GLNativeContext ctx;
-	private int width, height;
+	private int width, height, depth;
 	private ZEMapMode mappingMode = null;
 	private ByteBuffer mappedMem;
 	private Pointer<?> mappedPtr;
 	private int pixelBuf;
 	private ZEPixelFormat pxfmt;
 	private int glFormat, glType;
+	private ZETextureDimension dimension;
+	private GLBuffer bufferTex;
 	
-	public GLTexture(int tex, ZEPixelFormat pixelFormat) {
+	public GLTexture(int tex, ZETextureDimension dim, ZEPixelFormat pixelFormat) {
 		this.texID = tex;
 		ctx = GLNativeContext.getNativeContext();
-		GL11.glBindTexture(GL11.GL_TEXTURE_2D, tex);
-		width = GL11.glGetTexLevelParameteri(GL11.GL_TEXTURE_2D, 0, GL11.GL_TEXTURE_WIDTH);
-		height = GL11.glGetTexLevelParameteri(GL11.GL_TEXTURE_2D, 0, GL11.GL_TEXTURE_HEIGHT);
+		int target = GLValues.getGLTextureTarget(dim);
+		GL11.glBindTexture(target, tex);
+		width = GL11.glGetTexLevelParameteri(target, 0, GL11.GL_TEXTURE_WIDTH);
+		height = GL11.glGetTexLevelParameteri(target, 0, GL11.GL_TEXTURE_HEIGHT);
+		depth = GL11.glGetTexLevelParameteri(target, 0, GL12.GL_TEXTURE_DEPTH);
 		pxfmt = pixelFormat;
-		glFormat = getGLTextureFormat(pixelFormat);
-		glType = getGLTextureType(pixelFormat);
+		glFormat = GLValues.getGLTextureFormat(pixelFormat);
+		glType = GLValues.getGLTextureType(pixelFormat);
 	}
 	
-	public GLTexture(int w, int h, ZEPixelFormat pixelFormat) {
-		this.texID = GL11.glGenTextures();
+	public GLTexture(int tex, ZETextureDimension dim, int w, int h, int d, ZEPixelFormat pixelFormat) {
+		texID = tex;
 		ctx = GLNativeContext.getNativeContext();
 		width = w;
 		height = h;
+		int layerCount = 1;
+		if (dim.isCubemap) layerCount *= 6;
+		if (dim.isArray) {
+			layerCount *= d;
+			d = 0;
+		}
+		depth = d;
+		dimension = dim;
 		pxfmt = pixelFormat;
-		glFormat = getGLTextureFormat(pixelFormat);
-		glType = getGLTextureType(pixelFormat);
-		GL11.glBindTexture(GL11.GL_TEXTURE_2D, texID);
-		GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, glFormat, w, h, 0, glFormat, glType, 0);
+		glFormat = GLValues.getGLTextureFormat(pixelFormat);
+		glType = GLValues.getGLTextureType(pixelFormat);
+		GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, 0);
+		for(int i = 0; i < layerCount; i++) glTexImage(0, i, w, h, d, 0);
+	}
+	
+	public GLTexture(int w, int h, int d, ZETextureDimension dim, ZEPixelFormat pixelFormat) {
+		this(GL11.glGenTextures(), dim, w, h, d, pixelFormat);
+	}
+	
+	private static int[] cubeFaceTargets = new int[] {
+		GL13.GL_TEXTURE_CUBE_MAP_POSITIVE_X,
+		GL13.GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
+		GL13.GL_TEXTURE_CUBE_MAP_POSITIVE_Y,
+		GL13.GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
+		GL13.GL_TEXTURE_CUBE_MAP_POSITIVE_Z,
+		GL13.GL_TEXTURE_CUBE_MAP_NEGATIVE_Z
+	};
+	
+	public void glTexImage(int mipmap, int layer, int w, int h, int d, long data) {
+		int target = GLValues.getGLTextureTarget(dimension);
+		if (target != -1) GL11.glBindTexture(target, texID);
+		switch(dimension) {
+		case BUFFER_TEXTURE:
+			GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, bufferTex.bufferObject);
+			GL15.nglBufferData(GL15.GL_ARRAY_BUFFER, pxfmt.sizeOf*w*h*d, data, GL15.GL_DYNAMIC_DRAW);
+			break;
+		case CUBE: {
+			int cubeFace = layer % 6;
+			layer /= 6;
+			target = cubeFaceTargets[cubeFace];
+			GL11.glTexImage2D(target, layer, glFormat, w, h, 0, glFormat, glType, data);
+		} break;
+		case DIM_1D: GL11.glTexImage1D(target, layer, glFormat, w, 0, glFormat, glType, data); break;
+		case RECTANGLE:
+		case DIM_2D: GL11.glTexImage2D(target, layer, glFormat, w, h, 0, glFormat, glType, data); break;
+		case DIM_3D: GL12.glTexImage3D(target, layer, glFormat, w, h, d, 0, glFormat, glType, data); break;
+		case DIM_1D_ARRAY:
+		case DIM_2D_ARRAY:
+		case CUBE_ARRAY: {
+			int cubeFace = layer % 6;
+			layer /= 6;
+			target = cubeFaceTargets[cubeFace];
+			GL12.glTexImage3D(target, layer, glFormat, w, h, d, 0, glFormat, glType, 0);
+		} break;
+		}
 	}
 
 	@Override
@@ -104,32 +160,32 @@ public class GLTexture implements ZETexture {
 
 	@Override
 	public void unmapMemory() {
+		if (mappingMode != null) {
 		ctx.executeExclusivly(() -> {
-			if (mappingMode != null) {
-				switch(mappingMode) {
-				case READ_ONLY:
-					GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, pixelBuf);
-					GL15.glUnmapBuffer(GL21.GL_PIXEL_PACK_BUFFER);
-					mappedMem = null;
-					mappedPtr = null;
-					break;
-				case WRITE_ONLY:
-					GL11.glBindTexture(GL11.GL_TEXTURE_2D, texID);
-					GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, pixelBuf);
-					GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, glFormat, width, height, 0, glFormat, glType, 0);
-					mappedMem = null;
-					mappedPtr = null;
-					break;
-				case READ_WRITE:
-					GL11.glBindTexture(GL11.GL_TEXTURE_2D, texID);
-					GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, glFormat, width, height, 0, glFormat, glType, mappedMem);
-					LibCStdlib.free(mappedMem);
-					mappedMem = null;
-					mappedPtr = null;
-					break;
-				}
+			switch(mappingMode) {
+			case READ_ONLY:
+				GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, pixelBuf);
+				GL15.glUnmapBuffer(GL21.GL_PIXEL_PACK_BUFFER);
+				mappedMem = null;
+				mappedPtr = null;
+				break;
+			case WRITE_ONLY:
+				GL11.glBindTexture(GL11.GL_TEXTURE_2D, texID);
+				GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, pixelBuf);
+				GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, glFormat, width, height, 0, glFormat, glType, 0);
+				mappedMem = null;
+				mappedPtr = null;
+				break;
+			case READ_WRITE:
+				GL11.glBindTexture(GL11.GL_TEXTURE_2D, texID);
+				GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, glFormat, width, height, 0, glFormat, glType, mappedMem);
+				LibCStdlib.free(mappedMem);
+				mappedMem = null;
+				mappedPtr = null;
+				break;
 			}
 		});
+		}
 		
 	}
 
@@ -158,64 +214,6 @@ public class GLTexture implements ZETexture {
 		return pxfmt;
 	}
 	
-	/** Gets the OpenGL texture format for a given pixel format, returning
-	 * -1 if the given format cannot be found.
-	 * 
-	 * @param fmt Pixel format
-	 * @return OpenGL texture format
-	 */
-	public static int getGLTextureFormat(ZEPixelFormat fmt) {
-		switch(fmt) {
-		case R8G8B8A8_UINT:
-		case R16G16B16A16_UINT:
-		case R32G32B32A32_UINT:
-		case R32G32B32A32_FLOAT: return GL11.GL_RGBA;
-		case R8G8B8_UINT:
-		case R16G16B16_UINT:
-		case R32G32B32_UINT:
-		case R32G32B32_FLOAT: return GL11.GL_RGB;
-		case R8G8_UINT:
-		case R16G16_UINT:
-		case R32G32_UINT:
-		case R32G32_FLOAT: return GL30.GL_RG;
-		case R8_UINT:
-		case R16_UINT:
-		case R32_UINT:
-		case R32_FLOAT: return GL11.GL_R;
-		case A8R8G8B8_UINT: return GL12.GL_BGRA;
-		default: return -1;
-		}
-	}
-	
-	/** Gets the OpenGL component type for a given pixel format, returning
-	 * -1 if the given component type cannot be found.
-	 * 
-	 * @param fmt Pixel format
-	 * @return OpenGL component type
-	 */
-	public static int getGLTextureType(ZEPixelFormat fmt) {
-		switch(fmt) {
-		case A8R8G8B8_UINT: return GL12.GL_UNSIGNED_INT_8_8_8_8_REV;
-		case R16G16B16A16_UINT:
-		case R16G16B16_UINT:
-		case R16G16_UINT:
-		case R16_UINT: return GL11.GL_UNSIGNED_SHORT;
-		case R32G32B32A32_FLOAT:
-		case R32G32B32_FLOAT:
-		case R32G32_FLOAT:
-		case R32_FLOAT: return GL11.GL_FLOAT;
-		case R32G32B32A32_UINT:
-		case R32G32B32_UINT:
-		case R32G32_UINT:
-		case R32_UINT: return GL11.GL_UNSIGNED_INT;
-		case R8G8B8A8_UINT:
-		case R8G8B8_UINT:
-		case R8G8_UINT:
-		case R8_UINT: return GL11.GL_UNSIGNED_BYTE;
-		default: return -1;
-		}
-	}
-
 	// OpenGL textures (almost) always have no padding bytes
 	@Override
 	public int getMemoryRowPitch() {
@@ -241,6 +239,16 @@ public class GLTexture implements ZETexture {
 	 */
 	public int getGLType() {
 		return glType;
+	}
+
+	@Override
+	public int getDepth() {
+		return depth;
+	}
+
+	@Override
+	public ZETextureDimension getDimension() {
+		return dimension;
 	}
 	
 }

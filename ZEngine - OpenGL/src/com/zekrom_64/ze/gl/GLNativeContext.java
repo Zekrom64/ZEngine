@@ -33,6 +33,7 @@ public class GLNativeContext implements GLContext {
 	private long auxiliary1;
 	
 	private Semaphore bindSemaphore = new Semaphore(1);
+	private Thread boundThread = null;
 	
 	/** Gets the native OpenGL context for the current thread.
 	 * 
@@ -113,12 +114,13 @@ public class GLNativeContext implements GLContext {
 	}
 	
 	@Override
-	public void bind() {
+	public synchronized void bind() {
 		switch(Platform.get()) {
 		case WINDOWS: WGL.wglMakeCurrent(auxiliary0, context); break;
 		case LINUX: GLX.glXMakeCurrent(auxiliary0, auxiliary1, context); break;
 		case MACOSX: CGL.CGLSetCurrentContext(context);
 		}
+		boundThread = Thread.currentThread();
 	}
 	
 	@Override
@@ -140,6 +142,24 @@ public class GLNativeContext implements GLContext {
 		bindSemaphore.acquireUninterruptibly();
 		if (!isBound()) bind();
 		r.run();
+		bindSemaphore.release();
+	}
+	
+	/** Acquires a lock on the context and binds it to the current thread.
+	 * 
+	 */
+	public void bindExclusively() {
+		if (boundThread == Thread.currentThread()) return;
+		bindSemaphore.acquireUninterruptibly();
+		if (!isBound()) bind();
+	}
+	
+	/** Releases the lock on the context gained by {@link #bindExclusively()}.
+	 * If the thread calling this is not the one that called bindExclusively(), the
+	 * function returns immediately.
+	 */
+	public void unbindExclusively() {
+		if (boundThread != Thread.currentThread()) return;
 		bindSemaphore.release();
 	}
 	

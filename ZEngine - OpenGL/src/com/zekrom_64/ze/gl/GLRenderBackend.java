@@ -3,19 +3,22 @@ package com.zekrom_64.ze.gl;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.lwjgl.opengl.EXTTextureArray;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL15;
+import org.lwjgl.opengl.GL30;
 import org.lwjgl.opengl.GLCapabilities;
 
-import com.zekrom_64.ze.base.backend.render.ZEBuffer;
 import com.zekrom_64.ze.base.backend.render.ZERenderBackend;
 import com.zekrom_64.ze.base.backend.render.ZERenderCommandBuffer;
-import com.zekrom_64.ze.base.backend.render.ZERenderEvent;
 import com.zekrom_64.ze.base.backend.render.ZERenderContext;
-import com.zekrom_64.ze.base.backend.render.ZETexture;
-import com.zekrom_64.ze.base.backend.render.input.ZEIndexBuffer;
-import com.zekrom_64.ze.base.backend.render.input.ZEVertexBuffer;
+import com.zekrom_64.ze.base.backend.render.obj.ZEBuffer;
+import com.zekrom_64.ze.base.backend.render.obj.ZEIndexBuffer;
+import com.zekrom_64.ze.base.backend.render.obj.ZERenderEvent;
+import com.zekrom_64.ze.base.backend.render.obj.ZETexture;
+import com.zekrom_64.ze.base.backend.render.obj.ZETextureDimension;
+import com.zekrom_64.ze.base.backend.render.obj.ZEVertexBuffer;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipeline;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBuilder;
 import com.zekrom_64.ze.base.backend.render.shader.ZEShaderCompiler;
@@ -75,11 +78,25 @@ public class GLRenderBackend implements ZERenderBackend<GLRenderBackend> {
 	public boolean supportsFeature(String feature) {
 		if (capabilities == null) return false;
 		switch(feature) {
+		case ZERenderBackend.FEATURE_MULTITHREAD_SYNCHRONIZATION:
+			return true;
+		case ZERenderBackend.FEATURE_MULTIPLE_PIPELINES:
+			return true;
+		case ZERenderBackend.FEATURE_MULTIPLE_FRAMEBUFFERS:
+			return capabilities.OpenGL30;
+		case ZERenderBackend.FEATURE_SHADER_UNIFORM_BUFFER:
+			return capabilities.OpenGL31 || capabilities.GL_ARB_uniform_buffer_object;
+		case ZERenderBackend.FEATURE_GENERIC_BUFFER:
+			return true;
 		case ZERenderBackend.FEATURE_COMMAND_DRAW_INDIRECT:
-			return capabilities.GL_ARB_draw_indirect ||
+			return capabilities.OpenGL40 ||
+					capabilities.GL_ARB_draw_indirect ||
 					capabilities.GL_ARB_multi_draw_indirect ||
-					capabilities.GL_ARB_base_instance ||
-					capabilities.glDrawArraysIndirect != 0; // At least opengl 4.0
+					capabilities.GL_ARB_base_instance;
+		case ZERenderBackend.FEATURE_CUBEMAP_ARRAY:
+			return capabilities.OpenGL40 || capabilities.GL_ARB_texture_cube_map_array;
+		case ZERenderBackend.FEATURE_TEXTURE_ARRAY:
+			return capabilities.OpenGL30 || capabilities.GL_EXT_texture_array;
 		}
 		return false;
 	}
@@ -150,7 +167,7 @@ public class GLRenderBackend implements ZERenderBackend<GLRenderBackend> {
 	public void freeBuffer(ZEBuffer... buffers) {
 		int[] bufIDs = new int[buffers.length];
 		for(int i = 0; i < buffers.length; i++) bufIDs[i] = ((GLBuffer)buffers[i]).bufferObject;
-		GL15.glDeleteBuffers(bufIDs);
+		releasables.add(() -> GL15.glDeleteBuffers(bufIDs));
 	}
 
 	@Override
@@ -165,22 +182,17 @@ public class GLRenderBackend implements ZERenderBackend<GLRenderBackend> {
 	}
 
 	@Override
-	public ZETexture createTexture(int width, int height, ZEPixelFormat format) {
-		return new GLTexture(width, height, format);
+	public ZETexture createTexture(ZETextureDimension dim, int width, int height, int depth, ZEPixelFormat format) {
+		return new GLTexture(width, height, depth, dim, format);
 	}
 
 	@Override
-	public ZETexture[] createTextures(int[] width, int[] height, ZEPixelFormat[] format) {
+	public ZETexture[] createTextures(ZETextureDimension[] dim, int[] width, int[] height, int[] depth, ZEPixelFormat[] format) {
 		int count = Math.min(width.length, Math.min(height.length, format.length));
 		GLTexture[] texObjs = new GLTexture[count];
 		int[] texs = new int[count];
 		GL11.glGenTextures(texs);
-		for(int i = 0; i < count; i++) {
-			int fmt = GLTexture.getGLTextureFormat(format[i]), type = GLTexture.getGLTextureType(format[i]);
-			GL11.glBindTexture(GL11.GL_TEXTURE_2D, texs[i]);
-			GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, fmt, width[i], height[i], 0, fmt, type, 0);
-			texObjs[i] = new GLTexture(texs[i], format[i]);
-		}
+		for(int i = 0; i < count; i++) texObjs[i] = new GLTexture(texs[i], dim[i],width[i], height[i], depth[i],  format[i]);
 		return texObjs;
 	}
 

@@ -8,6 +8,13 @@ public interface MatrixNumeric<T extends Number> extends Matrix<T> {
 	
 	public void setDouble(int row, int column, double val);
 	
+	public default void set(MatrixNumeric<T> other) {
+		int w = Math.min(columns(), other.columns());
+		int h = Math.min(rows(), other.rows());
+		for(int x = 0; x < w; x++)
+			for(int y = 0; y < h; y++) setDouble(y, x, other.getDouble(y, x));
+	}
+	
 	static class LeibnizPermutation {
 	
 		public final int[][] permutations;
@@ -65,6 +72,76 @@ public interface MatrixNumeric<T extends Number> extends Matrix<T> {
 		}
 		default: return leibniz(this); // For larger matrices, resort to algorithm
 		}
+	}
+	
+	public default boolean invert() {
+		int w = columns(), h = rows();
+		if (w != h) return false;
+		int size = w;
+		if (size < 1) return true; // Inverse of zero-size matrix is itself
+		if (size == 1) {
+			double x = getDouble(0,0);
+			if (x == 0) return false; // Cannot divide by 0
+			setDouble(0,0, 1d/x); // Inverse of a single number is 1/x
+			return true;
+		}
+		// Resort to algorithm for complex inverses
+		// Based on lwjgl_util GLU code for 4x4 matrices, extended to NxN
+		double[][] temp = new double[w][h], inverse = new double[w][h];
+		for(int x = 0; x < size; x++)
+			for(int y = 0; y < size; y++) temp[x][y] = getDouble(y,x);
+		
+		for(int i = 0; i < size; i++) inverse[i][i] = 1;
+		
+		int swap;
+		for(int i = 0; i < size; i++) {
+			swap = i;
+			// Find largest element in column
+			for(int j = i + 1; j < size; j++) {
+				if (Math.abs(temp[i][j]) > Math.abs(temp[j][i])) {
+					swap = j;
+				}
+			}
+			if (swap != i) {
+				// Swap rows
+				for(int k = 0; k < size; k++) {
+					double t = temp[k][i];
+					temp[k][i] = temp[k][swap];
+					temp[k][swap] = t;
+					t = inverse[k][i];
+					inverse[k][i] = inverse[k][swap];
+					inverse[k][swap] = t;
+				}
+			}
+			double t = temp[i][i];
+			// Check if matrix is singular
+			if (t == 0) return false;
+			// Do computation for inverse
+			for(int k = 0; k < size; k++) {
+				temp[k][i] = temp[k][i] / t;
+				inverse[k][i] = inverse[k][i] / t;
+			}
+			for(int j = 0; j < size; j++) {
+				if (j != i) {
+					t = temp[i][j];
+					for(int k = 0; k < size; k++) {
+						temp[k][j] -= temp[k][i] * t;
+						inverse[k][j] -= inverse[k][i] * t;
+					}
+				}
+			}
+		}
+		// Set self to inverse
+		for(int x = 0; x < size; x++)
+			for(int y = 0; y < size; y++) setDouble(y,x,inverse[x][y]);
+		return true;
+	}
+	
+	public default void mul(MatrixNumeric<?> other) {
+		int w = Math.min(columns(), other.columns());
+		int h = Math.min(rows(), other.rows());
+		for(int x = 0; x < w; x++)
+			for(int y = 0; y < h; y++) setDouble(y,x, getDouble(y,x) * other.getDouble(y, x));
 	}
 	
 }

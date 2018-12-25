@@ -29,5 +29,8 @@ public enum ZEPipelineStage {
 	/** Color output */
 	COLOR_OUTPUT,
 	/** End of the pipeline */
-	END_OF_PIPELINE
+	END_OF_PIPELINE,
+	
+	/** A special stage value signifying all stages */
+	ALL
 }

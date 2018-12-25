@@ -1,6 +1,6 @@
 package com.zekrom_64.ze.gl;
 
-import com.zekrom_64.ze.base.backend.render.ZERenderEvent;
+import com.zekrom_64.ze.base.backend.render.obj.ZERenderEvent;
 
 public class GLRenderEvent implements ZERenderEvent {
 

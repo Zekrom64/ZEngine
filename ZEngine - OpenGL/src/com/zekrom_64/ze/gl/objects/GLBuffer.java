@@ -6,7 +6,7 @@ import org.bridj.Pointer;
 import org.lwjgl.opengl.GL15;
 import org.lwjgl.system.MemoryUtil;
 
-import com.zekrom_64.ze.base.backend.render.ZEBuffer;
+import com.zekrom_64.ze.base.backend.render.obj.ZEBuffer;
 import com.zekrom_64.ze.base.mem.ZEMapMode;
 import com.zekrom_64.ze.gl.GLNativeContext;
 

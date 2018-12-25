@@ -9,6 +9,7 @@ import org.lwjgl.opengl.GL11;
  */
 public class GLVersion implements Comparable<GLVersion> {
 
+	/** Predefined OpenGL versions */
 	public static final GLVersion
 			VERSION_1_1 = new GLVersion(1, 1),
 			VERSION_1_2 = new GLVersion(1, 2),
@@ -28,6 +29,7 @@ public class GLVersion implements Comparable<GLVersion> {
 			VERSION_4_4 = new GLVersion(4, 4),
 			VERSION_4_5 = new GLVersion(4, 5);
 	
+	/** The version numbers */
 	public final int major, minor;
 	
 	public GLVersion(int maj, int min) {
@@ -35,6 +37,10 @@ public class GLVersion implements Comparable<GLVersion> {
 		minor = min;
 	}
 	
+	/** Gets the version number of the OpenGL context bound to the current thread.
+	 * 
+	 * @return OpenGL version number, or <b>null</b> if version parsing failed
+	 */
 	public static GLVersion getFromGL() {
 		String verstr = GL11.glGetString(GL11.GL_VERSION);
 		int idx0 = verstr.indexOf('.');
@@ -49,10 +55,18 @@ public class GLVersion implements Comparable<GLVersion> {
 		}
 	}
 	
+	/** Gets the "vendor" of the current OpenGL context.
+	 * 
+	 * @return OpenGL vendor
+	 */
 	public static String getVendor() {
 		return GL11.glGetString(GL11.GL_VENDOR);
 	}
 	
+	/** Gets the "renderer" of the current OpenGL context.
+	 * 
+	 * @return OpenGL renderer
+	 */
 	public static String getRenderer() {
 		return GL11.glGetString(GL11.GL_RENDER);
 	}
@@ -64,10 +78,21 @@ public class GLVersion implements Comparable<GLVersion> {
 		return Integer.compare(minor, arg0.minor);
 	}
 	
+	/** Tests if this OpenGL version is greater than or equal to
+	 * the given OpenGL version.
+	 * 
+	 * @param other Version to compare with
+	 * @return If this version is greater or equal to
+	 */
 	public boolean greaterOrEqual(GLVersion other) {
 		return compareTo(other) >= 0;
 	}
 	
+	/** Tests if the current OpenGL context contains the specified extension.
+	 * 
+	 * @param name Name of the extension
+	 * @return If the current context contains the extension
+	 */
 	public static boolean extensionExists(String name) {
 		String exts = GL11.glGetString(GL11.GL_EXTENSIONS);
 		return exts.contains(name);

@@ -50,4 +50,18 @@ public interface Rectangle {
 	 */
 	public void set(Rectangle other);
 	
+	/** Tests if this rectangle is equal to another rectangle, comparing
+	 * their positions and sizes.
+	 * 
+	 * @param other Rectangle to compare to
+	 * @return If the rectangles are identical
+	 */
+	public default boolean equals(Rectangle other) {
+		if (other == this) return true;
+		return getPositionX() == other.getPositionX() &&
+				getPositionY() == other.getPositionY() &&
+				getWidth() == other.getWidth() &&
+				getHeight() == other.getHeight();
+	}
+	
 }
