@@ -128,8 +128,6 @@ public class VKShaderCompiler implements ZEShaderCompiler {
 			if (shaders.containsKey(modtype)) throw new VulkanException("Duplicate shader of type \"" + modtype + "\" when creating shader program");
 			shaders.put(modtype, (VKShader)module);
 		}
-		
-		
 	}
 
 }

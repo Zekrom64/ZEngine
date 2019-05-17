@@ -33,14 +33,16 @@ public class VKBuffer implements ZEBuffer {
 	public final int flags;
 	private Pointer<?> memPtr;
 	private ByteBuffer memBuf;
+	private ZEBufferUsage[] usages;
 	
-	public VKBuffer(VkDevice dev, long buf, long size, long mem, long memoff, int flags) {
+	public VKBuffer(VkDevice dev, long buf, long size, long mem, long memoff, int flags, ZEBufferUsage[] usages) {
 		device = dev;
 		this.size = size;
 		buffer = buf;
 		memory = mem;
 		memoryOffset = memoff;
 		this.flags = flags;
+		this.usages = usages;
 	}
 
 	@Override
@@ -92,6 +94,11 @@ public class VKBuffer implements ZEBuffer {
 	@Override
 	public long size() {
 		return size;
+	}
+
+	@Override
+	public ZEBufferUsage[] getValidUsages() {
+		return usages;
 	}
 	
 }

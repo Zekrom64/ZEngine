@@ -6,7 +6,7 @@ import java.util.Collections;
 import java.util.List;
 
 import com.zekrom_64.ze.base.backend.render.ZERenderBackend;
-import com.zekrom_64.ze.base.backend.render.ZERenderContext;
+import com.zekrom_64.ze.base.backend.render.ZERenderOutput;
 import com.zekrom_64.ze.base.err.ZEngineInternalException;
 
 /** An application class provides a foundation for programs to use the engine. It
@@ -33,13 +33,13 @@ public abstract class ZEApplication {
 		public final String applicationName;
 		public final String engineName;
 		public final ZERenderBackend<?> renderBackend;
-		public final ZERenderContext<?> renderOutput;
+		public final ZERenderOutput<?> renderOutput;
 		
 		public ZEApplicationInfo(
 				String appName,
 				String engName,
 				ZERenderBackend<?> renderBack,
-				ZERenderContext<?> renderOut
+				ZERenderOutput<?> renderOut
 		) {
 			applicationName = appName;
 			engineName = engName;

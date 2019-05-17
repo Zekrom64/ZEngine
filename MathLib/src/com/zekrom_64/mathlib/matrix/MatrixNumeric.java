@@ -144,4 +144,10 @@ public interface MatrixNumeric<T extends Number> extends Matrix<T> {
 			for(int y = 0; y < h; y++) setDouble(y,x, getDouble(y,x) * other.getDouble(y, x));
 	}
 	
+	public default void identity() {
+		int n = Math.min(columns(), rows());
+		for(int x = 0; x < columns(); x++)
+			for(int y = 0; y < rows(); y++) setDouble(y,x, (n == x && n == y) ? 1 : 0);
+	}
+	
 }

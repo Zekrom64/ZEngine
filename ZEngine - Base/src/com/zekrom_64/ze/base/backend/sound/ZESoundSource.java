@@ -1,6 +1,6 @@
 package com.zekrom_64.ze.base.backend.sound;
 
-import com.zekrom_64.mathlib.tuple.impl.Vector3Double;
+import com.zekrom_64.mathlib.tuple.impl.Vector3D;
 
 /** A sound source is a single point that produces sound.
  * 
@@ -13,13 +13,13 @@ public interface ZESoundSource {
 	 * 
 	 * @param vec Vector to get position into
 	 */
-	public void getPosition(Vector3Double vec);
+	public void getPosition(Vector3D vec);
 	
 	/** Vector version of {@link #setPosition(double, double, double) setPosition()}.
 	 * 
 	 * @param vec Position to set
 	 */
-	public default void setPosition(Vector3Double vec) {
+	public default void setPosition(Vector3D vec) {
 		setPosition(vec.x, vec.y, vec.z);
 	}
 	
@@ -35,13 +35,13 @@ public interface ZESoundSource {
 	 * 
 	 * @param vec Vector to get velocity into
 	 */
-	public void getVelocity(Vector3Double vec);
+	public void getVelocity(Vector3D vec);
 	
 	/** Vector version of {@link #setVelocity(double, double, double) setVelocity()}.
 	 * 
 	 * @param vec Velocity to set
 	 */
-	public default void setVelocity(Vector3Double vec) {
+	public default void setVelocity(Vector3D vec) {
 		setVelocity(vec.x, vec.y, vec.z);
 	}
 	

@@ -31,6 +31,11 @@ public enum ZEPipelineStage {
 	/** End of the pipeline */
 	END_OF_PIPELINE,
 	
+	/** A special stage value signifying host reads/writes */
+	HOST,
+	/** A special stage value signifying all graphics stages */
+	GRAPHICS,
+	
 	/** A special stage value signifying all stages */
 	ALL
 }

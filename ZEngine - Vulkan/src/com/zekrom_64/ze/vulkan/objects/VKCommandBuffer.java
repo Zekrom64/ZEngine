@@ -1,9 +1,7 @@
 package com.zekrom_64.ze.vulkan.objects;
 
-import java.awt.Rectangle;
 import java.nio.ByteBuffer;
-
-import javax.vecmath.Point3i;
+import java.nio.LongBuffer;
 
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
@@ -19,32 +17,35 @@ import org.lwjgl.vulkan.VkImageSubresourceLayers;
 import org.lwjgl.vulkan.VkImageSubresourceRange;
 import org.lwjgl.vulkan.VkOffset3D;
 import org.lwjgl.vulkan.VkRect2D;
+import org.lwjgl.vulkan.VkViewport;
 
+import com.zekrom_64.mathlib.shape.Rectangle;
+import com.zekrom_64.mathlib.tuple.impl.Vector3I;
 import com.zekrom_64.ze.base.backend.render.ZERenderCommandBuffer;
 import com.zekrom_64.ze.base.backend.render.ZERenderWorkRecorder;
 import com.zekrom_64.ze.base.backend.render.obj.ZEBuffer;
 import com.zekrom_64.ze.base.backend.render.obj.ZEFramebuffer;
 import com.zekrom_64.ze.base.backend.render.obj.ZEIndexBuffer;
 import com.zekrom_64.ze.base.backend.render.obj.ZERenderEvent;
+import com.zekrom_64.ze.base.backend.render.obj.ZERenderPass;
 import com.zekrom_64.ze.base.backend.render.obj.ZETexture;
-import com.zekrom_64.ze.base.backend.render.obj.ZEVertexBuffer;
 import com.zekrom_64.ze.base.backend.render.obj.ZETexture.ZETextureLayout;
+import com.zekrom_64.ze.base.backend.render.obj.ZEVertexBuffer;
+import com.zekrom_64.ze.base.backend.render.pipeline.ZEFrontBack;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipeline;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipeline.ZEVertexInput;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBindSet;
+import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBuilder.ZEViewport;
+import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineStage;
 import com.zekrom_64.ze.base.image.ZEPixelFormat;
 import com.zekrom_64.ze.base.util.PrimitiveType;
 import com.zekrom_64.ze.vulkan.VKRenderBackend;
+import com.zekrom_64.ze.vulkan.VKValues;
 import com.zekrom_64.ze.vulkan.VulkanException;
 
 public class VKCommandBuffer implements ZERenderCommandBuffer {
 
 	private class VKCommandBufferRecorder implements ZERenderWorkRecorder {
-
-		@Override
-		public void inlineWork(Runnable r) {
-			
-		}
 
 		@Override
 		public void executeBuffer(ZERenderCommandBuffer buffer) {
@@ -53,14 +54,18 @@ public class VKCommandBuffer implements ZERenderCommandBuffer {
 
 		@Override
 		public void bindPipeline(ZEPipeline pipeline) {
-			// TODO Auto-generated method stub
-			
+			VK10.vkCmdBindPipeline(commandBuffer, VK10.VK_PIPELINE_BIND_POINT_GRAPHICS, ((VKPipeline)pipeline).pipeline);
 		}
 
 		@Override
-		public void beginPass(ZEPipelineBindSet bindSet, ZEFramebuffer framebuffer) {
+		public void beginPass(ZERenderPass bindSet, ZEFramebuffer framebuffer) {
 			// TODO Auto-generated method stub
-			
+			VK10.vkCmdBeginRenderPass(commandBuffer, pRenderPassBegin, contents);
+		}
+
+		@Override
+		public void nextPass() {
+			VK10.vkCmdNextSubpass(commandBuffer, VK10.VK_SUBPASS_CONTENTS_INLINE); // TODO: Secondary command buffers?
 		}
 
 		@Override
@@ -75,8 +80,8 @@ public class VKCommandBuffer implements ZERenderCommandBuffer {
 				for(int i = firstScissor; i < scissors.length; i++) {
 					Rectangle scissor = scissors[i];
 					VkRect2D rect = pScissors.get();
-					rect.offset().set(scissor.x, scissor.y);
-					rect.extent().set(scissor.width, scissor.height);
+					rect.offset().set((int)scissor.getPositionX(), (int)scissor.getPositionY());
+					rect.extent().set((int)scissor.getWidth(), (int)scissor.getHeight());
 				}
 				VK10.vkCmdSetScissor(commandBuffer, 0, pScissors);
 			}
@@ -94,8 +99,25 @@ public class VKCommandBuffer implements ZERenderCommandBuffer {
 
 		@Override
 		public void bindVertexBuffer(ZEVertexInput bindPoint, ZEVertexBuffer buffer) {
-			// TODO Auto-generated method stub
-			
+			try(MemoryStack sp = MemoryStack.stackPush()) {
+				LongBuffer pBuffers = sp.longs(((VKVertexBuffer)buffer).buffer);
+				LongBuffer pOffsets = sp.longs(((VKVertexInput)bindPoint).bindingOffset);
+				VK10.vkCmdBindVertexBuffers(commandBuffer, 0, pBuffers, pOffsets);
+			}
+		}
+
+		@Override
+		public void bindVertexBuffers(ZEVertexInput bindPoint, ZEVertexBuffer... buffers) {
+			try(MemoryStack sp = MemoryStack.stackPush()) {
+				int count = buffers.length;
+				LongBuffer pBuffers = sp.mallocLong(count);
+				for(int i = 0; i < count; i++) pBuffers.put(((VKVertexBuffer)buffers[i]).buffer);
+				LongBuffer pOffsets = sp.mallocLong(count);
+				for(int i = 0; i < count; i++) pOffsets.put(((VKVertexInput)bindPoint).bindingOffset + i);
+				pBuffers.rewind();
+				pOffsets.rewind();
+				VK10.vkCmdBindVertexBuffers(commandBuffer, 0, pBuffers, pOffsets);
+			}
 		}
 
 		@Override
@@ -131,13 +153,13 @@ public class VKCommandBuffer implements ZERenderCommandBuffer {
 		}
 
 		@Override
-		public void setEvent(ZERenderEvent event) {
-			VK10.vkCmdSetEvent(commandBuffer, ((VKRenderEvent)event).event, backend.getAndResetPipelineStageFlags());
+		public void setEvent(ZEPipelineStage stage, ZERenderEvent event) {
+			VK10.vkCmdSetEvent(commandBuffer, ((VKRenderEvent)event).event, VKValues.getVKPipelineStage(stage));
 		}
 
 		@Override
-		public void resetEvent(ZERenderEvent event) {
-			VK10.vkCmdResetEvent(commandBuffer, ((VKRenderEvent)event).event, backend.getAndResetPipelineStageFlags());
+		public void resetEvent(ZEPipelineStage stage, ZERenderEvent event) {
+			VK10.vkCmdResetEvent(commandBuffer, ((VKRenderEvent)event).event, VKValues.getVKPipelineStage(stage));
 		}
 
 		@Override
@@ -150,7 +172,7 @@ public class VKCommandBuffer implements ZERenderCommandBuffer {
 		}
 
 		@Override
-		public void blitTexture(ZETexture srcTex, ZETexture dstTex, Point3i src, Point3i dst, Point3i size) {
+		public void blitTexture(ZETexture srcTex, ZETexture dstTex, Vector3I src, Vector3I dst, Vector3I size) {
 			try (MemoryStack sp = MemoryStack.stackPush()) {
 				VkImageCopy.Buffer region = VkImageCopy.mallocStack(1, sp);
 				VkImageSubresourceLayers subresource = VkImageSubresourceLayers.mallocStack(sp);
@@ -191,7 +213,7 @@ public class VKCommandBuffer implements ZERenderCommandBuffer {
 		}
 
 		@Override
-		public void clearTexture(ZETexture tex, Point3i start, Point3i size, ZEPixelFormat format, ByteBuffer color) {
+		public void clearTexture(ZETexture tex, Vector3I start, Vector3I size, ZEPixelFormat format, ByteBuffer color) {
 			try (MemoryStack sp = MemoryStack.stackPush()) {
 				VkImageSubresourceRange range = VkImageSubresourceRange.mallocStack(sp);
 				VK10.vkCmdClearColorImage(commandBuffer, ((VKTexture)tex).image, 0, null, range);
@@ -199,7 +221,7 @@ public class VKCommandBuffer implements ZERenderCommandBuffer {
 		}
 
 		@Override
-		public void imageToBuffer(ZETexture src, Point3i srcPos, Point3i srcSize, ZEBuffer dst, int dstOffset,
+		public void imageToBuffer(ZETexture src, Vector3I srcPos, Vector3I srcSize, ZEBuffer dst, int dstOffset,
 				int dstRowLength, int dstHeight) {
 			try(MemoryStack sp = MemoryStack.stackPush()) {
 				VkImageSubresourceLayers subresource = VkImageSubresourceLayers.mallocStack(sp);
@@ -216,7 +238,7 @@ public class VKCommandBuffer implements ZERenderCommandBuffer {
 
 		@Override
 		public void bufferToImage(ZEBuffer src, int srcOffset, int srcRowLength, int srcHeight, ZETexture dst,
-				Point3i dstPos, Point3i dstSize) {
+				Vector3I dstPos, Vector3I dstSize) {
 			try (MemoryStack sp = MemoryStack.stackPush()) {
 				VkImageSubresourceLayers subresource = VkImageSubresourceLayers.mallocStack(sp);
 				VkBufferImageCopy.Buffer region = VkBufferImageCopy.mallocStack(1, sp);
@@ -239,6 +261,87 @@ public class VKCommandBuffer implements ZERenderCommandBuffer {
 		public void transitionTextureLayout(ZETexture tex, ZETextureLayout oldLayout, ZETextureLayout newLayout) {
 			
 		}
+
+		@Override
+		public void setViewport(ZEViewport[] viewports, int firstViewport) {
+			try(MemoryStack sp = MemoryStack.stackPush()) {
+				VkViewport.Buffer pViewports = VkViewport.mallocStack(viewports.length, sp);
+				for(ZEViewport vp : viewports) {
+					pViewports.get().set(
+							(float)vp.area.getPositionX(), 
+							(float)vp.area.getPositionY(), 
+							(float)vp.area.getWidth(), 
+							(float)vp.area.getHeight(), 
+							(float)vp.minDepth, 
+							(float)vp.maxDepth
+					);
+				}
+				pViewports.rewind();
+				VK10.vkCmdSetViewport(commandBuffer, firstViewport, pViewports);
+			}
+		}
+
+		@Override
+		public void setDepthBias(double constantFactor, double clamp, double slopeFactor) {
+			VK10.vkCmdSetDepthBias(commandBuffer, (float)constantFactor, (float)clamp, (float)slopeFactor);
+		}
+
+		@Override
+		public void setBlendConstants(float... constants) {
+			VK10.vkCmdSetBlendConstants(commandBuffer, constants);
+		}
+
+		@Override
+		public void setStencilCompareMask(ZEFrontBack face, int compareMask) {
+			VK10.vkCmdSetStencilCompareMask(commandBuffer, VKValues.getVKFace_Stencil(face), compareMask);
+		}
+
+		@Override
+		public void setStencilWriteMask(ZEFrontBack face, int writeMask) {
+			VK10.vkCmdSetStencilWriteMask(commandBuffer, VKValues.getVKFace_Stencil(face), writeMask);
+		}
+
+		@Override
+		public void setStencilReference(ZEFrontBack face, int reference) {
+			VK10.vkCmdSetStencilReference(commandBuffer, VKValues.getVKFace_Stencil(face), reference);
+		}
+
+		@Override
+		public void waitForEvents(ZEPipelineStage[] signalStages, ZEPipelineStage[] waitingStages,
+				ZERenderEvent... events) {
+			try (MemoryStack sp = MemoryStack.stackPush()) {
+				LongBuffer pEvents = sp.mallocLong(events.length);
+				VK10.vkCmdWaitEvents(
+					commandBuffer,
+					pEvents,
+					VKValues.getVKPipelineStages(waitingStages),
+					VKValues.getVKPipelineStages(signalStages),
+					pMemoryBarriers,
+					pBufferMemoryBarriers,
+					pImageMemoryBarriers
+				);
+			}
+		}
+
+		@Override
+		public void bindPipelineBindSet(ZEPipelineBindSet bindSet) {
+			// TODO Auto-generated method stub
+			
+		}
+
+		@Override
+		public void waitForEvents(ZEPipelineStage[] readyStages, ZEPipelineStage[] waitingStages,
+				ZERenderEvent[] events, ZEPipelineBarrier... barriers) {
+			// TODO Auto-generated method stub
+			
+		}
+
+		@Override
+		public void pipelineBarrier(ZEPipelineStage[] readyStages, ZEPipelineStage[] waitingStages,
+				ZEPipelineBarrier... barriers) {
+			// TODO Auto-generated method stub
+			
+		}
 		
 	}
 	
@@ -247,6 +350,8 @@ public class VKCommandBuffer implements ZERenderCommandBuffer {
 	private VkCommandBuffer commandBuffer;
 	private VKCommandBufferRecorder recorder;
 	private boolean recorded = false;
+	
+	private VKFramebuffer recordPassFramebuffer;
 	
 	public VKCommandBuffer(VkCommandBuffer cmdBuf, VKRenderBackend backend, boolean rerecordable) {
 		this.backend = backend;
@@ -274,13 +379,14 @@ public class VKCommandBuffer implements ZERenderCommandBuffer {
 		if (recorded && !rerecordable) return null;
 		recorder = new VKCommandBufferRecorder();
 		try(MemoryStack sp = MemoryStack.stackPush()) {
+			VKCommandBuffer vkparent = (VKCommandBuffer)parent;
 			VkCommandBufferInheritanceInfo inheritInfo = VkCommandBufferInheritanceInfo.mallocStack(sp);
 			inheritInfo.set( // TODO Finish command buffer inherit info
 					VK10.VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO,
 					0,
 					0 /* */,
 					0 /* */,
-					0 /* */,
+					vkparent.recordPassFramebuffer.framebuffer /* */,
 					false /* */,
 					0 /* */,
 					0 /* */

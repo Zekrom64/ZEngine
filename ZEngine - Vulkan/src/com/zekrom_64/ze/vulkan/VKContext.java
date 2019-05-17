@@ -36,10 +36,14 @@ public class VKContext {
 	 */
 	public static class Builder {
 		
-		private Set<String> requiredExtensions = new HashSet<>();
-		private Set<String> requiredLayers = new HashSet<>();
-		private Set<String> optionalExtensions = new HashSet<>();
-		private Set<String> optionalLayers = new HashSet<>();
+		/** Set containing required instance extensions. */
+		public final Set<String> requiredExtensions = new HashSet<>();
+		/** Set containing required instance layers. */
+		public final Set<String> requiredLayers = new HashSet<>();
+		/** Set containing optional instance extensions. */
+		public final Set<String> optionalExtensions = new HashSet<>();
+		/** Set containing optional instance layers. */
+		public final Set<String> optionalLayers = new HashSet<>();
 		private String engineName = "";
 		private String appName = "";
 		private int engineVer = 0;
@@ -54,6 +58,8 @@ public class VKContext {
 		 */
 		public VKContext build() {
 			try (MemoryStack sp = MemoryStack.stackPush()) {
+				int bp;
+				
 				ByteBuffer pAppName = sp.ASCII(appName);
 				ByteBuffer pEngName = sp.ASCII(engineName);
 				
@@ -70,6 +76,8 @@ public class VKContext {
 				
 				int err = VK10.VK_SUCCESS;
 				
+				bp = sp.getPointer();
+				
 				int[] propCount = new int[1];
 				err = VK10.vkEnumerateInstanceExtensionProperties((ByteBuffer)null, propCount, null);
 				if (err != VK10.VK_SUCCESS) throw new VulkanException("Failed to enumerate available instance extensions", err);
@@ -79,6 +87,8 @@ public class VKContext {
 				
 				Set<String> availableExtensions = new HashSet<>();
 				while(bufExtensionProps.hasRemaining()) availableExtensions.add(bufExtensionProps.extensionNameString());
+				
+				sp.setPointer(bp);
 
 				err = VK10.vkEnumerateInstanceLayerProperties(propCount, null);
 				if (err != VK10.VK_SUCCESS) throw new VulkanException("Failed to enumerate available instance layers", err);
@@ -88,6 +98,8 @@ public class VKContext {
 				
 				Set<String> availableLayers = new HashSet<>();
 				while(bufLayerProps.hasRemaining()) availableLayers.add(bufLayerProps.layerNameString());
+				
+				sp.setPointer(bp);
 
 				Set<String> extensions = new HashSet<>();
 				Set<String> layers = new HashSet<>();
@@ -158,48 +170,54 @@ public class VKContext {
 		 * 
 		 * @param ext Required extension name
 		 */
-		public void addRequiredExtension(String ext) {
+		public Builder addRequiredExtension(String ext) {
 			requiredExtensions.add(ext);
+			return this;
 		}
 		
 		/** Adds a required layer for the context.
 		 * 
 		 * @param lyr Required layer name
 		 */
-		public void addRequiredLayer(String lyr) {
+		public Builder addRequiredLayer(String lyr) {
 			requiredLayers.add(lyr);
+			return this;
 		}
 		
 		/** Adds an optional extension for the context.
 		 * 
 		 * @param ext Optional extension name
 		 */
-		public void addOptionalExtension(String ext) {
+		public Builder addOptionalExtension(String ext) {
 			optionalExtensions.add(ext);
+			return this;
 		}
 		
 		/** Adds an optional layer name for the context.
 		 * 
 		 * @param lyr Optional layer name
 		 */
-		public void addOptionalLayer(String lyr) {
+		public Builder addOptionalLayer(String lyr) {
 			optionalLayers.add(lyr);
+			return this;
 		}
 		
 		/** Sets the engine name to use with the context.
 		 * 
 		 * @param engName Engine name
 		 */
-		public void setEngineName(String engName) {
+		public Builder setEngineName(String engName) {
 			engineName = engName;
+			return this;
 		}
 		
 		/** Sets the application name to use with the context.
 		 * 
 		 * @param appName Application name
 		 */
-		public void setApplicationName(String appName) {
+		public Builder setApplicationName(String appName) {
 			this.appName = appName;
+			return this;
 		}
 		
 		/** Sets the engine version to use with the context.
@@ -208,8 +226,9 @@ public class VKContext {
 		 * @param minor Minor version number
 		 * @param patch Patch number
 		 */
-		public void setEngineVersion(int major, int minor, int patch) {
+		public Builder setEngineVersion(int major, int minor, int patch) {
 			engineVer = VK10.VK_VERSION_MAJOR(major) | VK10.VK_VERSION_MINOR(minor) | VK10.VK_VERSION_PATCH(patch);
+			return this;
 		}
 		
 		/** Sets the application version to use with the context.
@@ -218,24 +237,27 @@ public class VKContext {
 		 * @param minor Minor version number
 		 * @param patch Patch number
 		 */
-		public void setApplicationVersion(int major, int minor, int patch) {
+		public Builder setApplicationVersion(int major, int minor, int patch) {
 			appVer = VK10.VK_VERSION_MAJOR(major) | VK10.VK_VERSION_MINOR(minor) | VK10.VK_VERSION_PATCH(patch);
+			return this;
 		}
 		
 		/** Sets the allocation callbacks to use with the context.
 		 * 
 		 * @param callbacks Allocation callbacks
 		 */
-		public void setAllocationCallbacks(VkAllocationCallbacks callbacks) {
+		public Builder setAllocationCallbacks(VkAllocationCallbacks callbacks) {
 			allocCallbacks = callbacks;
+			return this;
 		}
 		
 		/** Sets the Vulkan API version for the context to use.
 		 * 
 		 * @param apiVersion Vulkan API version
 		 */
-		public void setAPIVersion(int apiVersion) {
+		public Builder setAPIVersion(int apiVersion) {
 			apiVer = apiVersion;
+			return this;
 		}
 		
 	}

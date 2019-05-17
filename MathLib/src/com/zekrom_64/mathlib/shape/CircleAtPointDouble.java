@@ -1,7 +1,7 @@
 package com.zekrom_64.mathlib.shape;
 
 import com.zekrom_64.mathlib.tuple.VectorNumeric;
-import com.zekrom_64.mathlib.tuple.impl.Vector2Double;
+import com.zekrom_64.mathlib.tuple.impl.Vector2D;
 
 /** A {@link Circle} defined by a center point and radius.
  * 
@@ -11,7 +11,7 @@ import com.zekrom_64.mathlib.tuple.impl.Vector2Double;
 public class CircleAtPointDouble implements Circle {
 
 	/** The center point of the circle. */
-	public final Vector2Double center = new Vector2Double();
+	public final Vector2D center = new Vector2D();
 	/** The radius of the cirlce. */
 	public double radius = 0;
 	

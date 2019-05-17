@@ -1,15 +1,13 @@
 package com.zekrom_64.ze.gl;
 
 import java.util.WeakHashMap;
-import java.util.concurrent.Semaphore;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.lwjgl.opengl.CGL;
-import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLX;
+import org.lwjgl.opengl.GLX12;
 import org.lwjgl.opengl.WGL;
-import org.lwjgl.system.APIUtil;
-import org.lwjgl.system.Checks;
-import org.lwjgl.system.JNI;
 import org.lwjgl.system.Platform;
 import org.lwjgl.system.windows.GDI32;
 
@@ -32,8 +30,7 @@ public class GLNativeContext implements GLContext {
 	private long auxiliary0;
 	private long auxiliary1;
 	
-	private Semaphore bindSemaphore = new Semaphore(1);
-	private Thread boundThread = null;
+	private Lock bindLock = new ReentrantLock();
 	
 	/** Gets the native OpenGL context for the current thread.
 	 * 
@@ -61,7 +58,7 @@ public class GLNativeContext implements GLContext {
 			if (nctx == null) {
 				nctx = new GLNativeContext();
 				nctx.context = ctx;
-				nctx.auxiliary0 = glXGetCurrentDisplay();
+				nctx.auxiliary0 = GLX12.glXGetCurrentDisplay();
 				nctx.auxiliary1 = GLX.glXGetCurrentDrawable();
 				nativeContexts.put(Long.valueOf(ctx), nctx);
 			}
@@ -79,27 +76,13 @@ public class GLNativeContext implements GLContext {
 		}
 		return nctx;
 	}
-	
-	private static long func_glXGetCurrentDisplay;
-	
-	/** Implementation of glXGetCurrentDisplay(), as LWJGL does not provide it by default while it
-	 * is necessary for GLX context handling.
-	 * 
-	 * @return The current GLX Display
-	 */
-	public static long glXGetCurrentDisplay() {
-		if (func_glXGetCurrentDisplay == 0) func_glXGetCurrentDisplay =
-				APIUtil.apiGetFunctionAddress(GL.getFunctionProvider(), "glXGetCurrentDisplay");
-		if (Checks.DEBUG) Checks.checkFunctions(func_glXGetCurrentDisplay);
-		return JNI.callP(func_glXGetCurrentDisplay);
-	}
 
 	@Override
 	public void swapBuffers() {
 		switch(Platform.get()) {
-		case WINDOWS: GDI32.SwapBuffers(auxiliary0);
-		case LINUX: GLX.glXSwapBuffers(auxiliary0, auxiliary1);
-		case MACOSX: CGL.CGLUpdateContext(context);
+		case WINDOWS: GDI32.SwapBuffers(auxiliary0); break;
+		case LINUX: GLX.glXSwapBuffers(auxiliary0, auxiliary1); break;
+		case MACOSX: CGL.CGLUpdateContext(context); break;
 		}
 	}
 
@@ -118,9 +101,8 @@ public class GLNativeContext implements GLContext {
 		switch(Platform.get()) {
 		case WINDOWS: WGL.wglMakeCurrent(auxiliary0, context); break;
 		case LINUX: GLX.glXMakeCurrent(auxiliary0, auxiliary1, context); break;
-		case MACOSX: CGL.CGLSetCurrentContext(context);
+		case MACOSX: CGL.CGLSetCurrentContext(context); break;
 		}
-		boundThread = Thread.currentThread();
 	}
 	
 	@Override
@@ -129,7 +111,13 @@ public class GLNativeContext implements GLContext {
 		return false;
 	}
 	
+	/** Tests if two native contexts are the same.
+	 * 
+	 * @param c Other context
+	 * @return If the contexts are the same
+	 */
 	public boolean equals(GLNativeContext c) {
+		if (c == this) return true;
 		if (c == null) return false;
 		return c.context == context && c.auxiliary0 == auxiliary0 && c.auxiliary1 == auxiliary1;
 	}
@@ -139,18 +127,17 @@ public class GLNativeContext implements GLContext {
 	 * @param r Task to run while bound
 	 */
 	public void executeExclusivly(Runnable r) {
-		bindSemaphore.acquireUninterruptibly();
+		bindLock.lock();
 		if (!isBound()) bind();
 		r.run();
-		bindSemaphore.release();
+		bindLock.unlock();
 	}
 	
 	/** Acquires a lock on the context and binds it to the current thread.
 	 * 
 	 */
 	public void bindExclusively() {
-		if (boundThread == Thread.currentThread()) return;
-		bindSemaphore.acquireUninterruptibly();
+		bindLock.lock();
 		if (!isBound()) bind();
 	}
 	
@@ -159,8 +146,7 @@ public class GLNativeContext implements GLContext {
 	 * function returns immediately.
 	 */
 	public void unbindExclusively() {
-		if (boundThread != Thread.currentThread()) return;
-		bindSemaphore.release();
+		bindLock.unlock();
 	}
 	
 }

@@ -1,6 +1,6 @@
 package com.zekrom_64.mathlib.shape;
 
-import com.zekrom_64.mathlib.tuple.impl.Vector2Double;
+import com.zekrom_64.mathlib.tuple.impl.Vector2D;
 
 /** A {@link Rectangle} defined by two points.
  * 
@@ -10,9 +10,9 @@ import com.zekrom_64.mathlib.tuple.impl.Vector2Double;
 public class RectangleCoordsDouble implements Rectangle {
 
 	/** First point */
-	public final Vector2Double pos1 = new Vector2Double();
+	public final Vector2D pos1 = new Vector2D();
 	/** Second point */
-	public final Vector2Double pos2 = new Vector2Double();
+	public final Vector2D pos2 = new Vector2D();
 	
 	@Override
 	public double getWidth() {

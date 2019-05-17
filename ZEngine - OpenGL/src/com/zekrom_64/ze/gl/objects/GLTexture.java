@@ -1,6 +1,8 @@
 package com.zekrom_64.ze.gl.objects;
 
 import java.nio.ByteBuffer;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.bridj.Pointer;
 import org.lwjgl.opengl.GL11;
@@ -9,7 +11,6 @@ import org.lwjgl.opengl.GL13;
 import org.lwjgl.opengl.GL15;
 import org.lwjgl.opengl.GL21;
 import org.lwjgl.system.MemoryUtil;
-import org.lwjgl.system.libc.LibCStdlib;
 
 import com.zekrom_64.ze.base.backend.render.obj.ZETexture;
 import com.zekrom_64.ze.base.backend.render.obj.ZETextureDimension;
@@ -31,28 +32,47 @@ public class GLTexture implements ZETexture {
 	
 	/** The OpenGL texture ID */
 	public final int texID;
+	
 	private GLNativeContext ctx;
+	
 	private int width, height, depth;
+	
 	private ZEMapMode mappingMode = null;
 	private ByteBuffer mappedMem;
 	private Pointer<?> mappedPtr;
 	private int pixelBuf;
+	
 	private ZEPixelFormat pxfmt;
 	private int glFormat, glType;
 	private ZETextureDimension dimension;
-	private GLBuffer bufferTex;
+	
+	private ZETextureMemoryLayout layout;
 	
 	public GLTexture(int tex, ZETextureDimension dim, ZEPixelFormat pixelFormat) {
 		this.texID = tex;
-		ctx = GLNativeContext.getNativeContext();
-		int target = GLValues.getGLTextureTarget(dim);
-		GL11.glBindTexture(target, tex);
-		width = GL11.glGetTexLevelParameteri(target, 0, GL11.GL_TEXTURE_WIDTH);
-		height = GL11.glGetTexLevelParameteri(target, 0, GL11.GL_TEXTURE_HEIGHT);
-		depth = GL11.glGetTexLevelParameteri(target, 0, GL12.GL_TEXTURE_DEPTH);
 		pxfmt = pixelFormat;
 		glFormat = GLValues.getGLTextureFormat(pixelFormat);
 		glType = GLValues.getGLTextureType(pixelFormat);
+		
+		ctx = GLNativeContext.getNativeContext();
+		int target = GLValues.getGLTextureTarget(dim);
+		ctx.bindExclusively();
+		try {
+			GL11.glBindTexture(target, tex);
+			width = GL11.glGetTexLevelParameteri(target, 0, GL11.GL_TEXTURE_WIDTH);
+			height = GL11.glGetTexLevelParameteri(target, 0, GL11.GL_TEXTURE_HEIGHT);
+			depth = GL11.glGetTexLevelParameteri(target, 0, GL12.GL_TEXTURE_DEPTH);
+		} finally {
+			ctx.unbindExclusively();
+		}
+		
+		layout = new ZETextureMemoryLayout(
+				0,
+				pxfmt.sizeOf * width * (height != 0 ? height : 1) * (depth != 0 ? depth : 1),
+				pxfmt.sizeOf * width,
+				pxfmt.sizeOf * width * height,
+				pxfmt.sizeOf * width * height
+		);
 	}
 	
 	public GLTexture(int tex, ZETextureDimension dim, int w, int h, int d, ZEPixelFormat pixelFormat) {
@@ -60,23 +80,32 @@ public class GLTexture implements ZETexture {
 		ctx = GLNativeContext.getNativeContext();
 		width = w;
 		height = h;
-		int layerCount = 1;
-		if (dim.isCubemap) layerCount *= 6;
-		if (dim.isArray) {
-			layerCount *= d;
-			d = 0;
-		}
 		depth = d;
 		dimension = dim;
 		pxfmt = pixelFormat;
 		glFormat = GLValues.getGLTextureFormat(pixelFormat);
 		glType = GLValues.getGLTextureType(pixelFormat);
-		GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, 0);
-		for(int i = 0; i < layerCount; i++) glTexImage(0, i, w, h, d, 0);
+		ctx.bindExclusively();
+		try {
+			GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, 0);
+			glTexImage(0, w, h, d, 0);
+		} finally {
+			ctx.unbindExclusively();
+		}
+	}
+	
+	private static int _glGenTextures() {
+		GLNativeContext ctx = GLNativeContext.getNativeContext();
+		ctx.bindExclusively();
+		try {
+			return GL11.glGenTextures();
+		} finally {
+			ctx.unbindExclusively();
+		}
 	}
 	
 	public GLTexture(int w, int h, int d, ZETextureDimension dim, ZEPixelFormat pixelFormat) {
-		this(GL11.glGenTextures(), dim, w, h, d, pixelFormat);
+		this(_glGenTextures(), dim, w, h, d, pixelFormat);
 	}
 	
 	private static int[] cubeFaceTargets = new int[] {
@@ -88,71 +117,73 @@ public class GLTexture implements ZETexture {
 		GL13.GL_TEXTURE_CUBE_MAP_NEGATIVE_Z
 	};
 	
-	public void glTexImage(int mipmap, int layer, int w, int h, int d, long data) {
+	void glTexImage(int mipmap, int w, int h, int d, long data) {
 		int target = GLValues.getGLTextureTarget(dimension);
 		if (target != -1) GL11.glBindTexture(target, texID);
 		switch(dimension) {
-		case BUFFER_TEXTURE:
-			GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, bufferTex.bufferObject);
-			GL15.nglBufferData(GL15.GL_ARRAY_BUFFER, pxfmt.sizeOf*w*h*d, data, GL15.GL_DYNAMIC_DRAW);
-			break;
 		case CUBE: {
-			int cubeFace = layer % 6;
-			layer /= 6;
-			target = cubeFaceTargets[cubeFace];
-			GL11.glTexImage2D(target, layer, glFormat, w, h, 0, glFormat, glType, data);
+			target = cubeFaceTargets[d];
+			GL11.glTexImage2D(target, mipmap, glFormat, w, h, 0, glFormat, glType, data);
 		} break;
-		case DIM_1D: GL11.glTexImage1D(target, layer, glFormat, w, 0, glFormat, glType, data); break;
-		case RECTANGLE:
-		case DIM_2D: GL11.glTexImage2D(target, layer, glFormat, w, h, 0, glFormat, glType, data); break;
-		case DIM_3D: GL12.glTexImage3D(target, layer, glFormat, w, h, d, 0, glFormat, glType, data); break;
+		case DIM_1D: GL11.glTexImage1D(target, mipmap, glFormat, w, 0, glFormat, glType, data); break;
 		case DIM_1D_ARRAY:
+		case DIM_2D: GL11.glTexImage2D(target, mipmap, glFormat, w, h, 0, glFormat, glType, data); break;
 		case DIM_2D_ARRAY:
+		case DIM_3D: GL12.glTexImage3D(target, mipmap, glFormat, w, h, d, 0, glFormat, glType, data); break;
 		case CUBE_ARRAY: {
-			int cubeFace = layer % 6;
-			layer /= 6;
+			int cubeFace = d % 6;
+			d /= 6;
 			target = cubeFaceTargets[cubeFace];
-			GL12.glTexImage3D(target, layer, glFormat, w, h, d, 0, glFormat, glType, 0);
+			GL12.glTexImage3D(target, mipmap, glFormat, w, h, d, 0, glFormat, glType, 0);
 		} break;
 		}
 	}
 
+	private Lock mapLock = new ReentrantLock();
+	
 	@Override
 	public ByteBuffer mapMemory(ZEMapMode mode) {
-		if (mappingMode == null) map(mode);
-		return mappedMem;
+		mapLock.lock();
+		try {
+			if (mappingMode == null) map(mode);
+			return mappedMem;
+		} finally {
+			mapLock.unlock();
+		}
 	}
 
 	@Override
 	public Pointer<?> mapMemoryRaw(ZEMapMode mode) {
-		if (mappingMode == null) map(mode);
-		return mappedPtr;
+		mapLock.lock();
+		try {
+			if (mappingMode == null) map(mode);
+			return mappedPtr;
+		} finally {
+			mapLock.unlock();
+		}
 	}
 	
 	@SuppressWarnings("deprecation")
 	private void map(ZEMapMode mode) {
+		mappingMode = mode;
 		ctx.executeExclusivly(() -> {
+			if (pixelBuf != 0) pixelBuf = GL15.glGenBuffers();
+			int target = GLValues.getGLTextureTarget(dimension);
 			switch(mode) {
 			case READ_ONLY:
-				if (pixelBuf != 0) pixelBuf = GL15.glGenBuffers();
+			case READ_WRITE:
 				GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, pixelBuf);
-				GL11.glBindTexture(GL11.GL_TEXTURE_2D, texID);
-				GL11.glGetTexImage(GL11.GL_TEXTURE_2D, 0, glFormat, glType, 0);
+				GL11.glBindTexture(target, texID);
+				GL11.glGetTexImage(target, 0, glFormat, glType, 0);
 				mappedMem = GL15.glMapBuffer(GL21.GL_PIXEL_PACK_BUFFER, GL15.GL_READ_ONLY);
 				mappedPtr = Pointer.pointerToAddress(MemoryUtil.memAddress(mappedMem));
+				GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, 0);
 				break;
 			case WRITE_ONLY:
-				if (pixelBuf != 0) pixelBuf = GL15.glGenBuffers();
 				GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, pixelBuf);
 				mappedMem = GL15.glMapBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, GL15.GL_WRITE_ONLY);
 				mappedPtr = Pointer.pointerToAddress(MemoryUtil.memAddress(mappedMem));
-				break;
-			case READ_WRITE:
-				ByteBuffer buf = LibCStdlib.malloc(width * height * pxfmt.sizeOf);
-				GL11.glBindTexture(GL11.GL_TEXTURE_2D, texID);
-				GL11.glGetTexImage(GL11.GL_TEXTURE_2D, 0, glFormat, glType, buf);
-				mappedMem = buf;
-				mappedPtr = Pointer.pointerToAddress(MemoryUtil.memAddress(buf));
+				GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, 0);
 				break;
 			}
 		});
@@ -160,33 +191,36 @@ public class GLTexture implements ZETexture {
 
 	@Override
 	public void unmapMemory() {
-		if (mappingMode != null) {
-		ctx.executeExclusivly(() -> {
-			switch(mappingMode) {
-			case READ_ONLY:
-				GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, pixelBuf);
-				GL15.glUnmapBuffer(GL21.GL_PIXEL_PACK_BUFFER);
-				mappedMem = null;
-				mappedPtr = null;
-				break;
-			case WRITE_ONLY:
-				GL11.glBindTexture(GL11.GL_TEXTURE_2D, texID);
-				GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, pixelBuf);
-				GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, glFormat, width, height, 0, glFormat, glType, 0);
-				mappedMem = null;
-				mappedPtr = null;
-				break;
-			case READ_WRITE:
-				GL11.glBindTexture(GL11.GL_TEXTURE_2D, texID);
-				GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, glFormat, width, height, 0, glFormat, glType, mappedMem);
-				LibCStdlib.free(mappedMem);
-				mappedMem = null;
-				mappedPtr = null;
-				break;
+		mapLock.lock();
+		try {
+			if (mappingMode != null) {
+				ctx.executeExclusivly(() -> {
+					int target = GLValues.getGLTextureTarget(dimension);
+					switch(mappingMode) {
+					case READ_ONLY:
+						GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, pixelBuf);
+						GL15.glUnmapBuffer(GL21.GL_PIXEL_PACK_BUFFER);
+						GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, 0);
+						mappedMem = null;
+						mappedPtr = null;
+						break;
+					case WRITE_ONLY:
+					case READ_WRITE:
+						GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, pixelBuf);
+						GL15.glUnmapBuffer(GL21.GL_PIXEL_UNPACK_BUFFER);
+						GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, 0);
+						GL11.glBindTexture(target, texID);
+						GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, glFormat, width, height, 0, glFormat, glType, 0);
+						mappedMem = null;
+						mappedPtr = null;
+						break;
+					}
+				});
+				mappingMode = null;
 			}
-		});
+		} finally {
+			mapLock.unlock();
 		}
-		
 	}
 
 	@Override
@@ -213,16 +247,15 @@ public class GLTexture implements ZETexture {
 	public ZEPixelFormat getPixelFormat() {
 		return pxfmt;
 	}
-	
-	// OpenGL textures (almost) always have no padding bytes
+
 	@Override
-	public int getMemoryRowPitch() {
-		return pxfmt.sizeOf * width;
+	public ZETextureMemoryLayout getMemoryLayout() {
+		return layout;
 	}
 
 	@Override
 	public long size() {
-		return height * getMemoryRowPitch();
+		return layout.size;
 	}
 	
 	/** Gets the OpenGL format of the texture.
@@ -249,6 +282,19 @@ public class GLTexture implements ZETexture {
 	@Override
 	public ZETextureDimension getDimension() {
 		return dimension;
+	}
+
+	@Override
+	public ZETextureUsage[] getValidUsages() {
+		return new ZETextureUsage[] {
+			ZETextureUsage.TRANSFER_SRC,
+			ZETextureUsage.TRANSFER_DST,
+			ZETextureUsage.SAMPLED,
+			ZETextureUsage.STORAGE,
+			ZETextureUsage.COLOR_ATTACHMENT,
+			ZETextureUsage.DEPTH_STENCIL_ATTACHMENT,
+			ZETextureUsage.INPUT_ATTACHMENT
+		};
 	}
 	
 }

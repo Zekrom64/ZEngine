@@ -3,9 +3,9 @@
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/ZEngine - Base"/>
-	<classpathentry kind="lib" path="/Libraries/lib/vecmath-1.5.2.jar"/>
 	<classpathentry kind="lib" path="/Libraries/lib/bridj/bridj-0.7.0.jar" sourcepath="/Libraries/lib/bridj/bridj-0.7.0-sources.jar"/>
 	<classpathentry kind="lib" path="/Libraries/lib/lwjgl3.1.2/lwjgl-vulkan.jar" sourcepath="/Libraries/lib/lwjgl3.1.2/lwjgl-vulkan-sources.jar"/>
 	<classpathentry kind="lib" path="/Libraries/lib/lwjgl3.1.2/lwjgl.jar" sourcepath="/Libraries/lib/lwjgl3.1.2/lwjgl-sources.jar"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/MathLib"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

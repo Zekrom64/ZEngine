@@ -5,7 +5,6 @@ import org.lwjgl.opengl.GL12;
 import org.lwjgl.opengl.GL13;
 import org.lwjgl.opengl.GL14;
 import org.lwjgl.opengl.GL30;
-import org.lwjgl.opengl.GL31;
 import org.lwjgl.opengl.GL40;
 
 import com.zekrom_64.ze.base.backend.render.ZEGeometryType;
@@ -182,26 +181,39 @@ public class GLValues {
 	public static int getGLTextureFormat(ZEPixelFormat fmt) {
 		switch(fmt) {
 		case R8G8B8A8_UINT:
+		case R8G8B8A8_SINT:
 		case R16G16B16A16_UINT:
+		case R16G16B16A16_SINT:
 		case R32G32B32A32_UINT:
+		case R32G32B32A32_SINT:
 		case R32G32B32A32_FLOAT:
 		case R64G64B64A64_FLOAT: return GL11.GL_RGBA;
 		case R8G8B8_UINT:
+		case R8G8B8_SINT:
 		case R16G16B16_UINT:
+		case R16G16B16_SINT:
 		case R32G32B32_UINT:
+		case R32G32B32_SINT:
 		case R32G32B32_FLOAT:
 		case R64G64B64_FLOAT: return GL11.GL_RGB;
 		case R8G8_UINT:
+		case R8G8_SINT:
 		case R16G16_UINT:
+		case R16G16_SINT:
 		case R32G32_UINT:
+		case R32G32_SINT:
 		case R32G32_FLOAT:
 		case R64G64_FLOAT: return GL30.GL_RG;
 		case R8_UINT:
+		case R8_SINT:
 		case R16_UINT:
+		case R16_SINT:
 		case R32_UINT:
+		case R32_SINT:
 		case R32_FLOAT:
 		case R64_FLOAT: return GL11.GL_RED;
 		case A8R8G8B8_UINT: return GL12.GL_BGRA;
+		case UNKNOWN:
 		default: return -1;
 		}
 	}
@@ -247,18 +259,17 @@ public class GLValues {
 		case R8G8B8_SINT:
 		case R8G8_SINT:
 		case R8_SINT: return GL11.GL_BYTE;
+		case UNKNOWN:
 		default: return -1;
 		}
 	}
 	
 	public static int getGLTextureTarget(ZETextureDimension dim) {
 		switch(dim) {
-		case BUFFER_TEXTURE: return -1; // Buffer textures don't really have a discreet bind target
 		case CUBE: return GL13.GL_TEXTURE_CUBE_MAP;
 		case DIM_1D: return GL11.GL_TEXTURE_1D;
 		case DIM_2D: return GL11.GL_TEXTURE_2D;
 		case DIM_3D: return GL12.GL_TEXTURE_3D;
-		case RECTANGLE: return GL31.GL_TEXTURE_RECTANGLE;
 		case DIM_1D_ARRAY: return GL30.GL_TEXTURE_1D_ARRAY;
 		case DIM_2D_ARRAY: return GL30.GL_TEXTURE_2D_ARRAY;
 		case CUBE_ARRAY: return GL40.GL_TEXTURE_CUBE_MAP_ARRAY;

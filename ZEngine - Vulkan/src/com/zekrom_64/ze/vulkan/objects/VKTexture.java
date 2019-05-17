@@ -10,6 +10,7 @@ import org.lwjgl.vulkan.VK10;
 import org.lwjgl.vulkan.VkDevice;
 
 import com.zekrom_64.ze.base.backend.render.obj.ZETexture;
+import com.zekrom_64.ze.base.backend.render.obj.ZETextureDimension;
 import com.zekrom_64.ze.base.image.ZEPixelFormat;
 import com.zekrom_64.ze.base.mem.ZEMapMode;
 
@@ -26,6 +27,8 @@ public class VKTexture implements ZETexture {
 	public final long imageMemory;
 	private int width;
 	private int height;
+	private int depth;
+	private ZETextureDimension dimension;
 	private ZEPixelFormat pxfmt;
 	private Pointer<?> memPtr;
 	private ByteBuffer memBuf;
@@ -35,7 +38,7 @@ public class VKTexture implements ZETexture {
 	private long memSize;
 	private long memOffset;
 	
-	public VKTexture(long img, int imgLayout, long imgView, long imgMem, ZEPixelFormat format, int w, int h, VkDevice dev, boolean hostAccess, int pitch) {
+	public VKTexture(long img, int imgLayout, long imgView, long imgMem, ZEPixelFormat format, int w, int h, int d, ZETextureDimension dim, VkDevice dev, boolean hostAccess, int pitch) {
 		image = img;
 		imageLayout = imgLayout;
 		imageView = imgView;
@@ -43,6 +46,8 @@ public class VKTexture implements ZETexture {
 		pxfmt = format;
 		width = w;
 		height = h;
+		depth = d;
+		dimension = dim;
 		memDevice = dev;
 		hostAccessible = hostAccess;
 		memPitch = pitch;
@@ -134,6 +139,22 @@ public class VKTexture implements ZETexture {
 		case R32G32B32_FLOAT: return VK10.VK_FORMAT_R32G32B32_SFLOAT;
 		case R32G32B32A32_FLOAT: return VK10.VK_FORMAT_R32G32B32A32_SFLOAT;
 		case UNKNOWN: return VK10.VK_FORMAT_UNDEFINED;
+		case R8_SINT: return VK10.VK_FORMAT_R8_SINT;
+		case R8G8_SINT: return VK10.VK_FORMAT_R8G8_SINT;
+		case R8G8B8_SINT: return VK10.VK_FORMAT_R8G8B8_SINT;
+		case R8G8B8A8_SINT: return VK10.VK_FORMAT_R8G8B8A8_SINT;
+		case R16_SINT: return VK10.VK_FORMAT_R16_SINT;
+		case R16G16_SINT: return VK10.VK_FORMAT_R16G16_SINT;
+		case R16G16B16_SINT: return VK10.VK_FORMAT_R16G16B16_SINT;
+		case R16G16B16A16_SINT: return VK10.VK_FORMAT_R16G16B16A16_SINT;
+		case R32_SINT: return VK10.VK_FORMAT_R32_SINT;
+		case R32G32_SINT: return VK10.VK_FORMAT_R32G32_SINT;
+		case R32G32B32_SINT: return VK10.VK_FORMAT_R32G32B32_SINT;
+		case R32G32B32A32_SINT: return VK10.VK_FORMAT_R32G32B32A32_SINT;
+		case R64_FLOAT: return VK10.VK_FORMAT_R64_SFLOAT;
+		case R64G64_FLOAT: return VK10.VK_FORMAT_R64G64_SFLOAT;
+		case R64G64B64_FLOAT: return VK10.VK_FORMAT_R64G64B64_SFLOAT;
+		case R64G64B64A64_FLOAT: return VK10.VK_FORMAT_R64G64B64A64_SFLOAT;
 		}
 		return -1;
 	}
@@ -141,6 +162,16 @@ public class VKTexture implements ZETexture {
 	@Override
 	public long size() {
 		return memSize;
+	}
+
+	@Override
+	public int getDepth() {
+		return depth;
+	}
+
+	@Override
+	public ZETextureDimension getDimension() {
+		return dimension;
 	}
 
 }

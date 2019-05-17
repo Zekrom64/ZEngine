@@ -278,4 +278,8 @@ public interface VectorNumeric<T extends Number> extends Vector<T> {
 		setDouble(2, (a1 * b2) - (a2 * b3));
 	}
 	
+	public default void clear() {
+		for(int i = 0; i < size(); i++) setDouble(i,0);
+	}
+	
 }

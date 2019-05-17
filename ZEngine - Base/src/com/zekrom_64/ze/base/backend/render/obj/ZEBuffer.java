@@ -1,53 +1,42 @@
 package com.zekrom_64.ze.base.backend.render.obj;
 
-import java.nio.ByteBuffer;
-
-import org.bridj.Pointer;
-
-import com.zekrom_64.ze.base.mem.ZEMapMode;
-
-/** A buffer is a region of memory that can be mapped and unmapped to access it. Buffers may reorder or transfer mapped data
- * to improve efficiency or support operations not inherently supported by the render backend.
+/** A buffer is a raw form of graphics memory.
  * 
  * @author Zekrom_64
  *
  */
-public interface ZEBuffer {
+public interface ZEBuffer extends ZEGraphicsMemory {
 
-	/** Maps the buffer into accessible memory. If the buffer is already mapped, the previously mapped
-	 * memory is returned.
+	/** Enumeration of usages for a buffer.
 	 * 
-	 * @return Mapped memory
+	 * @author Zekrom_64
+	 *
 	 */
-	public ByteBuffer mapMemory(ZEMapMode mode);
+	public enum ZEBufferUsage {
+		/** Buffer can be read from in memory transfers. */
+		TRANSFER_SRC,
+		/** Buffer can be written to in memory transfers. */
+		TRANSFER_DST,
+		/** Buffer can be used as a uniform texture element buffer. */
+		UNIFORM_TEXEL_BUFFER,
+		/** Buffer can be used as a storage texture element buffer. */
+		STORAGE_TEXEL_BUFFER,
+		/** Buffer can be used as a uniform buffer. */
+		UNIFORM_BUFFER,
+		/** Buffer can be used as a storage buffer. */
+		STORAGE_BUFFER,
+		/** Buffer can be used for storing vertex indices. */
+		INDEX_BUFFER,
+		/** Buffer can be used for storing vertices. */
+		VERTEX_BUFFER,
+		/** Buffer can be used for storing indirection parameters. */
+		INDIRECT_BUFFER
+	}
 	
-	/** Version of {@link mapMemory} that returns a raw pointer.
+	/** Gets the valid usages for this buffer.
 	 * 
-	 * @return Mapped memory pointer
+	 * @return Valid buffer usages
 	 */
-	public Pointer<?> mapMemoryRaw(ZEMapMode mode);
-	
-	/** Unmaps any mapped memory. If no memory is mapped, the method returns immediately.
-	 * 
-	 */
-	public void unmapMemory();
-	
-	/** Tests if the buffer is mapped into accessible memory.
-	 * 
-	 * @return If the memory is mapped
-	 */
-	public boolean isMapped();
-	
-	/** Tests if the buffer is accessible by the host system.
-	 * 
-	 * @return If the buffer is accessible
-	 */
-	public boolean isHostAccessible();
-	
-	/** Gets the size of the buffer in bytes. 
-	 * 
-	 * @return Buffer size
-	 */
-	public long size();
+	public ZEBufferUsage[] getValidUsages();
 	
 }

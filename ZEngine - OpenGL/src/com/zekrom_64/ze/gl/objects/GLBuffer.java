@@ -7,10 +7,11 @@ import org.lwjgl.opengl.GL15;
 import org.lwjgl.system.MemoryUtil;
 
 import com.zekrom_64.ze.base.backend.render.obj.ZEBuffer;
+import com.zekrom_64.ze.base.backend.render.obj.ZEGraphicsMemory;
 import com.zekrom_64.ze.base.mem.ZEMapMode;
 import com.zekrom_64.ze.gl.GLNativeContext;
 
-/** OpenGL implementation of a {@link ZEBuffer}.
+/** OpenGL implementation of a {@link ZEGraphicsMemory}.
  * 
  * @author Zekrom_64
  *
@@ -77,8 +78,28 @@ public class GLBuffer implements ZEBuffer {
 
 	@Override
 	public long size() {
-		GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, bufferObject);
-		return GL15.glGetBufferParameteri(GL15.GL_ARRAY_BUFFER, GL15.GL_BUFFER_SIZE) | 0l;
+		context.bindExclusively();
+		try {
+			GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, bufferObject);
+			return GL15.glGetBufferParameteri(GL15.GL_ARRAY_BUFFER, GL15.GL_BUFFER_SIZE);
+		} finally {
+			context.unbindExclusively();
+		}
+	}
+
+	@Override
+	public ZEBufferUsage[] getValidUsages() {
+		return new ZEBufferUsage[] {
+			ZEBufferUsage.TRANSFER_SRC,
+			ZEBufferUsage.TRANSFER_DST,
+			ZEBufferUsage.STORAGE_BUFFER,
+			ZEBufferUsage.UNIFORM_BUFFER,
+			ZEBufferUsage.STORAGE_TEXEL_BUFFER,
+			ZEBufferUsage.UNIFORM_TEXEL_BUFFER,
+			ZEBufferUsage.VERTEX_BUFFER,
+			ZEBufferUsage.INDEX_BUFFER,
+			ZEBufferUsage.INDIRECT_BUFFER
+		};
 	}
 
 }

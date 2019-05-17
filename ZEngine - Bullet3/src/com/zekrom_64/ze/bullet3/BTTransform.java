@@ -1,32 +1,32 @@
 package com.zekrom_64.ze.bullet3;
 
-import javax.vecmath.Matrix3d;
-import javax.vecmath.Quat4d;
-import javax.vecmath.Vector3d;
+import com.zekrom_64.mathlib.matrix.impl.Matrix3x3D;
+import com.zekrom_64.mathlib.tuple.impl.Vector3D;
+import com.zekrom_64.mathlib.tuple.impl.Vector4D;
 
 public class BTTransform {
 
-	public final Matrix3d basis;
-	public final Vector3d origin;
-
-	public BTTransform(Matrix3d basis, Vector3d origin) {
-		this.basis = basis;
-		this.origin = origin;
-	}
+	public final Matrix3x3D basis;
+	public final Vector3D origin;
 	
-	public BTTransform(Quat4d q) {
-		this(q, new Vector3d(0,0,0));
+	public BTTransform(Vector4D q) {
+		this(q, new Vector3D(0,0,0));
 	}
 
-	public BTTransform(Quat4d q, Vector3d c) {
+	public BTTransform(Vector4D q, Vector3D c) {
 		origin = c;
-		basis = new Matrix3d();
+		basis = new Matrix3x3D();
 		BTMath.setRotation(basis, q);
 	}
 
+	public BTTransform(Matrix3x3D basis, Vector3D origin) {
+		this.basis = basis;
+		this.origin = origin;
+	}
+
 	public BTTransform(BTTransform other) {
-		basis = new Matrix3d(other.basis);
-		origin = new Vector3d(other.origin);
+		basis = new Matrix3x3D(other.basis);
+		origin = new Vector3D(other.origin);
 	}
 	
 	public void mult(BTTransform t1, BTTransform t2) {
@@ -41,16 +41,16 @@ public class BTTransform {
 	}
 
 	public void setIdentity() {
-		basis.setIdentity();
-		origin.set(0,0,0);
+		basis.identity();
+		origin.clear();
 	}
 
 	public void inverse(BTTransform t) {
-		Matrix3d inv = new Matrix3d();
-		basis.transpose(inv);
-		Vector3d negOrigin = new Vector3d();
-		origin.negate(negOrigin);
-		negOrigin.dot(new Vector3d(inv.m00, inv.m01, inv.m02));
+		Matrix3x3D inv = new Matrix3x3D(basis);
+		inv.transpose();
+		Vector3D negOrigin = new Vector3D(origin);
+		origin.negate();
+		negOrigin.dot(new Vector3D(inv.m0x0, inv.m0x1, inv.m0x2));
 		t.basis.set(inv);
 		t.origin.set(negOrigin);
 	}
@@ -58,13 +58,12 @@ public class BTTransform {
 	public void inverse() {
 		basis.transpose();
 		origin.negate();
-		origin.dot(new Vector3d(basis.m00, basis.m01, basis.m02));
+		origin.dot(new Vector3D(basis.m0x0, basis.m0x1, basis.m0x2));
 	}
 	
 	public void mult(BTTransform t) {
-		Vector3d temp = new Vector3d();
-		temp.set(t.origin);
-		temp.dot(new Vector3d(basis.m00, basis.m01, basis.m02));
+		Vector3D temp = new Vector3D(t.origin);
+		temp.dot(new Vector3D(basis.m0x0, basis.m0x1, basis.m0x2));
 		origin.set(temp);
 		basis.mul(t.basis);
 	}

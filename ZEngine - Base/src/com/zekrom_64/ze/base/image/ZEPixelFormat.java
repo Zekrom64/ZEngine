@@ -3,8 +3,11 @@ package com.zekrom_64.ze.base.image;
 import com.zekrom_64.ze.base.util.PrimitiveType;
 
 /** A pixel format describes how picture elements are laid out in memory. Unless
- * otherwise specified, the components are laid out in the order of <b>red</b>,
- * <b>green</b>, <b>blue</b>, and <b>alpha</b>.
+ * otherwise specified, the components are laid out in ascending byte and bit
+ * locations in memory as they are left to right in the format name. Color
+ * formats can contain <b>red</b>, <b>green</b>, <b>blue</b>, and <b>alpha</b>
+ * components. Depth/stencil formats can contain <b><u>D</u>epth</b> and <b><u>S</u>tencil</b>
+ * components
  * 
  * @author Zekrom_64
  *
@@ -100,7 +103,20 @@ public enum ZEPixelFormat {
 	R64G64B64_FLOAT(24,0,64,128,-1,PrimitiveType.DOUBLE),
 	/** A format with <b>red</b>, <b>green</b>, <b>blue</b>, and <b>alpha</b>
 	 * components that are double-precision floating point numbers */
-	R64G64B64A64_FLOAT(32,0,64,128,192,PrimitiveType.DOUBLE);
+	R64G64B64A64_FLOAT(32,0,64,128,192,PrimitiveType.DOUBLE),
+	/** A format with a single <b>depth</b> component that is an unsigned short. */
+	D16_UINT(16,0,-1,PrimitiveType.USHORT,null),
+	/** A format with a single <b>depth</b> component that is a single precision
+	 * floating point number. */
+	D32_FLOAT(32,0,-1,PrimitiveType.FLOAT,null),
+	/** A format with a 24-bit unsigned integer <b>depth</b> component and an
+	 * 8-bit unsigned byte <b>stencil</b> component. */
+	D24_UINT_S8_UINT(32,0,24,PrimitiveType.UINT,PrimitiveType.UBYTE),
+	/** A format with a 32-bit single-precision floating point <b>depth</b> component
+	 * and an 8-bit unsigned byte <b>stencil</b> component. */
+	D32_FLOAT_S8_UINT(40,0,32,PrimitiveType.FLOAT,PrimitiveType.UBYTE),
+	/** A format with a single <b>stencil</b> component that is an unsigned byte. */
+	S8_UINT(8,-1,0,null,PrimitiveType.UBYTE);
 	
 	/** The size of a pixel in bytes */
 	public final int sizeOf;
@@ -108,6 +124,10 @@ public enum ZEPixelFormat {
 	public final int redOffset, greenOffset, blueOffset, alphaOffset;
 	/** The primtive type each component is composed of */
 	public final PrimitiveType elementType;
+	/** Bitwise offsets of each component from the start of an element. */
+	public final int depthOffset, stencilOffset;
+	/** Depth and stencil element types. */
+	public final PrimitiveType depthType, stencilType;
 	
 	private ZEPixelFormat(int sz, int roff, int goff, int boff, int aoff, PrimitiveType elemType) {
 		sizeOf = sz;
@@ -116,6 +136,25 @@ public enum ZEPixelFormat {
 		blueOffset = boff;
 		alphaOffset = aoff;
 		elementType = elemType;
+		
+		depthOffset = 0;
+		stencilOffset = 0;
+		depthType = null;
+		stencilType = null;
+	}
+	
+	private ZEPixelFormat(int sz, int doff, int soff, PrimitiveType dtype, PrimitiveType stype) {
+		sizeOf = sz;
+		depthOffset = doff;
+		stencilOffset = soff;
+		depthType = dtype;
+		stencilType = stype;
+		
+		redOffset = 0;
+		greenOffset = 0;
+		blueOffset = 0;
+		alphaOffset = 0;
+		elementType = null;
 	}
 	
 }

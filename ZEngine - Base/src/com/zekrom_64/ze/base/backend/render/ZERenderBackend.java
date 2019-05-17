@@ -1,10 +1,17 @@
 package com.zekrom_64.ze.base.backend.render;
 
 import com.zekrom_64.ze.base.backend.render.obj.ZEBuffer;
+import com.zekrom_64.ze.base.backend.render.obj.ZEBuffer.ZEBufferUsage;
+import com.zekrom_64.ze.base.backend.render.obj.ZEFramebufferBuilder;
+import com.zekrom_64.ze.base.backend.render.obj.ZEGraphicsMemory;
 import com.zekrom_64.ze.base.backend.render.obj.ZEIndexBuffer;
 import com.zekrom_64.ze.base.backend.render.obj.ZERenderEvent;
+import com.zekrom_64.ze.base.backend.render.obj.ZERenderFence;
+import com.zekrom_64.ze.base.backend.render.obj.ZERenderPassBuilder;
 import com.zekrom_64.ze.base.backend.render.obj.ZERenderSemaphore;
+import com.zekrom_64.ze.base.backend.render.obj.ZERenderThread;
 import com.zekrom_64.ze.base.backend.render.obj.ZETexture;
+import com.zekrom_64.ze.base.backend.render.obj.ZETexture.ZETextureUsage;
 import com.zekrom_64.ze.base.backend.render.obj.ZETextureDimension;
 import com.zekrom_64.ze.base.backend.render.obj.ZEVertexBuffer;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipeline;
@@ -13,6 +20,12 @@ import com.zekrom_64.ze.base.backend.render.shader.ZEShaderCompiler;
 import com.zekrom_64.ze.base.image.ZEPixelFormat;
 import com.zekrom_64.ze.base.util.PrimitiveType;
 
+/** A render backend 
+ * 
+ * @author Zekrom_64
+ *
+ * @param <B>
+ */
 public interface ZERenderBackend<B extends ZERenderBackend<?>> {
 	
 	// -------------------
@@ -39,6 +52,8 @@ public interface ZERenderBackend<B extends ZERenderBackend<?>> {
 	
 	/** The render backend supports pipeline caching */
 	public static final String FEATURE_CACHEABLE_PIPELINE = "ze.feature.cache.pipeline";
+	/** The render backend supports the <tt>clamp</tt> parameter in {@link ZERenderWorkRecorder#setDepthBias(double, double, double) setDepthBias}.*/
+	public static final String FEATURE_DEPTH_BIAS_CLAMP = "ze.feature.depthBias.clamp";
 	
 	// Shader features
 	
@@ -85,14 +100,33 @@ public interface ZERenderBackend<B extends ZERenderBackend<?>> {
 	 */
 	public boolean supportsFeature(String feature);
 	
+	/** The maximum number of sub-levels supported by the render backend. */
+	public static final String LIMIT_INT_MAX_RENDER_WORK_LEVELS = "ze.limit.renderWork.levels";
+	
+	// -----------------
+	// | LIMIT STRINGS |
+	// -----------------
+	
+	/** Gets the integer value of a limit for the backend.
+	 * 
+	 * @param limit The integer limit to get
+	 * @return The integer limit value
+	 */
+	public int getLimitInt(String limit);
+	
 	// -------------------
 	// | INIT AND DEINIT |
 	// -------------------
 	
-	/** Initializes the render context. */
-	public void init(ZERenderContext<B> context);
+	/** Initializes the render backend and presents to the given render output.
+	 * 
+	 * @param output Output to render to
+	 */
+	public void init(ZERenderOutput<B> output);
 	
-	/** Deinitializes the render backend. */
+	/** Deinitializes the render backend, stopping presentation to the
+	 * current render output.
+	 */
 	public void deinit();
 	
 	// -------------
@@ -129,48 +163,57 @@ public interface ZERenderBackend<B extends ZERenderBackend<?>> {
 	 */
 	public ZEShaderCompiler getShaderCompiler();
 	
+	// ----------------
+	// | FRAMEBUFFERS |
+	// ----------------
+	
+	/** Creates a new framebuffer builder.
+	 * 
+	 * @return Framebuffer builder
+	 */
+	public ZEFramebufferBuilder createFramebufferBuilder();
+	
+	// -----------------
+	// | RENDER PASSES |
+	// -----------------
+	
+	/** Creates a new render pass builder.
+	 * 
+	 * @return Render pass builder
+	 */
+	public ZERenderPassBuilder createRenderPassBuilder();
+	
 	// ------------------
 	// | MEMORY BUFFERS |
 	// ------------------
 	
 	/** Buffer flag specifying that the buffer should be device local. Not all backends support this flag. */
 	public static final int FLAG_BUFFER_DEVICE_LOCAL = 0b1;
+	/** Buffer flag specifying that the buffer can be used concurrently between render threads. */
+	public static final int FLAG_BUFFER_QUEUE_SHARED = 0b10;
 	
 	/** Allocates a memory buffer. Buffers may be given flags to modify their behavior. If a flag is not
 	 * supported, it will either fail silently or throw an exception.
 	 * 
 	 * @param size Buffer size
 	 * @param flags Buffer flags
+	 * @param usages Valid buffer usages
 	 * @return Memory buffer
 	 */
-	public ZEBuffer allocateBuffer(int size, int flags);
+	public ZEBuffer allocateBuffer(int size, int flags, ZEBufferUsage ... usages);
 	
-	/** Multiple allocation version of {@link #allocateBuffer(int, int) allocateBuffer()}.
-	 * 
-	 * @param sizes Buffer sizes
-	 * @param flags Buffer flags
-	 * @return Memory buffers
-	 */
-	public ZEBuffer[] allocateBuffers(int[] sizes, int[] flags);
-	
-	/** Frees a memory buffer.
-	 * 
-	 * @param buffer Memory buffer
-	 */
-	public void freeBuffer(ZEBuffer buffer);
-	
-	/** Multiple free version of {@link #freeBuffer(ZEBuffer) freeBuffer()}.
+	/** Frees a set of memory buffers
 	 * 
 	 * @param buffers Memory buffers
 	 */
-	public void freeBuffer(ZEBuffer ... buffers);
+	public void freeBuffers(ZEBuffer ... buffers);
 	
 	/** Creates a vertex buffer from a memory buffer.
 	 * 
 	 * @param buffer Memory buffer
 	 * @return Vertex buffer
 	 */
-	public ZEVertexBuffer createVertexBuffer(ZEBuffer buffer);
+	public ZEVertexBuffer createVertexBuffer(ZEGraphicsMemory buffer);
 	
 	/** Creates an index buffer from a memory buffer
 	 * 
@@ -178,7 +221,7 @@ public interface ZERenderBackend<B extends ZERenderBackend<?>> {
 	 * @param indexType 
 	 * @return
 	 */
-	public ZEIndexBuffer createIndexBuffer(ZEBuffer buffer, PrimitiveType indexType);
+	public ZEIndexBuffer createIndexBuffer(ZEGraphicsMemory buffer, PrimitiveType indexType);
 	
 	// ---------------------
 	// | TEXTURES / IMAGES |
@@ -193,30 +236,13 @@ public interface ZERenderBackend<B extends ZERenderBackend<?>> {
 	 * @param format Pixel format
 	 * @return Texture
 	 */
-	public ZETexture createTexture(ZETextureDimension dim, int width, int height, int depth, ZEPixelFormat format);
+	public ZETexture createTexture(ZETextureDimension dim, int width, int height, int depth, ZEPixelFormat format, ZETextureUsage ... usages);
 	
-	/** Multiple creation version of {@link #createTexture(int, int, ZEPixelFormat) createTexture()}.
+	/** Destroys a set of textures.
 	 * 
-	 * @param dim Dimensions
-	 * @param width Widths
-	 * @param height Heights
-	 * @param depth Depths
-	 * @param format Pixel formats
-	 * @return Textures
+	 * @param textures Textures to destroy
 	 */
-	public ZETexture[] createTextures(ZETextureDimension[] dim, int[] width, int[] height, int[] depth, ZEPixelFormat[] format);
-	
-	/** Destroys a texture.
-	 * 
-	 * @param texture Texture
-	 */
-	public void destroyTexture(ZETexture texture);
-	
-	/** Multiple version of {@link #destroyTexture(ZETexture) destroyTexture()}.
-	 * 
-	 * @param textures
-	 */
-	public void destroyTexture(ZETexture ... textures);
+	public void destroyTextures(ZETexture ... textures);
 	
 	// --------------------------------
 	// | COMMAND BUFFERS / SUBMISSION |
@@ -237,28 +263,26 @@ public interface ZERenderBackend<B extends ZERenderBackend<?>> {
 	 */
 	public ZERenderCommandBuffer[] createCommandBuffers(int count, boolean multipleRecords);
 	
-	/** Destroys a render command buffer.
+	/** Destroys a set of render command buffers.
 	 * 
-	 * @param cmdBuf Command buffer to destroy
+	 * @param cmdBuf Command buffers to destroy
 	 */
-	public void destroyCommandBuffer(ZERenderCommandBuffer cmdBuf);
+	public void destroyCommandBuffers(ZERenderCommandBuffer ... cmdBuf);
 	
-	/** Multiple version of {@link #destroyCommandBuffer(ZERenderCommandBuffer)}.
+	/** Gets the primary render thread, supports all graphics operations.
 	 * 
-	 * @param cmdBufs Command buffers to destroy
+	 * @return Primary render thread
 	 */
-	public void desotryCommandBuffers(ZERenderCommandBuffer ... cmdBufs);
-	
-	/** Submits a command buffer for execution.
-	 * 
-	 * @param cmdBuf Command buffer
-	 */
-	public void submitCommands(ZERenderCommandBuffer cmdBuf);
+	public ZERenderThread getPrimaryRenderThread();
 	
 	// --------------------------
 	// | MULTITHREADED COMMANDS |
 	// --------------------------
 	
+	/** Gets the available independent render threads available to this backend.
+	 * 
+	 * @return Available independent render threads
+	 */
 	public ZERenderThread[] getRenderThreads();
 	
 	// --------------------------
@@ -338,5 +362,60 @@ public interface ZERenderBackend<B extends ZERenderBackend<?>> {
 	 */
 	public ZERenderEvent createRenderEvent();
 	
+	/** Destroys a set of render events.
+	 * 
+	 * @param events Render events
+	 */
+	public void destroyRenderEvents(ZERenderEvent ... events);
+	
+	/** Creates a render semaphore.
+	 * 
+	 * @return Render semaphore
+	 */
 	public ZERenderSemaphore createRenderSemaphore();
+	
+	/** Destroys a set of render semaphores.
+	 * 
+	 * @param semaphores Render semaphores
+	 */
+	public void destroyRenderSemaphores(ZERenderSemaphore ... semaphores);
+	
+	/** Creates a render fence.
+	 * 
+	 * @return Render fence
+	 */
+	public ZERenderFence createRenderFence();
+	
+	/** Destroys a set of render fences.
+	 * 
+	 * @param fences Render fences
+	 */
+	public void destroyRenderFences(ZERenderFence ... fences);
+	
+	/** Enumeration of modes for waiting on fences.
+	 * 
+	 * @author Zekrom_64
+	 *
+	 */
+	public enum ZEFenceWaitMode {
+		/** All fences must be signalled */
+		ALL,
+		/** Any fence can be signalled */
+		ANY
+	}
+	
+	/** Waits for a set of render fences to become signaled.
+	 * 
+	 * @param waitMode Waiting mode
+	 * @param timeout Waiting timeout in nanoseconds
+	 * @param fences Set of fences to wait on
+	 * @return If the waiting timed out
+	 */
+	public boolean waitForFences(ZEFenceWaitMode waitMode, long timeout, ZERenderFence ... fences);
+	
+	/** Resets a set of fences to unsignaled.
+	 * 
+	 * @param fences Fences to reset
+	 */
+	public void resetFences(ZERenderFence ... fences);
 }

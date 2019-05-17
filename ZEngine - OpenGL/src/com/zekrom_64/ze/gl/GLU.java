@@ -8,8 +8,8 @@ import org.lwjgl.opengl.GL12;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.libc.LibCStdlib;
 
-import com.zekrom_64.mathlib.matrix.impl.Matrix4x4Float;
-import com.zekrom_64.mathlib.tuple.impl.Vector3Float;
+import com.zekrom_64.mathlib.matrix.impl.Matrix4x4F;
+import com.zekrom_64.mathlib.tuple.impl.Vector3F;
 import com.zekrom_64.ze.base.image.ZEPixelFormat;
 
 /*
@@ -201,7 +201,7 @@ public class GLU {
 		result[2] = (v1[0] * v2[1] - v1[1] * v2[0]);
 	}
 	
-	private static void multMatrixVec(Matrix4x4Float matrix, float[] in, float[] out) {
+	private static void multMatrixVec(Matrix4x4F matrix, float[] in, float[] out) {
 		for(int i = 0; i < 4; i++) {
 			out[i] = 
 					in[0] * matrix.get(0, i) +
@@ -648,8 +648,8 @@ public class GLU {
 		GL11.glTranslatef(-eyex, -eyey, -eyez);
 	}
 	
-	public static boolean gluProject(float x, float y, float z, Matrix4x4Float modelMatrix, Matrix4x4Float projMatrix,
-			int[] viewport, Vector3Float winPos) {
+	public static boolean gluProject(float x, float y, float z, Matrix4x4F modelMatrix, Matrix4x4F projMatrix,
+			int[] viewport, Vector3F winPos) {
 		float[] in = new float[4];
 		float[] out = new float[4];
 		in[0] = x;
@@ -669,9 +669,9 @@ public class GLU {
 		return true;
 	}
 	
-	public static boolean gluUnProject(float x, float y, float z, Matrix4x4Float modelMatrix, Matrix4x4Float projMatrix,
-			int[] viewport, Vector3Float objPos) {
-		Matrix4x4Float finalMatrix = new Matrix4x4Float();
+	public static boolean gluUnProject(float x, float y, float z, Matrix4x4F modelMatrix, Matrix4x4F projMatrix,
+			int[] viewport, Vector3F objPos) {
+		Matrix4x4F finalMatrix = new Matrix4x4F();
 		finalMatrix.set(modelMatrix);
 		finalMatrix.mul(projMatrix);
 		if (!finalMatrix.invert()) return false;

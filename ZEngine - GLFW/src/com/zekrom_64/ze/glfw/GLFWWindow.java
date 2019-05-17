@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.lwjgl.BufferUtils;
+import org.lwjgl.PointerBuffer;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWCharModsCallback;
 import org.lwjgl.glfw.GLFWCursorEnterCallback;
@@ -18,6 +19,7 @@ import org.lwjgl.glfw.GLFWKeyCallback;
 import org.lwjgl.glfw.GLFWMouseButtonCallback;
 import org.lwjgl.glfw.GLFWScrollCallback;
 import org.lwjgl.glfw.GLFWVidMode;
+import org.lwjgl.glfw.GLFWVulkan;
 import org.lwjgl.glfw.GLFWWindowFocusCallback;
 import org.lwjgl.glfw.GLFWWindowIconifyCallback;
 import org.lwjgl.glfw.GLFWWindowPosCallback;
@@ -33,8 +35,11 @@ import com.zekrom_64.ze.base.input.ZEWindowListener;
 import com.zekrom_64.ze.base.input.ZEWindowSource;
 import com.zekrom_64.ze.gl.GLContext;
 import com.zekrom_64.ze.nat.ZEStructUtils;
+import com.zekrom_64.ze.vulkan.VKContext;
+import com.zekrom_64.ze.vulkan.VKSurfaceProvider;
+import com.zekrom_64.ze.vulkan.VulkanException;
 
-public class GLFWWindow implements GLContext, ZEInputSource, ZEWindowSource {
+public class GLFWWindow implements GLContext, VKSurfaceProvider, ZEInputSource, ZEWindowSource {
 
 	private long window = 0;
 	
@@ -193,16 +198,6 @@ public class GLFWWindow implements GLContext, ZEInputSource, ZEWindowSource {
 		GLFW.glfwSetScrollCallback(window, onScroll);
 	}
 	
-	@Override
-	public void bind() {
-		GLFW.glfwMakeContextCurrent(window);
-	}
-
-	@Override
-	public void swapBuffers() {
-		if (window!=0) GLFW.glfwSwapBuffers(window);
-	}
-	
 	private final List<ZEInputListener> inputListeners = new ArrayList<ZEInputListener>();
 	private final List<ZEWindowListener> windowListeners = new ArrayList<ZEWindowListener>();
 
@@ -283,6 +278,13 @@ public class GLFWWindow implements GLContext, ZEInputSource, ZEWindowSource {
 		if (window!=0) GLFW.glfwDestroyWindow(window);
 		window = newwnd;
 		setCallbacks(window);
+	}
+	
+	/** Destroys the GLFW window stored.
+	 * 
+	 */
+	public void destroy() {
+		GLFW.glfwDestroyWindow(window);
 	}
 	
 	/** Determines if the window is visible.
@@ -396,28 +398,6 @@ public class GLFWWindow implements GLContext, ZEInputSource, ZEWindowSource {
 		return GLFWU.glfwGetPlatformContext(window);
 	}
 	
-	/** Destroys the GLFW window stored.
-	 * 
-	 */
-	public void destroy() {
-		GLFW.glfwDestroyWindow(window);
-	}
-	
-	/** Gets the size of the current window.
-	 * 
-	 * @return Window size
-	 */
-	public Dimension getSize() {
-		MemoryStack stack = MemoryStack.stackGet();
-		int sp = stack.getPointer();
-		IntBuffer bufW = stack.callocInt(1);
-		IntBuffer bufH = stack.callocInt(1);
-		GLFW.glfwGetWindowSize(window, bufW, bufH);
-		stack.setPointer(sp);
-		Dimension dim = new Dimension(bufW.get(0), bufH.get(0));
-		return dim;
-	}
-	
 	/** Iconifies (minimizes) the window.
 	 * 
 	 */
@@ -457,28 +437,6 @@ public class GLFWWindow implements GLContext, ZEInputSource, ZEWindowSource {
 		}
 	}
 	
-	/** Sets the size limits for this window. If a parameter is set as {@link GLFW#GLFW_DONT_CARE GLFW_DONT_CARE},
-	 * the limit is ignored. Undefined behavior may occur if a conflicting aspect ratio is set.
-	 * 
-	 * @param minw Minimum width
-	 * @param minh Minimum height
-	 * @param maxw Maximum width
-	 * @param maxh Maximum height
-	 */
-	public void setSizeLimit(int minw, int minh, int maxw, int maxh) {
-		if (window!=0) GLFW.glfwSetWindowSizeLimits(window, minw, minh, maxw, maxh);
-	}
-	
-	/** Sets the aspect ratio for this window. If both parameters are set as {@link GLFW#GLFW_DONT_CARE GLFW_DONT_CARE},
-	 * the required ratio is ignored. Undefined behavior may occur if a conflicting size limit is set.
-	 * 
-	 * @param numer Ratio numerator
-	 * @param denom Ratio denominator
-	 */
-	public void setAspectRatio(int numer, int denom) {
-		if (window!=0) GLFW.glfwSetWindowAspectRatio(window, numer, denom);
-	}
-	
 	/** Focuses the window for input and brings it to the front.
 	 * 
 	 */
@@ -493,11 +451,6 @@ public class GLFWWindow implements GLContext, ZEInputSource, ZEWindowSource {
 	public long getGLFWMonitor() {
 		if (window==0) return 0;
 		return GLFW.glfwGetWindowMonitor(window);
-	}
-
-	@Override
-	public boolean isBound() {
-		return GLFW.glfwGetCurrentContext() == window;
 	}
 	
 	/** Gets the given GLFW attribute for the window.
@@ -519,6 +472,51 @@ public class GLFWWindow implements GLContext, ZEInputSource, ZEWindowSource {
 		return new Dimension(x[0],y[0]);
 	}
 	
+	/** Sets the position of the window if it is in windowed mode.
+	 * 
+	 * @param x X position
+	 * @param y Y position
+	 */
+	public void setPosition(int x, int y) {
+		GLFW.glfwSetWindowPos(window, x, y);
+	}
+	
+	/** Gets the size of the current window.
+	 * 
+	 * @return Window size
+	 */
+	public Dimension getSize() {
+		MemoryStack stack = MemoryStack.stackGet();
+		int sp = stack.getPointer();
+		IntBuffer bufW = stack.callocInt(1);
+		IntBuffer bufH = stack.callocInt(1);
+		GLFW.glfwGetWindowSize(window, bufW, bufH);
+		stack.setPointer(sp);
+		Dimension dim = new Dimension(bufW.get(0), bufH.get(0));
+		return dim;
+	}
+	
+	/** Sets the size of the current window.
+	 * 
+	 * @param w Window width
+	 * @param h Window height
+	 */
+	public void setSize(int w, int h) {
+		GLFW.glfwSetWindowSize(window, w, h);
+	}
+	
+	/** Sets the size limits for this window. If a parameter is set as {@link GLFW#GLFW_DONT_CARE GLFW_DONT_CARE},
+	 * the limit is ignored. Undefined behavior may occur if a conflicting aspect ratio is set.
+	 * 
+	 * @param minw Minimum width
+	 * @param minh Minimum height
+	 * @param maxw Maximum width
+	 * @param maxh Maximum height
+	 */
+	public void setSizeLimit(int minw, int minh, int maxw, int maxh) {
+		if (window!=0) GLFW.glfwSetWindowSizeLimits(window, minw, minh, maxw, maxh);
+	}
+	
 	/** Gets the position and size of the window.
 	 * 
 	 * @return Window position and size
@@ -535,13 +533,49 @@ public class GLFWWindow implements GLContext, ZEInputSource, ZEWindowSource {
 		return rect;
 	}
 	
-	/** Sets the position of the window if it is in windowed mode.
+	/** Sets the aspect ratio for this window. If both parameters are set as {@link GLFW#GLFW_DONT_CARE GLFW_DONT_CARE},
+	 * the required ratio is ignored. Undefined behavior may occur if a conflicting size limit is set.
 	 * 
-	 * @param x X position
-	 * @param y Y position
+	 * @param numer Ratio numerator
+	 * @param denom Ratio denominator
 	 */
-	public void setPosition(int x, int y) {
-		GLFW.glfwSetWindowPos(window, x, y);
+	public void setAspectRatio(int numer, int denom) {
+		if (window!=0) GLFW.glfwSetWindowAspectRatio(window, numer, denom);
+	}
+	
+	// OpenGL
+
+	@Override
+	public boolean isBound() {
+		return GLFW.glfwGetCurrentContext() == window;
+	}
+	
+	@Override
+	public void bind() {
+		GLFW.glfwMakeContextCurrent(window);
+	}
+
+	@Override
+	public void swapBuffers() {
+		if (window!=0) GLFW.glfwSwapBuffers(window);
+	}
+	
+	// Vulkan
+
+	@Override
+	public List<String> getRequiredInstanceExtensions() {
+		PointerBuffer pExts = GLFWVulkan.glfwGetRequiredInstanceExtensions();
+		ArrayList<String> exts = new ArrayList<>();
+		while(pExts.hasRemaining()) exts.add(MemoryUtil.memASCII(pExts.address()));
+		return exts;
+	}
+
+	@Override
+	public long createSurface(VKContext context) {
+		if (window == 0) throw new VulkanException("Cannot create surface from non-existant window");
+		long[] surface = new long[1];
+		GLFWVulkan.glfwCreateWindowSurface(context.instance, window, context.allocCallbacks, surface);
+		return surface[0];
 	}
 
 }

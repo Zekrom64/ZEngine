@@ -14,7 +14,7 @@ import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.system.MemoryStack;
 
 import com.zekrom_64.mathlib.shape.Rectangle;
-import com.zekrom_64.mathlib.tuple.impl.Vector4Float;
+import com.zekrom_64.mathlib.tuple.impl.Vector4F;
 import com.zekrom_64.ze.base.backend.render.ZEGeometryType;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEFrontBack;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBuilder.ZEBlendFactor;
@@ -53,7 +53,7 @@ public class GLPipelineState implements Cloneable {
 	public static class GLPipelineBlendState implements GLPipelineStateModule {
 	
 		/** The color constant to be used in color blending. */
-		public final Vector4Float blendConstColor = new Vector4Float(0,0,0,0);
+		public final Vector4F blendConstColor = new Vector4F(0,0,0,0);
 		/** If color blending is enabled */
 		public boolean blendEnabled = false;
 		private ZEBlendFactor blendSrcColor = ZEBlendFactor.ONE;

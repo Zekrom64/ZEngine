@@ -32,7 +32,7 @@ public interface ZESoundStream {
 	
 	/** Gets the index of the current frame of audio
 	 * 
-	 * @return
+	 * @return Current audio frame index
 	 */
 	public int getCurrentFrame();
 	

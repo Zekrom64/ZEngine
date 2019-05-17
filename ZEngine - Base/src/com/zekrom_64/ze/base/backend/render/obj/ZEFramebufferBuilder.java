@@ -6,15 +6,27 @@ public interface ZEFramebufferBuilder {
 	 * 
 	 * @param width Framebuffer width
 	 * @param height Framebuffer height
-	 * @param layers Framebuffer layers
 	 */
-	public void setSize(int width, int height, int layers);
+	public ZEFramebufferBuilder setSize(int width, int height);
 	
-	/** Adds a texture as an attachment to the framebuffer.
+	/** Sets the array of attachments to use in the framebuffer.
 	 * 
-	 * @param tex Texture to attach
-	 * @return Attachment index
+	 * @param textures Textures to use as attachments
 	 */
-	public int addAttachment(ZETexture tex);
+	public ZEFramebufferBuilder setAttachments(ZETexture ... textures);
+	
+	/** Sets the render pass that defines what render passes the framebuffer will
+	 * be compatible with. Render passes are compatible if, for every attachment
+	 * mapping, the mappings share the same format and sample count, or are unused. 
+	 * 
+	 * @param renderPass Render pass
+	 */
+	public ZEFramebufferBuilder setRenderPass(ZERenderPass renderPass);
+
+	/** Builds a framebuffer.
+	 * 
+	 * @return Built framebuffer
+	 */
+	public ZEFramebuffer build();
 	
 }

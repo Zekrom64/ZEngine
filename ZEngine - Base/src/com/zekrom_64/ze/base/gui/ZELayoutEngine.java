@@ -2,7 +2,7 @@ package com.zekrom_64.ze.base.gui;
 
 import java.awt.Dimension;
 
-import com.zekrom_64.mathlib.tuple.impl.Vector2Int;
+import com.zekrom_64.mathlib.tuple.impl.Vector2I;
 
 public interface ZELayoutEngine {
 
@@ -10,7 +10,7 @@ public interface ZELayoutEngine {
 		
 		public void setPosition(int x, int y);
 		
-		public void getPosition(Vector2Int pos);
+		public void getPosition(Vector2I pos);
 		
 	}
 	

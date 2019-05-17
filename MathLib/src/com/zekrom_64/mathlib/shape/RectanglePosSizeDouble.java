@@ -1,6 +1,6 @@
 package com.zekrom_64.mathlib.shape;
 
-import com.zekrom_64.mathlib.tuple.impl.Vector2Double;
+import com.zekrom_64.mathlib.tuple.impl.Vector2D;
 
 /** A {@link Rectangle} defined by an origin point and extent size.
  * 
@@ -10,9 +10,9 @@ import com.zekrom_64.mathlib.tuple.impl.Vector2Double;
 public class RectanglePosSizeDouble implements Rectangle {
 
 	/** Origin point */
-	public final Vector2Double position = new Vector2Double();
+	public final Vector2D position = new Vector2D();
 	/** Rectangle extent */
-	public final Vector2Double extent = new Vector2Double();
+	public final Vector2D extent = new Vector2D();
 	
 	@Override
 	public double getWidth() {

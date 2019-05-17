@@ -53,4 +53,9 @@ public class GLIndexBuffer implements ZEIndexBuffer {
 		return indexType;
 	}
 
+	@Override
+	public ZEBufferUsage[] getValidUsages() {
+		return parent.getValidUsages();
+	}
+
 }

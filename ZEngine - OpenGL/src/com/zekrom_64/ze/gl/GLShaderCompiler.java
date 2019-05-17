@@ -9,18 +9,17 @@ import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GL21;
 import org.lwjgl.opengl.GL30;
-import org.lwjgl.opengl.GL31;
 import org.lwjgl.opengl.GL32;
 import org.lwjgl.opengl.GL40;
 import org.lwjgl.opengl.GL41;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
 
-import com.zekrom_64.mathlib.matrix.impl.Matrix3x3Float;
-import com.zekrom_64.mathlib.matrix.impl.Matrix4x4Float;
-import com.zekrom_64.mathlib.tuple.impl.Vector2Float;
-import com.zekrom_64.mathlib.tuple.impl.Vector3Float;
-import com.zekrom_64.mathlib.tuple.impl.Vector4Float;
+import com.zekrom_64.mathlib.matrix.impl.Matrix3x3F;
+import com.zekrom_64.mathlib.matrix.impl.Matrix4x4F;
+import com.zekrom_64.mathlib.tuple.impl.Vector2F;
+import com.zekrom_64.mathlib.tuple.impl.Vector3F;
+import com.zekrom_64.mathlib.tuple.impl.Vector4F;
 import com.zekrom_64.ze.base.backend.render.obj.ZETextureDimension;
 import com.zekrom_64.ze.base.backend.render.shader.ZEAttributeDescription;
 import com.zekrom_64.ze.base.backend.render.shader.ZEShader;
@@ -119,12 +118,6 @@ public class GLShaderCompiler implements ZEShaderCompiler {
 			case GL30.GL_UNSIGNED_INT_SAMPLER_2D: return ZEShaderTypeImageSampler.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.UINT), 4), ZETextureDimension.DIM_2D);
 			case GL30.GL_UNSIGNED_INT_SAMPLER_3D: return ZEShaderTypeImageSampler.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.UINT), 4), ZETextureDimension.DIM_3D);
 			case GL30.GL_UNSIGNED_INT_SAMPLER_CUBE: return ZEShaderTypeImageSampler.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.UINT), 4), ZETextureDimension.CUBE);
-			case GL31.GL_SAMPLER_2D_RECT: return ZEShaderTypeImageSampler.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.FLOAT), 4), ZETextureDimension.RECTANGLE);
-			case GL31.GL_SAMPLER_BUFFER: return ZEShaderTypeImageSampler.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.FLOAT), 4), ZETextureDimension.BUFFER_TEXTURE);
-			case GL31.GL_INT_SAMPLER_2D_RECT: return ZEShaderTypeImageSampler.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.INT), 4), ZETextureDimension.RECTANGLE);
-			case GL31.GL_INT_SAMPLER_BUFFER: return ZEShaderTypeImageSampler.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.INT), 4), ZETextureDimension.BUFFER_TEXTURE);
-			case GL31.GL_UNSIGNED_INT_SAMPLER_2D_RECT: return ZEShaderTypeImageSampler.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.UINT), 4), ZETextureDimension.RECTANGLE);
-			case GL31.GL_UNSIGNED_INT_SAMPLER_BUFFER: return ZEShaderTypeImageSampler.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.UINT), 4), ZETextureDimension.BUFFER_TEXTURE);
 			case GL40.GL_DOUBLE_MAT2: return ZEShaderTypeMatrix.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.DOUBLE), 2), 2);
 			case GL40.GL_DOUBLE_MAT2x3: return ZEShaderTypeMatrix.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.DOUBLE), 3), 2);
 			case GL40.GL_DOUBLE_MAT2x4: return ZEShaderTypeMatrix.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(PrimitiveType.DOUBLE), 4), 2);
@@ -356,14 +349,14 @@ public class GLShaderCompiler implements ZEShaderCompiler {
 			}
 			
 			@Override
-			public Vector2Float get() {
+			public Vector2F get() {
 				float[] pVec = new float[2];
 				GL20.glGetUniformfv(programId, location, pVec);
-				return new Vector2Float(pVec);
+				return new Vector2F(pVec);
 			}
 
 			@Override
-			public void set(Vector2Float t) {
+			public void set(Vector2F t) {
 				set(t.x, t.y);
 			}
 
@@ -385,14 +378,14 @@ public class GLShaderCompiler implements ZEShaderCompiler {
 			}
 			
 			@Override
-			public Vector3Float get() {
+			public Vector3F get() {
 				float[] pVec = new float[3];
 				GL20.glGetUniformfv(programId, location, pVec);
-				return new Vector3Float(pVec);
+				return new Vector3F(pVec);
 			}
 
 			@Override
-			public void set(Vector3Float t) {
+			public void set(Vector3F t) {
 				set(t.x, t.y, t.z);
 			}
 
@@ -414,14 +407,14 @@ public class GLShaderCompiler implements ZEShaderCompiler {
 			}
 			
 			@Override
-			public Vector4Float get() {
+			public Vector4F get() {
 				float[] pVec = new float[4];
 				GL20.glGetUniformfv(programId, location, pVec);
-				return new Vector4Float(pVec);
+				return new Vector4F(pVec);
 			}
 
 			@Override
-			public void set(Vector4Float t) {
+			public void set(Vector4F t) {
 				set(t.x, t.y, t.z, t.w);
 			}
 
@@ -439,14 +432,14 @@ public class GLShaderCompiler implements ZEShaderCompiler {
 			}
 
 			@Override
-			public Matrix3x3Float get() {
+			public Matrix3x3F get() {
 				float[] pMat = new float[9];
 				GL20.glGetUniformfv(programId, location, pMat);
-				return new Matrix3x3Float(pMat);
+				return new Matrix3x3F(pMat);
 			}
 
 			@Override
-			public void set(Matrix3x3Float t) {
+			public void set(Matrix3x3F t) {
 				float[] pMat = new float[9];
 				for(int x = 0; x < 3; x++)
 					for(int y = 0; y < 3; y++) pMat[x + (y * 3)] = t.getFloat(x,  y);
@@ -466,14 +459,14 @@ public class GLShaderCompiler implements ZEShaderCompiler {
 			}
 
 			@Override
-			public Matrix4x4Float get() {
+			public Matrix4x4F get() {
 				float[] pMat = new float[16];
 				GL20.glGetUniformfv(programId, location, pMat);
-				return new Matrix4x4Float(pMat);
+				return new Matrix4x4F(pMat);
 			}
 
 			@Override
-			public void set(Matrix4x4Float t) {
+			public void set(Matrix4x4F t) {
 				float[] pMat = new float[16];
 				for(int x = 0; x < 4; x++)
 					for(int y = 0; y < 4; y++) pMat[x + (y * 4)] = t.getFloat(x,  y);
@@ -601,23 +594,23 @@ public class GLShaderCompiler implements ZEShaderCompiler {
 			}
 
 			@Override
-			public Vector2Float[] get() {
-				Vector2Float[] vals = new Vector2Float[getLength()];
+			public Vector2F[] get() {
+				Vector2F[] vals = new Vector2F[getLength()];
 				float[] pVals = new float[vals.length * 2];
 				GL20.glGetUniformfv(programId, location, pVals);
 				for(int i = 0; i < vals.length; i++) {
 					int j = i * 2;
-					vals[i] = new Vector2Float(pVals[j], pVals[j + 1]);
+					vals[i] = new Vector2F(pVals[j], pVals[j + 1]);
 				}
 				return vals;
 			}
 
 			@Override
-			public void set(Vector2Float[] t) {
+			public void set(Vector2F[] t) {
 				float[] vals = new float[t.length*2];
 				for(int i = 0; i < t.length; i++) {
 					int j = i * 2;
-					Vector2Float val = t[i];
+					Vector2F val = t[i];
 					vals[j] = val.x;
 					vals[j + 1] = val.y;
 				}
@@ -637,23 +630,23 @@ public class GLShaderCompiler implements ZEShaderCompiler {
 			}
 
 			@Override
-			public Vector3Float[] get() {
-				Vector3Float[] vals = new Vector3Float[getLength()];
+			public Vector3F[] get() {
+				Vector3F[] vals = new Vector3F[getLength()];
 				float[] pVals = new float[vals.length*3];
 				GL20.glGetUniformfv(programId, location, pVals);
 				for(int i = 0; i < vals.length; i++) {
 					int j = i * 3;
-					vals[i] = new Vector3Float(pVals[j], pVals[j + 1], pVals[j + 2]);
+					vals[i] = new Vector3F(pVals[j], pVals[j + 1], pVals[j + 2]);
 				}
 				return vals;
 			}
 
 			@Override
-			public void set(Vector3Float[] t) {
+			public void set(Vector3F[] t) {
 				float[] pVals = new float[t.length*3];
 				for(int i = 0; i < t.length; i++) {
 					int j = i * 3;
-					Vector3Float val = t[i];
+					Vector3F val = t[i];
 					pVals[j] = val.x;
 					pVals[j+1] = val.y;
 					pVals[j+2] = val.z;
@@ -674,23 +667,23 @@ public class GLShaderCompiler implements ZEShaderCompiler {
 			}
 
 			@Override
-			public Vector4Float[] get() {
-				Vector4Float vals[] = new Vector4Float[getLength()];
+			public Vector4F[] get() {
+				Vector4F vals[] = new Vector4F[getLength()];
 				float[] pVals = new float[vals.length * 4];
 				GL20.glGetUniformfv(programId, location, pVals);
 				for(int i = 0; i < vals.length; i++) {
 					int j = i * 4;
-					vals[i] = new Vector4Float(pVals[j], pVals[j+1], pVals[j+2], pVals[j+3]);
+					vals[i] = new Vector4F(pVals[j], pVals[j+1], pVals[j+2], pVals[j+3]);
 				}
 				return vals;
 			}
 
 			@Override
-			public void set(Vector4Float[] t) {
+			public void set(Vector4F[] t) {
 				float[] pVals = new float[t.length * 4];
 				for(int i = 0; i < t.length; i++) {
 					int j = i * 4;
-					Vector4Float val = t[i];
+					Vector4F val = t[i];
 					pVals[j] = val.x;
 					pVals[j+1] = val.y;
 					pVals[j+2] = val.z;

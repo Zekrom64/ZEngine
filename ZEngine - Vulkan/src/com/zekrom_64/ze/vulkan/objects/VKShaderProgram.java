@@ -8,8 +8,10 @@ import com.zekrom_64.ze.base.backend.render.shader.ZEUniform;
 
 public class VKShaderProgram implements ZEShaderProgram {
 
+	public final VKShader[] shaders;
+	
 	public VKShaderProgram(VKShader ... shaders) {
-		
+		this.shaders = shaders;
 	}
 
 	@Override

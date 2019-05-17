@@ -1,5 +1,6 @@
 package com.zekrom_64.ze.vulkan;
 
+import java.nio.IntBuffer;
 import java.util.Arrays;
 import java.util.List;
 
@@ -7,15 +8,24 @@ import org.lwjgl.system.MemoryStack;
 import org.lwjgl.vulkan.VK10;
 import org.lwjgl.vulkan.VkBufferCreateInfo;
 import org.lwjgl.vulkan.VkEventCreateInfo;
+import org.lwjgl.vulkan.VkFenceCreateInfo;
 import org.lwjgl.vulkan.VkMemoryAllocateInfo;
+import org.lwjgl.vulkan.VkMemoryRequirements;
+import org.lwjgl.vulkan.VkSemaphoreCreateInfo;
 
 import com.zekrom_64.ze.base.backend.render.ZERenderBackend;
 import com.zekrom_64.ze.base.backend.render.ZERenderCommandBuffer;
-import com.zekrom_64.ze.base.backend.render.ZERenderContext;
+import com.zekrom_64.ze.base.backend.render.ZERenderOutput;
 import com.zekrom_64.ze.base.backend.render.obj.ZEBuffer;
+import com.zekrom_64.ze.base.backend.render.obj.ZEBuffer.ZEBufferUsage;
+import com.zekrom_64.ze.base.backend.render.obj.ZEGraphicsMemory;
 import com.zekrom_64.ze.base.backend.render.obj.ZEIndexBuffer;
 import com.zekrom_64.ze.base.backend.render.obj.ZERenderEvent;
+import com.zekrom_64.ze.base.backend.render.obj.ZERenderFence;
+import com.zekrom_64.ze.base.backend.render.obj.ZERenderSemaphore;
+import com.zekrom_64.ze.base.backend.render.obj.ZERenderThread;
 import com.zekrom_64.ze.base.backend.render.obj.ZETexture;
+import com.zekrom_64.ze.base.backend.render.obj.ZETextureDimension;
 import com.zekrom_64.ze.base.backend.render.obj.ZEVertexBuffer;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipeline;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBuilder;
@@ -24,7 +34,9 @@ import com.zekrom_64.ze.base.backend.render.shader.ZEShaderCompiler;
 import com.zekrom_64.ze.base.image.ZEPixelFormat;
 import com.zekrom_64.ze.base.util.PrimitiveType;
 import com.zekrom_64.ze.vulkan.objects.VKBuffer;
+import com.zekrom_64.ze.vulkan.objects.VKFence;
 import com.zekrom_64.ze.vulkan.objects.VKRenderEvent;
+import com.zekrom_64.ze.vulkan.objects.VKSemaphore;
 import com.zekrom_64.ze.vulkan.objects.VKTexture;
 
 /** Vulkan render backend implementation.
@@ -63,16 +75,18 @@ public class VKRenderBackend implements ZERenderBackend<VKRenderBackend> {
 	/** The Vulkan context for the render backend. */
 	public final VKContext context;
 	/** The Vulkan logical device used by the render backend. */
-	public final VKLogicalDevice device;
+	public final VKDevice device;
 	
 	/** Creates a new Vulkan render backed using the given logical device.
 	 * 
 	 * @param device Logical device
 	 */
-	public VKRenderBackend(VKLogicalDevice device) {
+	public VKRenderBackend(VKDevice device) {
 		this.device = device;
 		this.context = device.instance;
 	}
+	
+	/*
 	
 	private static class VulkanLocalInfo {
 
@@ -95,7 +109,7 @@ public class VKRenderBackend implements ZERenderBackend<VKRenderBackend> {
 	/** Sets flags to use for the next command requiring pipeline staging flags.
 	 * 
 	 * @param flags Pipeline staging flags
-	 */
+	 *
 	public void setPipelineStageFlags(int flags) {
 		getLocalInfo().pipelineFlags = flags;
 	}
@@ -103,7 +117,7 @@ public class VKRenderBackend implements ZERenderBackend<VKRenderBackend> {
 	/** Gets the flags to use for pipeline staging.
 	 * 
 	 * @return Pipeline staging flags
-	 */
+	 *
 	public int getPipelineStageFlags() {
 		return getLocalInfo().pipelineFlags;
 	}
@@ -113,13 +127,14 @@ public class VKRenderBackend implements ZERenderBackend<VKRenderBackend> {
 	 * VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT} on return.
 	 * 
 	 * @return Pipeline staging flags
-	 */
+	 *
 	public int getAndResetPipelineStageFlags() {
 		VulkanLocalInfo info = getLocalInfo();
 		int flags = info.pipelineFlags;
 		info.pipelineFlags = VK10.VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
 		return flags;
 	}
+	*/
 	
 	@Override
 	public boolean supportsFeature(String feature) {
@@ -127,7 +142,13 @@ public class VKRenderBackend implements ZERenderBackend<VKRenderBackend> {
 	}
 
 	@Override
-	public void init(ZERenderContext<VKRenderBackend> backend) {
+	public int getLimitInt(String limit) {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public void init(ZERenderOutput<VKRenderBackend> backend) {
 		
 	}
 
@@ -166,22 +187,31 @@ public class VKRenderBackend implements ZERenderBackend<VKRenderBackend> {
 	}
 
 	@Override
-	public ZEBuffer allocateBuffer(int size, int flags) {
+	public ZEBuffer allocateBuffer(int size, int flags, ZEBufferUsage ... usages) {
 		try (MemoryStack sp = MemoryStack.stackPush()) {
+			boolean concurrent = (flags & ZERenderBackend.FLAG_BUFFER_QUEUE_SHARED) != 0;
+			IntBuffer pQueueFamilyIndices = null;
+			if (concurrent) {
+				// TODO: Fill with queue family indices
+			}
+			
 			VkBufferCreateInfo bufferInfo = VkBufferCreateInfo.mallocStack(sp);
 			bufferInfo.set(
 					VK10.VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
 					0,
 					0,
 					size,
-					usage,
-					sharingMode,
+					VKValues.getVKBufferUsages(usages),
+					concurrent ? VK10.VK_SHARING_MODE_CONCURRENT : VK10.VK_SHARING_MODE_EXCLUSIVE,
 					pQueueFamilyIndices
 			);
 
 			long[] pBuffer = new long[1];
 			int err = VK10.vkCreateBuffer(device.logicalDevice, bufferInfo, context.allocCallbacks, pBuffer);
 			if (err != VK10.VK_SUCCESS) throw new VulkanException("Failed to create memory buffer", err);
+			
+			VkMemoryRequirements pMemoryRequirements = VkMemoryRequirements.mallocStack(sp);
+			VK10.vkGetBufferMemoryRequirements(device.logicalDevice, pBuffer[0], pMemoryRequirements);
 			
 			VkMemoryAllocateInfo allocInfo = VkMemoryAllocateInfo.mallocStack(sp);
 			allocInfo.set(
@@ -207,49 +237,35 @@ public class VKRenderBackend implements ZERenderBackend<VKRenderBackend> {
 			return new VKBuffer(device.logicalDevice, pBuffer[0], size, pMem[0], 0, flags);
 		}
 	}
+	
+	@Override
+	public void freeBuffers(ZEBuffer... buffers) {
+		for(ZEBuffer buf : buffers) {
+			VKBuffer vkbuf = (VKBuffer)buf;
+			VK10.vkDestroyBuffer(vkbuf.device, vkbuf.buffer, context.allocCallbacks);
+		}
+	}
 
 	@Override
-	public ZEBuffer[] allocateBuffers(int[] sizes, int[] flags) {
+	public ZEVertexBuffer createVertexBuffer(ZEGraphicsMemory buffer) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public void freeBuffer(ZEBuffer buffer) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void freeBuffer(ZEBuffer... buffers) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public ZEVertexBuffer createVertexBuffer(ZEBuffer buffer) {
+	public ZETexture createTexture(ZETextureDimension dim, int width, int height, int depth, ZEPixelFormat format) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public ZETexture createTexture(int width, int height, ZEPixelFormat format) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public ZETexture[] createTextures(int[] width, int[] height, ZEPixelFormat[] format) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public void destroyTexture(ZETexture texture) {
-		VKTexture vktex = (VKTexture)texture;
-		VK10.vkDestroyImageView(device.logicalDevice, vktex.imageView, context.allocCallbacks);
-		VK10.vkDestroyImage(device.logicalDevice, vktex.image, context.allocCallbacks);
-		VK10.vkFreeMemory(device.logicalDevice, vktex.imageMemory, context.allocCallbacks);
+	public void destroyTextures(ZETexture ... textures) {
+		for(ZETexture texture : textures) {
+			VKTexture vktex = (VKTexture)texture;
+			VK10.vkDestroyImageView(device.logicalDevice, vktex.imageView, context.allocCallbacks);
+			VK10.vkDestroyImage(device.logicalDevice, vktex.image, context.allocCallbacks);
+			VK10.vkFreeMemory(device.logicalDevice, vktex.imageMemory, context.allocCallbacks);
+		}
 	}
 
 	@Override
@@ -259,19 +275,9 @@ public class VKRenderBackend implements ZERenderBackend<VKRenderBackend> {
 	}
 
 	@Override
-	public ZEIndexBuffer createIndexBuffer(ZEBuffer buffer, PrimitiveType indexType) {
+	public ZEIndexBuffer createIndexBuffer(ZEGraphicsMemory buffer, PrimitiveType indexType) {
 		// TODO Auto-generated method stub
 		return null;
-	}
-
-	@Override
-	public void destroyTexture(ZETexture... textures) {
-		for(ZETexture tex : textures) {
-			VKTexture vktex = (VKTexture)tex;
-			VK10.vkDestroyImageView(device.logicalDevice, vktex.imageView, context.allocCallbacks);
-			VK10.vkDestroyImage(device.logicalDevice, vktex.image, context.allocCallbacks);
-			VK10.vkFreeMemory(device.logicalDevice, vktex.imageMemory, context.allocCallbacks);
-		}
 	}
 
 	@Override
@@ -281,27 +287,89 @@ public class VKRenderBackend implements ZERenderBackend<VKRenderBackend> {
 	}
 
 	@Override
-	public ZERenderCommandBuffer createCommandBuffers(int count, boolean multipleRecords) {
+	public void destroyCommandBuffers(ZERenderCommandBuffer... cmdBufs) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public ZERenderCommandBuffer[] createCommandBuffers(int count, boolean multipleRecords) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public void destroyCommandBuffer(ZERenderCommandBuffer cmdBuf) {
+	public ZERenderThread getPrimaryRenderThread() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public ZERenderThread[] getRenderThreads() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void destroyRenderEvents(ZERenderEvent... events) {
 		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
-	public void desotryCommandBuffers(ZERenderCommandBuffer... cmdBufs) {
-		// TODO Auto-generated method stub
-		
+	public ZERenderSemaphore createRenderSemaphore() {
+		try(MemoryStack sp = MemoryStack.stackPush()) {
+			VkSemaphoreCreateInfo pCreateInfo = VkSemaphoreCreateInfo.mallocStack(sp);
+			pCreateInfo.set(VK10.VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO, 0, 0);
+			long[] pSemaphore = new long[1];
+			int err = VK10.vkCreateSemaphore(device.logicalDevice, pCreateInfo, context.allocCallbacks, pSemaphore);
+			if (err != VK10.VK_SUCCESS) throw new VulkanException("Failed to create semaphore", err);
+			return new VKSemaphore(pSemaphore[0]);
+		}
 	}
 
 	@Override
-	public void submitCommands(ZERenderCommandBuffer cmdBuf) {
-		// TODO Auto-generated method stub
-		
+	public void destroyRenderSemaphores(ZERenderSemaphore... semaphores) {
+		for(ZERenderSemaphore s : semaphores) {
+			VK10.vkDestroySemaphore(device.logicalDevice, ((VKSemaphore)s).semaphore, context.allocCallbacks);
+		}
+	}
+
+	@Override
+	public ZERenderFence createRenderFence() {
+		try(MemoryStack sp = MemoryStack.stackPush()) {
+			VkFenceCreateInfo pCreateInfo = VkFenceCreateInfo.mallocStack(sp);
+			pCreateInfo.set(VK10.VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, 0, 0);
+			long[] pFence = new long[1];
+			int err = VK10.vkCreateFence(device.logicalDevice, pCreateInfo, context.allocCallbacks, pFence);
+			if (err != VK10.VK_SUCCESS) throw new VulkanException("Failed to create fence", err);
+			return new VKFence(device, pFence[0]);
+		}
+	}
+
+	@Override
+	public void destroyRenderFences(ZERenderFence... fences) {
+		for(ZERenderFence f : fences) {
+			VK10.vkDestroyFence(device.logicalDevice, ((VKFence)f).fence, context.allocCallbacks);
+		}
+	}
+
+	@Override
+	public boolean waitForFences(ZEFenceWaitMode waitMode, long timeout, ZERenderFence... fences) {
+		long[] vkfences = new long[fences.length];
+		for(int i = 0; i < fences.length; i++) vkfences[i] = ((VKFence)fences[i]).fence;
+		int err = VK10.vkWaitForFences(device.logicalDevice, vkfences, waitMode == ZEFenceWaitMode.ALL, timeout);
+		if (err == VK10.VK_SUCCESS) return false;
+		if (err == VK10.VK_TIMEOUT) return true;
+		throw new VulkanException("Failed to wait for fences", err);
+	}
+
+	@Override
+	public void resetFences(ZERenderFence... fences) {
+		long[] vkfences = new long[fences.length];
+		for(int i = 0; i < fences.length; i++) vkfences[i] = ((VKFence)fences[i]).fence;
+		int err = VK10.vkResetFences(device.logicalDevice, vkfences);
+		if (err != VK10.VK_SUCCESS) throw new VulkanException("Failed to reset fences", err);
 	}
 
 }
