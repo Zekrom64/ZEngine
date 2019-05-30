@@ -222,7 +222,7 @@ public class ZEImageLoader {
 		case STBImage.STBI_rgb: pxfmt = ZEPixelFormat.R8G8B8_UINT; break;
 		case STBImage.STBI_rgb_alpha: pxfmt = ZEPixelFormat.R8G8B8A8_UINT; break;
 		}
-		return new ZEImage(buf, w.get(), h.get(), pxfmt);
+		return new ZEImage(buf, w.get(), h.get(), pxfmt, STBImage::stbi_image_free);
 	}
 	
 	/** Attempts to read an image from a memory buffer. Any custom loader that
@@ -270,7 +270,7 @@ public class ZEImageLoader {
 		case STBImage.STBI_rgb: pxfmt = ZEPixelFormat.R8G8B8_UINT; break;
 		case STBImage.STBI_rgb_alpha: pxfmt = ZEPixelFormat.R8G8B8A8_UINT; break;
 		}
-		return new ZEImage(buf, w.get(), h.get(), pxfmt);
+		return new ZEImage(buf, w.get(), h.get(), pxfmt, STBImage::stbi_image_free);
 	}
 	
 	/** Attempts to read an image from a file. The stream is decoded using

@@ -6,5 +6,16 @@ import com.zekrom_64.ze.base.backend.render.obj.ZERenderPassBuilder.ZEAttachment
 public class GLRenderPass implements ZERenderPass {
 
 	public final ZEAttachmentUsage[] attachmentUsages;
+	public static class GLSubpass {
+		public Integer[] inputAttachments;
+		public Integer[] colorAttachments;
+		public Integer depthStencilAttachment;
+	}
+	public final GLSubpass[] subpasses;
+	
+	public GLRenderPass(ZEAttachmentUsage[] usages, GLSubpass[] subpasses) {
+		this.attachmentUsages = usages;
+		this.subpasses = subpasses;
+	}
 	
 }

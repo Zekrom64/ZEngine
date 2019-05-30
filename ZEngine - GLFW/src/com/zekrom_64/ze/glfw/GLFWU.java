@@ -2,13 +2,15 @@ package com.zekrom_64.ze.glfw;
 
 import java.nio.ByteBuffer;
 
+import org.lwjgl.PointerBuffer;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWImage;
 import org.lwjgl.glfw.GLFWNativeGLX;
 import org.lwjgl.glfw.GLFWNativeNSGL;
 import org.lwjgl.glfw.GLFWNativeWGL;
+import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.Platform;
-import org.lwjgl.system.SharedLibrary;
+import org.lwjgl.system.macosx.ObjCRuntime;
 
 import com.zekrom_64.ze.base.image.ZEImage;
 import com.zekrom_64.ze.base.image.ZEImageLoader;
@@ -16,13 +18,6 @@ import com.zekrom_64.ze.base.image.ZEPixelFormat;
 import com.zekrom_64.ze.nat.ZEStructUtils;
 
 public class GLFWU {
-
-	public static final boolean glfwuIsNSGL;
-	
-	static {
-		SharedLibrary glfw = GLFW.getLibrary();
-		glfwuIsNSGL = glfw.getFunctionAddress("glfwGetNSGLContext") != 0;
-	}
 	
 	/** Sets the window icon, if allowed by the platform, for a window. The icon
 	 * image must be in ARGB format.
@@ -154,7 +149,15 @@ public class GLFWU {
 	public static long glfwGetPlatformContext(long glfwwindow) {
 		switch(Platform.get()) {
 		case WINDOWS: return GLFWNativeWGL.glfwGetWGLContext(glfwwindow);
-		case MACOSX: if (glfwuIsNSGL) return GLFWNativeNSGL.glfwGetNSGLContext(glfwwindow);
+		case MACOSX: { // Damn you OSX and your weird OpenGL interface
+			long nsOpenglContext = GLFWNativeNSGL.glfwGetNSGLContext(glfwwindow);
+			try(MemoryStack sp = MemoryStack.stackPush()) {
+				PointerBuffer pContext = sp.mallocPointer(1);
+				ObjCRuntime.object_getInstanceVariable(nsOpenglContext, "cglContextObj", pContext);
+				return pContext.get();
+			}
+			
+		}
 		case LINUX: return GLFWNativeGLX.glfwGetGLXContext(glfwwindow);
 		}
 		return 0;

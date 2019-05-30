@@ -9,16 +9,17 @@ public class GLFramebuffer implements ZEFramebuffer {
 	 * <li>An RGBA single-precision float color attachment</li>
 	 * <li>A combined depth and stencil buffer</li>
 	 * </ol>
-	 * These attachments can be cleared starting a render pass using 
+	 * These attachments can be cleared starting a render pass by passing clear values
+	 * at their respective indices.
 	 */
 	public static final GLFramebuffer DEFAULT = new GLFramebuffer(0, new GLTexture[0]);
 	
-	public final int framebuffer;
+	public final int framebufferObject;
 	
 	public final GLTexture[] attachments;
 	
 	public GLFramebuffer(int fbo, GLTexture[] attach) {
-		framebuffer = fbo;
+		framebufferObject = fbo;
 		attachments = attach;
 	}
 	

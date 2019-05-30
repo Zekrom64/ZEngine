@@ -109,5 +109,12 @@ public class Vector3F extends Vector2F {
 		y = (float)op.applyAsDouble(y);
 		z = (float)op.applyAsDouble(z);
 	}
+	
+	public boolean equals(Vector3F other) {
+		return
+				x == other.x &&
+				y == other.y &&
+				z == other.z;
+	}
 
 }

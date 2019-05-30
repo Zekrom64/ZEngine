@@ -9,21 +9,20 @@ import com.zekrom_64.ze.base.backend.render.ZERenderBackend;
  */
 public interface ZEShaderCompiler {
 
-	/** GLSL shader source type. Always available with OpenGL and Vulkan backends. Default for the OpenGL backend.
+	/** GLSL shader source type. Default for the OpenGL backend.
 	 * Any non-null source object is valid, and the {@link Object#toString() toString()} method will be used
 	 * to get GLSL source code. This can be passed to {@link ZERenderBackend#supportsFeature(String)} to
 	 * test if it is available.
 	 */
 	public static final String SHADER_SOURCE_TYPE_GLSL = "ze.shader.srctype.glsl";
 	
-	/** SPIR-V shader source type. Available only on Vulkan backend. Default for the Vulkan backend.
+	/** SPIR-V shader source type. Default for the Vulkan backend.
 	 * Valid source objects are:
-	 * <li>
+	 * <ul>
 	 * <li>int[]</li>
 	 * <li>IntBuffer</li>
 	 * <li>IntStream</li>
-	 * <li>DataInput</li>
-	 * </li>
+	 * </ul>
 	 * This can be passed to {@link ZERenderBackend#supportsFeature(String)} to test if it is available.
 	 */
 	public static final String SHADER_SOURCE_TYPE_SPIRV = "ze.shader.srctype.spirv";
@@ -39,6 +38,12 @@ public interface ZEShaderCompiler {
 	 */
 	public ZEShader compileShader(Object src, String type, String shaderType);
 	
+	/** Deletes a compiled shader.
+	 * 
+	 * @param shader Shader to delete
+	 */
+	public void deleteShader(ZEShader shader);
+	
 	/** Attempts to compile a shader for the compiler's backend using shader modules. Backends may
 	 * support different combinations of shader modules, but vertex and fragment shaders are always required.
 	 * 
@@ -46,5 +51,11 @@ public interface ZEShaderCompiler {
 	 * @return Compiled program for backend
 	 */
 	public ZEShaderProgram compileShaderProgram(ZEShader ... modules);
+	
+	/** Deletes a compiled shader program.
+	 * 
+	 * @param program Program to delete
+	 */
+	public void deleteShaderProgram(ZEShaderProgram program);
 	
 }

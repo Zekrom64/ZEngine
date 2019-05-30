@@ -104,7 +104,8 @@ public interface ZERenderPassBuilder {
 		
 	}
 	
-	/** Adds a subpass to the render pass.
+	/** Adds a subpass to the render pass. This must be called after {@link #setAttachmentUsages}
+	 * so that the number of framebuffer attachments is fully defined.
 	 * 
 	 * @param builder Builder callback for the subpass
 	 */
@@ -121,5 +122,11 @@ public interface ZERenderPassBuilder {
 	 */
 	public ZERenderPassBuilder addSubpassDependency(Integer source, Integer destination, ZEPipelineStage[] completeStages,
 			ZEPipelineStage[] waitStages, ZEAccessType[] completeAccesses, ZEAccessType[] waitAccesses);
+	
+	/** Builds the render pass.
+	 * 
+	 * @return Render pass
+	 */
+	public ZERenderPass build();
 	
 }

@@ -8,7 +8,7 @@ import java.util.Map.Entry;
 import java.util.SortedMap;
 
 import com.zekrom_64.ze.base.backend.render.obj.ZETextureDimension;
-import com.zekrom_64.ze.base.util.PrimitiveType;
+import com.zekrom_64.ze.base.util.ZEPrimitiveType;
 
 /** A shader type describes a type used in a shader. Shader types have a base 'variant' that describes how they function
  * in a shader and what they are composed of.
@@ -16,6 +16,7 @@ import com.zekrom_64.ze.base.util.PrimitiveType;
  * @author Zekrom_64
  *
  */
+@Deprecated
 public interface ZEShaderType {
 
 	/** Gets the size of the shader type in bytes, or -1 if the type has no definite size.
@@ -57,14 +58,14 @@ public interface ZEShaderType {
 	 */
 	public static class ZEShaderTypePrimitive implements ZEShaderType {
 		
-		private static ZEShaderTypePrimitive[] primitiveTypes = new ZEShaderTypePrimitive[PrimitiveType.values().length];
+		private static ZEShaderTypePrimitive[] primitiveTypes = new ZEShaderTypePrimitive[ZEPrimitiveType.values().length];
 		
 		/** Gets an instance of the class for the given primitive from a cached pool.
 		 * 
 		 * @param t Primitive type
 		 * @return Shader primitive type
 		 */
-		public static ZEShaderTypePrimitive get(PrimitiveType t) {
+		public static ZEShaderTypePrimitive get(ZEPrimitiveType t) {
 			if (t == null) return null;
 			ZEShaderTypePrimitive type = primitiveTypes[t.ordinal()];
 			if (type == null) {
@@ -74,13 +75,13 @@ public interface ZEShaderType {
 			return type;
 		}
 
-		public static final ZEShaderTypePrimitive INT = get(PrimitiveType.INT);
-		public static final ZEShaderTypePrimitive FLOAT = get(PrimitiveType.FLOAT);
-		public static final ZEShaderTypePrimitive DOUBLE = get(PrimitiveType.DOUBLE);
+		public static final ZEShaderTypePrimitive INT = get(ZEPrimitiveType.INT);
+		public static final ZEShaderTypePrimitive FLOAT = get(ZEPrimitiveType.FLOAT);
+		public static final ZEShaderTypePrimitive DOUBLE = get(ZEPrimitiveType.DOUBLE);
 		
-		public final PrimitiveType primitive;
+		public final ZEPrimitiveType primitive;
 		
-		private ZEShaderTypePrimitive(PrimitiveType type) {
+		private ZEShaderTypePrimitive(ZEPrimitiveType type) {
 			primitive = type;
 		}
 		

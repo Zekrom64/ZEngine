@@ -62,4 +62,12 @@ public class Vector4I extends Vector3I implements Vector4<Integer> {
 		}
 	}
 	
+	public boolean equals(Vector4I other) {
+		return
+				x == other.x &&
+				y == other.y &&
+				z == other.z &&
+				w == other.w;
+	}
+	
 }

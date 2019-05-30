@@ -42,6 +42,12 @@ public class GLRenderFence implements ZERenderFence {
 		return status;
 	}
 	
+	/** Waits on any fence to signal or for a timeout to occur.
+	 * 
+	 * @param timeout The timeout in nanoseconds
+	 * @param fences The fences to wait on
+	 * @return True if no fence was signaled and the timeout expired
+	 */
 	public static boolean waitAny(long timeout, GLRenderFence ... fences) {
 		Condition cond = new ReentrantLock().newCondition();
 		for(GLRenderFence f : fences) {
@@ -56,11 +62,17 @@ public class GLRenderFence implements ZERenderFence {
 		}
 	}
 	
+	/** Waits on all the given fences to signal or for a timeout to occur.
+	 * 
+	 * @param timeout The timeout in nanoseconds
+	 * @param fences The fences to wait on
+	 * @return True if not all of the fences were signaled and the timeout expired
+	 */
 	public static boolean waitAll(long timeout, GLRenderFence ... fences) {
 		for(GLRenderFence f : fences) {
 			try {
 				timeout = f.condition.awaitNanos(timeout);
-			} catch (InterruptedException e) { }
+			} catch (InterruptedException e) { } // Technically we're waiting on all to be signaled
 			if (timeout <= 0) return true;
 		}
 		return false;

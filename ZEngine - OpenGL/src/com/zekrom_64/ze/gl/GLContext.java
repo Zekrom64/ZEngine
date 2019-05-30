@@ -29,5 +29,11 @@ public interface GLContext {
 		if (!isBound()) bind();
 	}
 	
+	/** Gets the equivalent {@link GLNativeContext native context}.
+	 * 
+	 * @return Native context
+	 */
+	public GLNativeContext getNativeContext();
+	
 	
 }

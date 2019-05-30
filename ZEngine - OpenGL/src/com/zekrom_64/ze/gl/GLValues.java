@@ -8,15 +8,18 @@ import org.lwjgl.opengl.GL30;
 import org.lwjgl.opengl.GL40;
 
 import com.zekrom_64.ze.base.backend.render.ZEGeometryType;
+import com.zekrom_64.ze.base.backend.render.obj.ZECompareOp;
+import com.zekrom_64.ze.base.backend.render.obj.ZESampler.ZEAddressingMode;
+import com.zekrom_64.ze.base.backend.render.obj.ZESampler.ZEFilter;
+import com.zekrom_64.ze.base.backend.render.obj.ZESampler.ZEMipmapFilter;
 import com.zekrom_64.ze.base.backend.render.obj.ZETextureDimension;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEFrontBack;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBuilder.ZEBlendFactor;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBuilder.ZEBlendOp;
-import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBuilder.ZECompareOp;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBuilder.ZEPolygonMode;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBuilder.ZEStencilModifyOp;
 import com.zekrom_64.ze.base.image.ZEPixelFormat;
-import com.zekrom_64.ze.base.util.PrimitiveType;
+import com.zekrom_64.ze.base.util.ZEPrimitiveType;
 
 /** Class with utilities to manipulate and convert values in OpenGL.
  * 
@@ -135,7 +138,7 @@ public class GLValues {
 	 * @param type ZEngine primitive type
 	 * @return OpenGL primitive type
 	 */
-	public static int getGLType(PrimitiveType type) {
+	public static int getGLType(ZEPrimitiveType type) {
 		switch(type) {
 		case BYTE: return GL11.GL_BYTE;
 		case SHORT: return GL11.GL_SHORT;
@@ -264,7 +267,12 @@ public class GLValues {
 		}
 	}
 	
-	public static int getGLTextureTarget(ZETextureDimension dim) {
+	/** Gets the texture target to bind a texture to.
+	 * 
+	 * @param dim Texture dimension
+	 * @return Texture bind target
+	 */
+	public static int getGLTextureBindTarget(ZETextureDimension dim) {
 		switch(dim) {
 		case CUBE: return GL13.GL_TEXTURE_CUBE_MAP;
 		case DIM_1D: return GL11.GL_TEXTURE_1D;
@@ -274,6 +282,48 @@ public class GLValues {
 		case DIM_2D_ARRAY: return GL30.GL_TEXTURE_2D_ARRAY;
 		case CUBE_ARRAY: return GL40.GL_TEXTURE_CUBE_MAP_ARRAY;
 		default: return -1;
+		}
+	}
+	
+	/** Gets the binding name used with {@link GL11#glGetInteger(int) glGetInteger}
+	 * for a texture.
+	 * 
+	 * @param dim Texture dimension
+	 * @return Texture binding name
+	 */
+	public static int getGLTextureBinding(ZETextureDimension dim) {
+		switch(dim) {
+		case CUBE: return GL13.GL_TEXTURE_BINDING_CUBE_MAP;
+		case DIM_1D: return GL11.GL_TEXTURE_BINDING_1D;
+		case DIM_2D: return GL11.GL_TEXTURE_BINDING_2D;
+		case DIM_3D: return GL12.GL_TEXTURE_BINDING_3D;
+		case DIM_1D_ARRAY: return GL30.GL_TEXTURE_BINDING_1D_ARRAY;
+		case DIM_2D_ARRAY: return GL30.GL_TEXTURE_BINDING_2D_ARRAY;
+		case CUBE_ARRAY: return GL40.GL_TEXTURE_BINDING_CUBE_MAP_ARRAY;
+		default: return -1;
+		}
+	}
+	
+	/** Gets the texture target when a texture is used.
+	 * 
+	 * @param dim Texture dimension
+	 * @param arrayLevel Texture array level
+	 * @return Texture usage target
+	 */
+	public static int getGLTextureUseTarget(ZETextureDimension dim, int arrayLevel) {
+		switch(dim) {
+		case CUBE_ARRAY:
+		case CUBE:
+			switch(arrayLevel % 6) {
+			case 0: return GL13.GL_TEXTURE_CUBE_MAP_POSITIVE_X;
+			case 1: return GL13.GL_TEXTURE_CUBE_MAP_NEGATIVE_X;
+			case 2: return GL13.GL_TEXTURE_CUBE_MAP_POSITIVE_Y;
+			case 3: return GL13.GL_TEXTURE_CUBE_MAP_NEGATIVE_Y;
+			case 4: return GL13.GL_TEXTURE_CUBE_MAP_POSITIVE_Z;
+			case 5: return GL13.GL_TEXTURE_CUBE_MAP_NEGATIVE_Z;
+			}
+			return -1;
+		default: return getGLTextureBindTarget(dim);
 		}
 	}
 
@@ -336,5 +386,94 @@ public class GLValues {
 		}
 		return null;
 	}
+	
+	public static int getGLMinFilter(ZEFilter minFilter, ZEMipmapFilter mipFilter) {
+		switch(minFilter) {
+		case NEAREST:
+			switch(mipFilter) {
+			case NEAREST: return GL11.GL_NEAREST_MIPMAP_NEAREST;
+			case LINEAR: return GL11.GL_NEAREST_MIPMAP_LINEAR;
+			}
+		case LINEAR:
+			switch(mipFilter) {
+			case NEAREST: return GL11.GL_LINEAR_MIPMAP_NEAREST;
+			case LINEAR: return GL11.GL_LINEAR_MIPMAP_LINEAR;
+			}
+		}
+		return -1;
+	}
+	
+	public static int getGLMagFilter(ZEFilter magFilter) {
+		switch(magFilter) {
+		case NEAREST: return GL11.GL_NEAREST;
+		case LINEAR: return GL11.GL_LINEAR;
+		}
+		return -1;
+	}
+	
+	public static int getGLAddressingMode(ZEAddressingMode mode) {
+		switch(mode) {
+		case CLAMP_TO_BORDER: return GL13.GL_CLAMP_TO_BORDER;
+		case CLAMP_TO_EDGE: return GL12.GL_CLAMP_TO_EDGE;
+		case MIRRORED_REPEAT: return GL14.GL_MIRRORED_REPEAT;
+		case REPEAT: return GL11.GL_REPEAT;
+		}
+		return -1;
+	}
+
+	/** Gets the ZEngine equivalent uniform type from a GLSL uniform type value.
+	 * 
+	 * @param glslType GLSL uniform type
+	 * @return ZEngine uniform type
+	 */
+	/*
+	public static ZEShaderType getZEUniformType(int glslType) {
+		if (glslType==-1) return null;
+		switch(glslType) {
+		case GL11.GL_FLOAT: return ZEShaderTypePrimitive.FLOAT;
+		case GL11.GL_INT: return ZEShaderTypePrimitive.INT;
+		case GL11.GL_DOUBLE: return ZEShaderTypePrimitive.DOUBLE;
+		case GL11.GL_UNSIGNED_INT: return ZEShaderTypePrimitive.get(ZEPrimitiveType.UINT);
+		case GL20.GL_BOOL: return ZEShaderTypePrimitive.get(ZEPrimitiveType.INT_BOOL);
+		case GL20.GL_BOOL_VEC2: return ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(ZEPrimitiveType.INT_BOOL), 2);
+		case GL20.GL_BOOL_VEC3: return ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(ZEPrimitiveType.INT_BOOL), 3);
+		case GL20.GL_BOOL_VEC4: return ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(ZEPrimitiveType.INT_BOOL), 4);
+		case GL20.GL_FLOAT_MAT2: return ZEShaderTypeMatrix.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(ZEPrimitiveType.FLOAT), 2), 2);
+		case GL20.GL_FLOAT_MAT3: return ZEShaderTypeMatrix.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(ZEPrimitiveType.FLOAT), 3), 3);
+		case GL20.GL_FLOAT_MAT4: return ZEShaderTypeMatrix.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(ZEPrimitiveType.FLOAT), 4), 4);
+		case GL20.GL_FLOAT_VEC2: return ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(ZEPrimitiveType.FLOAT), 2);
+		case GL20.GL_FLOAT_VEC3: return ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(ZEPrimitiveType.FLOAT), 3);
+		case GL20.GL_FLOAT_VEC4: return ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(ZEPrimitiveType.FLOAT), 4);
+		case GL20.GL_INT_VEC2: return ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(ZEPrimitiveType.INT), 2);
+		case GL20.GL_INT_VEC3: return ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(ZEPrimitiveType.INT), 3);
+		case GL20.GL_INT_VEC4: return ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(ZEPrimitiveType.INT), 4);
+		case GL20.GL_SAMPLER_1D: return ZEShaderTypeImageSampler.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(ZEPrimitiveType.FLOAT), 4), ZETextureDimension.DIM_1D);
+		case GL20.GL_SAMPLER_2D: return ZEShaderTypeImageSampler.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(ZEPrimitiveType.FLOAT), 4), ZETextureDimension.DIM_2D);
+		case GL20.GL_SAMPLER_3D: return ZEShaderTypeImageSampler.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(ZEPrimitiveType.FLOAT), 4), ZETextureDimension.DIM_3D);
+		case GL20.GL_SAMPLER_CUBE: return ZEShaderTypeImageSampler.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(ZEPrimitiveType.FLOAT), 4), ZETextureDimension.CUBE);
+		case GL21.GL_FLOAT_MAT2x3: return ZEShaderTypeMatrix.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(ZEPrimitiveType.FLOAT), 3), 2);
+		case GL21.GL_FLOAT_MAT2x4: return ZEShaderTypeMatrix.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(ZEPrimitiveType.FLOAT), 4), 2);
+		case GL21.GL_FLOAT_MAT3x2: return ZEShaderTypeMatrix.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(ZEPrimitiveType.FLOAT), 2), 3);
+		case GL21.GL_FLOAT_MAT3x4: return ZEShaderTypeMatrix.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(ZEPrimitiveType.FLOAT), 4), 3);
+		case GL21.GL_FLOAT_MAT4x2: return ZEShaderTypeMatrix.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(ZEPrimitiveType.FLOAT), 4), 2);
+		case GL21.GL_FLOAT_MAT4x3: return ZEShaderTypeMatrix.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(ZEPrimitiveType.FLOAT), 4), 3);
+		case GL30.GL_UNSIGNED_INT_VEC2: return ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(ZEPrimitiveType.UINT), 2);
+		case GL30.GL_UNSIGNED_INT_VEC3: return ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(ZEPrimitiveType.UINT), 3);
+		case GL30.GL_UNSIGNED_INT_VEC4: return ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(ZEPrimitiveType.UINT), 4);
+		case GL30.GL_INT_SAMPLER_1D: return ZEShaderTypeImageSampler.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(ZEPrimitiveType.INT), 4), ZETextureDimension.DIM_1D);
+		case GL30.GL_INT_SAMPLER_2D: return ZEShaderTypeImageSampler.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(ZEPrimitiveType.INT), 4), ZETextureDimension.DIM_2D);
+		case GL30.GL_INT_SAMPLER_3D: return ZEShaderTypeImageSampler.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(ZEPrimitiveType.INT), 4), ZETextureDimension.DIM_3D);
+		case GL30.GL_INT_SAMPLER_CUBE: return ZEShaderTypeImageSampler.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(ZEPrimitiveType.INT), 4), ZETextureDimension.CUBE);
+		case GL30.GL_UNSIGNED_INT_SAMPLER_1D: return ZEShaderTypeImageSampler.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(ZEPrimitiveType.UINT), 4), ZETextureDimension.DIM_1D);
+		case GL30.GL_UNSIGNED_INT_SAMPLER_2D: return ZEShaderTypeImageSampler.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(ZEPrimitiveType.UINT), 4), ZETextureDimension.DIM_2D);
+		case GL30.GL_UNSIGNED_INT_SAMPLER_3D: return ZEShaderTypeImageSampler.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(ZEPrimitiveType.UINT), 4), ZETextureDimension.DIM_3D);
+		case GL30.GL_UNSIGNED_INT_SAMPLER_CUBE: return ZEShaderTypeImageSampler.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(ZEPrimitiveType.UINT), 4), ZETextureDimension.CUBE);
+		case GL40.GL_DOUBLE_MAT2: return ZEShaderTypeMatrix.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(ZEPrimitiveType.DOUBLE), 2), 2);
+		case GL40.GL_DOUBLE_MAT2x3: return ZEShaderTypeMatrix.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(ZEPrimitiveType.DOUBLE), 3), 2);
+		case GL40.GL_DOUBLE_MAT2x4: return ZEShaderTypeMatrix.get(ZEShaderTypeVector.get(ZEShaderTypePrimitive.get(ZEPrimitiveType.DOUBLE), 4), 2);
+		}
+		return null;
+	}
+	*/
 
 }

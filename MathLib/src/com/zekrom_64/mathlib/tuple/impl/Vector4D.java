@@ -122,5 +122,13 @@ public class Vector4D extends Vector3D {
 		z = op.applyAsDouble(z);
 		w = op.applyAsDouble(w);
 	}
+	
+	public boolean equals(Vector4D other) {
+		return
+				x == other.x &&
+				y == other.y &&
+				z == other.z &&
+				w == other.w;
+	}
 
 }

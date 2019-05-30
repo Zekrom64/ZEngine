@@ -38,7 +38,7 @@ import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBindSet;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBuilder.ZEViewport;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineStage;
 import com.zekrom_64.ze.base.image.ZEPixelFormat;
-import com.zekrom_64.ze.base.util.PrimitiveType;
+import com.zekrom_64.ze.base.util.ZEPrimitiveType;
 import com.zekrom_64.ze.vulkan.VKRenderBackend;
 import com.zekrom_64.ze.vulkan.VKValues;
 import com.zekrom_64.ze.vulkan.VulkanException;
@@ -122,7 +122,7 @@ public class VKCommandBuffer implements ZERenderCommandBuffer {
 
 		@Override
 		public void bindIndexBuffer(ZEIndexBuffer buffer) {
-			PrimitiveType indexType = buffer.getIndexType();
+			ZEPrimitiveType indexType = buffer.getIndexType();
 			int vkIndexType = -1;
 			switch(indexType) {
 			case UINT: vkIndexType = VK10.VK_INDEX_TYPE_UINT32; break;
@@ -163,7 +163,7 @@ public class VKCommandBuffer implements ZERenderCommandBuffer {
 		}
 
 		@Override
-		public void blitBuffer(ZEBuffer src, ZEBuffer dst, int srcPos, int dstPos, int size) {
+		public void blitBuffer(ZEBuffer src, ZEBuffer dst, long srcPos, long dstPos, long size) {
 			try (MemoryStack sp = MemoryStack.stackPush()) {
 				VkBufferCopy.Buffer region = VkBufferCopy.mallocStack(1, sp);
 				region.get(0).set(srcPos, dstPos, size);

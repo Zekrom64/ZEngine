@@ -1,5 +1,7 @@
 package com.zekrom_64.mathlib.tuple.impl;
 
+import java.util.Arrays;
+
 import com.zekrom_64.mathlib.tuple.VectorFloat;
 import com.zekrom_64.mathlib.tuple.VectorNumeric;
 
@@ -34,6 +36,10 @@ public class VectorArrayFloat implements VectorFloat, VectorNumeric<Float> {
 	@Override
 	public void setFloat(int i, float val) {
 		values[i] = val;
+	}
+	
+	public boolean equals(VectorArrayFloat other) {
+		return Arrays.equals(values, other.values);
 	}
 
 }

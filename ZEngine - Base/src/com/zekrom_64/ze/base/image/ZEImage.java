@@ -4,6 +4,7 @@ import java.awt.image.BufferedImage;
 import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.function.Consumer;
 
 import org.lwjgl.BufferUtils;
 import org.lwjgl.system.MemoryStack;
@@ -11,8 +12,8 @@ import org.lwjgl.system.MemoryUtil;
 import org.lwjgl.system.libc.LibCStdlib;
 
 import com.zekrom_64.ze.base.ZEEnvironment;
-import com.zekrom_64.ze.base.util.BitBuffer;
-import com.zekrom_64.ze.base.util.PrimitiveType;
+import com.zekrom_64.ze.base.util.ZEBitBuffer;
+import com.zekrom_64.ze.base.util.ZEPrimitiveType;
 
 /** An image contains raw image data, along with some extra information for width, height, and pixel format. Although
  * images can be in any format, the default format used is 8-bit RGBA.
@@ -31,7 +32,7 @@ public class ZEImage {
 	/** The pixel format of the image */
 	public final ZEPixelFormat format;
 	
-	private boolean allocOptimized = ZEEnvironment.optimizationZEImageUnsafeMemory;
+	private Consumer<ByteBuffer> releaser;
 	
 	/** Creates a new image of the given width and height with the {@link ZEPixelFormat#R8G8B8A8_UINT 8-bit RGBA} format.
 	 * 
@@ -52,9 +53,12 @@ public class ZEImage {
 		width = w;
 		height = h;
 		format = fmt;
-		buffer = 
-				allocOptimized ? MemoryUtil.memCalloc(w * h, fmt.sizeOf)
-						: BufferUtils.createByteBuffer(w * h * fmt.sizeOf);
+		if (ZEEnvironment.optimizationZEImageUnsafeMemory) {
+			buffer = LibCStdlib.calloc(w * h, fmt.sizeOf);
+			releaser = LibCStdlib::free;
+		} else {
+			buffer = BufferUtils.createByteBuffer(w * h * fmt.sizeOf);
+		}
 	}
 	
 	/** Creates an image using an existing buffer, with the given width and height, with
@@ -83,6 +87,23 @@ public class ZEImage {
 		width = w;
 		height = h;
 		format = fmt;
+	}
+	
+	/** Creates an image using an existing buffer, with the given width, height, and pixel format
+	 * and a custom buffer releaser.
+	 * 
+	 * @param data Image data buffer
+	 * @param w Image width
+	 * @param h Image height
+	 * @param fmt Pixel format
+	 * @param release Custom releaser
+	 */
+	public ZEImage(ByteBuffer data, int w, int h, ZEPixelFormat fmt, Consumer<ByteBuffer> release) {
+		buffer = data;
+		width = w;
+		height = h;
+		format = fmt;
+		releaser = release;
 	}
 	
 	/** Creates an image using an AWT {@link BufferedImage}, with a pixel format of
@@ -117,9 +138,9 @@ public class ZEImage {
 	
 	@Override
 	protected void finalize() {
-		if (allocOptimized) {
+		if (releaser != null) {
 			buffer.rewind();
-			LibCStdlib.free(buffer);
+			releaser.accept(buffer);
 		}
 	}
 	
@@ -169,7 +190,7 @@ public class ZEImage {
 		if (dstFormat.elementType.isFloating) dstMax = 1;
 		
 		byte[] pixel = new byte[Math.max(srcFormat.sizeOf, dstFormat.sizeOf)];
-		BitBuffer srcBitBuffer = new BitBuffer(srcFormat.sizeOf * 8), dstBitBuffer = new BitBuffer(dstFormat.sizeOf * 8);
+		ZEBitBuffer srcBitBuffer = new ZEBitBuffer(srcFormat.sizeOf * 8), dstBitBuffer = new ZEBitBuffer(dstFormat.sizeOf * 8);
 		
 		boolean hasRed = dstFormat.redOffset != -1 && srcFormat.redOffset != -1;
 		boolean hasGreen = dstFormat.greenOffset != -1 && dstFormat.greenOffset != -1;
@@ -213,12 +234,12 @@ public class ZEImage {
 		if (convertNorm) {
 			double pixelNorm;
 			// Convert source pixel into normalized double, assuming floating values are already normalized
-			if (srcFormat.elementType == PrimitiveType.FLOAT) pixelNorm = Float.intBitsToFloat((int)bits);
-			else if (srcFormat.elementType == PrimitiveType.DOUBLE) pixelNorm = Double.longBitsToDouble(bits);
+			if (srcFormat.elementType == ZEPrimitiveType.FLOAT) pixelNorm = Float.intBitsToFloat((int)bits);
+			else if (srcFormat.elementType == ZEPrimitiveType.DOUBLE) pixelNorm = Double.longBitsToDouble(bits);
 			else pixelNorm = bits / srcMax;
 			// Store normalized double as destination pixel format
-			if (dstFormat.elementType == PrimitiveType.FLOAT) return Float.floatToIntBits((float)pixelNorm) | 0l;
-			else if (dstFormat.elementType == PrimitiveType.DOUBLE) return Double.doubleToLongBits(pixelNorm);
+			if (dstFormat.elementType == ZEPrimitiveType.FLOAT) return Float.floatToIntBits((float)pixelNorm) | 0l;
+			else if (dstFormat.elementType == ZEPrimitiveType.DOUBLE) return Double.doubleToLongBits(pixelNorm);
 			else return (long)(pixelNorm * dstMax);
 		// Else it can be done by bit shifting
 		} else {

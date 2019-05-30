@@ -1,5 +1,7 @@
 package com.zekrom_64.mathlib.tuple.impl;
 
+import java.util.Arrays;
+
 import com.zekrom_64.mathlib.tuple.VectorInt;
 import com.zekrom_64.mathlib.tuple.VectorNumeric;
 
@@ -34,6 +36,10 @@ public class VectorArrayInt implements VectorInt, VectorNumeric<Integer> {
 	@Override
 	public void setInt(int i, int val) {
 		values[i] = val;
+	}
+	
+	public boolean equals(VectorArrayInt other) {
+		return Arrays.equals(values, other.values);
 	}
 
 }

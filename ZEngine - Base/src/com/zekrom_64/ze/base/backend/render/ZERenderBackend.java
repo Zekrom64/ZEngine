@@ -3,8 +3,6 @@ package com.zekrom_64.ze.base.backend.render;
 import com.zekrom_64.ze.base.backend.render.obj.ZEBuffer;
 import com.zekrom_64.ze.base.backend.render.obj.ZEBuffer.ZEBufferUsage;
 import com.zekrom_64.ze.base.backend.render.obj.ZEFramebufferBuilder;
-import com.zekrom_64.ze.base.backend.render.obj.ZEGraphicsMemory;
-import com.zekrom_64.ze.base.backend.render.obj.ZEIndexBuffer;
 import com.zekrom_64.ze.base.backend.render.obj.ZERenderEvent;
 import com.zekrom_64.ze.base.backend.render.obj.ZERenderFence;
 import com.zekrom_64.ze.base.backend.render.obj.ZERenderPassBuilder;
@@ -13,12 +11,10 @@ import com.zekrom_64.ze.base.backend.render.obj.ZERenderThread;
 import com.zekrom_64.ze.base.backend.render.obj.ZETexture;
 import com.zekrom_64.ze.base.backend.render.obj.ZETexture.ZETextureUsage;
 import com.zekrom_64.ze.base.backend.render.obj.ZETextureDimension;
-import com.zekrom_64.ze.base.backend.render.obj.ZEVertexBuffer;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipeline;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBuilder;
 import com.zekrom_64.ze.base.backend.render.shader.ZEShaderCompiler;
 import com.zekrom_64.ze.base.image.ZEPixelFormat;
-import com.zekrom_64.ze.base.util.PrimitiveType;
 
 /** A render backend 
  * 
@@ -34,59 +30,65 @@ public interface ZERenderBackend<B extends ZERenderBackend<?>> {
 	
 	// Multithreading / Multi-object
 	
-	/** The render backend supports multithreaded render work */
+	/** The render backend supports multithreaded render work. */
 	public static final String FEATURE_MULTITHREAD_RENDERING = "ze.feature.multithread.render";
-	/** The render backend supports synchronization tools */
+	/** The render backend supports synchronization tools. */
 	public static final String FEATURE_MULTITHREAD_SYNCHRONIZATION = "ze.features.multithread.synchronization";
-	/** The render backend supports multiple pipeline objects */
+	/** The render backend supports multiple pipeline objects. */
 	public static final String FEATURE_MULTIPLE_PIPELINES = "ze.feature.multi.pipeline";
-	/** The render backend supports multiple framebuffer objects */
+	/** The render backend supports multiple framebuffer objects. */
 	public static final String FEATURE_MULTIPLE_FRAMEBUFFERS = "ze.feature.multi.framebuffer";
 	
 	// Render work features
 	
-	/** The render backend supports multilevel render work buffer recording */
+	/** The render backend supports multilevel render work buffer recording. */
 	public static final String FEATURE_MULTILEVEL_RENDER_WORK_BUFFER = "ze.features.renderWork.multilevelBuffer";
 	
 	// Pipeline features
 	
-	/** The render backend supports pipeline caching */
+	/** The render backend supports pipeline caching. */
 	public static final String FEATURE_CACHEABLE_PIPELINE = "ze.feature.cache.pipeline";
 	/** The render backend supports the <tt>clamp</tt> parameter in {@link ZERenderWorkRecorder#setDepthBias(double, double, double) setDepthBias}.*/
 	public static final String FEATURE_DEPTH_BIAS_CLAMP = "ze.feature.depthBias.clamp";
+	/** The render backend supports using per-instance vertex attributes supplied from a vertex binding. */
+	public static final String FEATURE_PER_INSTANCE_VERTEX_BINDING = "ze.features.vertexBinding.perInstance";
 	
 	// Shader features
 	
-	/** The render backend supports shader caching */
+	/** The render backend supports shader caching. */
 	public static final String FEATURE_CAHCEABLE_SHADER = "ze.feature.cache.shader";
 	/** The render backend supports modular shader usage (i.e. a single shader object can be used for
-	 * multiple shader stages) */
+	 * multiple shader stages). */
 	public static final String FEATURE_SHADER_MODULAR = "ze.features.shader.modular";
-	/** The render backend supports compute shaders that can operate closely with graphics work */
+	/** The render backend supports compute shaders that can operate closely with graphics work. */
 	public static final String FEATURE_SHADER_COMPUTE_AVAILALE = "ze.features.shader.computeavailable";
-	/** The render backend supports uniform buffer objects */
+	/** The render backend supports uniform buffer objects. */
 	public static final String FEATURE_SHADER_UNIFORM_BUFFER = "ze.features.shader.ubo";
+	/** The render backend supports uniform buffer objects. */
+	public static final String FEATURE_SHADER_STORAGE_BUFFER = "ze.features.shader.sbo";
+	/** The render backend supports storage images. */
+	public static final String FEATURE_SHADER_STORAGE_IMAGE = "ze.features.shader.storageImage";
 	
 	// Object features
 	
-	/** The render backend supports generic usage of device memory */
-	public static final String FEATURE_GENERIC_MEMORY = "ze.features.generic.memory";
-	/** The render backend supports generic usage of images */
-	public static final String FEATURE_GENERIC_IMAGE = "ze.features.generic.image";
-	/** The render backend supports generic usage of memory buffers */
-	public static final String FEATURE_GENERIC_BUFFER = "ze.features.generic.buffer";
+	/** The render backend supports object paramters defining the memory to be device local only. */
+	public static final String FEATURE_DEVICE_LOCAL_MEMORY = "ze.features.memory.deviceLocal";
 	
 	// Drawing features
 
-	/** The render backend supports commands for indirect drawing */
+	/** The render backend supports commands for indirect drawing. */
 	public static final String FEATURE_COMMAND_DRAW_INDIRECT = "ze.features.command.indirectDraw";
 	
 	// Texture features
 	
 	/** The render backend supports array texture cubemaps */
-	public static final String FEATURE_CUBEMAP_ARRAY = "ze.features.texture.arrayCubemap";
-	/** The render backend supports array textures */
+	public static final String FEATURE_CUBEMAP_ARRAY = "ze.features.texture.cubemap";
+	/** The render backend supports array textures. */
 	public static final String FEATURE_TEXTURE_ARRAY = "ze.features.texture.array";
+	/** The render backend supports sampler objects independent of the texture. */
+	public static final String FEATURE_INDEPENDENT_SAMPLER = "ze.features.texture.sampler";
+	/** The render backend supports anisotropy for texture sampling. */
+	public static final String FEATURE_ANISOTROPY = "ze.features.texture.anisotropy";
 
 	// -------------------
 	// | FEATURE SUPPORT |
@@ -100,12 +102,16 @@ public interface ZERenderBackend<B extends ZERenderBackend<?>> {
 	 */
 	public boolean supportsFeature(String feature);
 	
+	// ----------
+	// | LIMITS |
+	// ----------
+	
 	/** The maximum number of sub-levels supported by the render backend. */
 	public static final String LIMIT_INT_MAX_RENDER_WORK_LEVELS = "ze.limit.renderWork.levels";
-	
-	// -----------------
-	// | LIMIT STRINGS |
-	// -----------------
+	/** The maximum number of bytes that can be uploaded by a {@link ZERenderWorkRecorder#uploadToBuffer} call. */
+	public static final String LIMIT_INT_MAX_INLINE_UPLOAD_SIZE = "ze.limit.renderWork.uploadSize";
+	/** The maximum number of vertex bindings that can be used with pipelines. */
+	public static final String LIMIT_INT_MAX_VERTEX_BINDINGS = "ze.limit.pipeline.vertexBindings";
 	
 	/** Gets the integer value of a limit for the backend.
 	 * 
@@ -113,6 +119,16 @@ public interface ZERenderBackend<B extends ZERenderBackend<?>> {
 	 * @return The integer limit value
 	 */
 	public int getLimitInt(String limit);
+	
+	/** The maximum level of anisotropy available. */
+	public static final String LIMIT_FLOAT_MAX_ANISOTROPY_LEVEL = "ze.limit.texture.anisotropy";
+	
+	/** Gets the float value of a limit for the backend.
+	 * 
+	 * @param limit The float limit to get
+	 * @return The float limit value
+	 */
+	public float getLimitFloat(String limit);
 	
 	// -------------------
 	// | INIT AND DEINIT |
@@ -132,13 +148,6 @@ public interface ZERenderBackend<B extends ZERenderBackend<?>> {
 	// -------------
 	// | PIPELINES |
 	// -------------
-	
-	/** Gets any predefined or default pipelines defined by the render backend. If the backend uses multiple
-	 * pipeline objects, this returns null.
-	 * 
-	 * @return Default pipeline
-	 */
-	public ZEPipeline getDefaultPipeline();
 	
 	/** Creates a new pipeline builder if the backend supports multiple pipeline objects. If the backend does
 	 * not support multiple pipeline objects, null is returned.
@@ -187,20 +196,22 @@ public interface ZERenderBackend<B extends ZERenderBackend<?>> {
 	// | MEMORY BUFFERS |
 	// ------------------
 	
-	/** Buffer flag specifying that the buffer should be device local. Not all backends support this flag. */
-	public static final int FLAG_BUFFER_DEVICE_LOCAL = 0b1;
-	/** Buffer flag specifying that the buffer can be used concurrently between render threads. */
-	public static final int FLAG_BUFFER_QUEUE_SHARED = 0b10;
+	/** A buffer parameter is an extra parameter that can be passed during a
+	 * buffer's creation to enable certain features.
+	 * 
+	 * @author Zekrom_64
+	 *
+	 */
+	public static interface ZEBufferParameter { }
 	
-	/** Allocates a memory buffer. Buffers may be given flags to modify their behavior. If a flag is not
-	 * supported, it will either fail silently or throw an exception.
+	/** Creates a buffer of the given size.
 	 * 
 	 * @param size Buffer size
 	 * @param flags Buffer flags
 	 * @param usages Valid buffer usages
 	 * @return Memory buffer
 	 */
-	public ZEBuffer allocateBuffer(int size, int flags, ZEBufferUsage ... usages);
+	public ZEBuffer allocateBuffer(long size, ZEBufferUsage[] usages, ZEBufferParameter ... params);
 	
 	/** Frees a set of memory buffers
 	 * 
@@ -208,24 +219,55 @@ public interface ZERenderBackend<B extends ZERenderBackend<?>> {
 	 */
 	public void freeBuffers(ZEBuffer ... buffers);
 	
-	/** Creates a vertex buffer from a memory buffer.
-	 * 
-	 * @param buffer Memory buffer
-	 * @return Vertex buffer
-	 */
-	public ZEVertexBuffer createVertexBuffer(ZEGraphicsMemory buffer);
-	
-	/** Creates an index buffer from a memory buffer
-	 * 
-	 * @param buffer Memory buffer
-	 * @param indexType 
-	 * @return
-	 */
-	public ZEIndexBuffer createIndexBuffer(ZEGraphicsMemory buffer, PrimitiveType indexType);
-	
 	// ---------------------
 	// | TEXTURES / IMAGES |
 	// ---------------------
+	
+	/** A texture parameter is an extra parameter that can be passed during a
+	 * texture's creation to enable certain features.
+	 * 
+	 * @author Zekrom_64
+	 *
+	 */
+	public static interface ZETextureParameter { }
+	
+	/** Texture parameter defining the number of mipmap levels to use with
+	 * the texture. Textures created without an explicit number of mipmap
+	 * levels will have a single mipmap level.
+	 * 
+	 * @author Zekrom_64
+	 *
+	 */
+	public static class ZETextureParamMipmap implements ZETextureParameter {
+		
+		/** The number of mipmap levels to use. */
+		public final int mipmapLevels;
+		
+		public ZETextureParamMipmap(int levels) {
+			mipmapLevels = levels;
+		}
+		
+	}
+	
+	/** Texture parameter defining the number of array layers to use
+	 * with the texture. Only useful if the texture dimension is one
+	 * of {@link ZETextureDimension#DIM_1D_ARRAY DIM_1D_ARRAY},
+	 * {@link ZETextureDimension#DIM_2D_ARRAY DIM_2D_ARRAY}, or
+	 * {@link ZETextureDimension#CUBE_ARRAY CUBE_ARRAY}.
+	 * 
+	 * @author Zekrom_64
+	 *
+	 */
+	public static class ZETextureParamArray implements ZETextureParameter {
+		
+		/** The number of array layers to use. */
+		public final int arrayLayers;
+		
+		public ZETextureParamArray(int layers) {
+			arrayLayers = layers;
+		}
+		
+	}
 	
 	/** Creates a texture with the given size and pixel format.
 	 * 
@@ -233,10 +275,13 @@ public interface ZERenderBackend<B extends ZERenderBackend<?>> {
 	 * @param width Width
 	 * @param height Height
 	 * @param depth Depth
+	 * @param arrayLevels Array level count
 	 * @param format Pixel format
+	 * @param params Extra texture parameters
 	 * @return Texture
 	 */
-	public ZETexture createTexture(ZETextureDimension dim, int width, int height, int depth, ZEPixelFormat format, ZETextureUsage ... usages);
+	public ZETexture createTexture(ZETextureDimension dim, int width, int height, int depth,
+			ZEPixelFormat format, ZETextureUsage[] usages, ZETextureParameter ... params);
 	
 	/** Destroys a set of textures.
 	 * 

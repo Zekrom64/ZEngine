@@ -1,5 +1,7 @@
 package com.zekrom_64.mathlib.tuple.impl;
 
+import java.util.Arrays;
+
 import com.zekrom_64.mathlib.tuple.VectorDouble;
 import com.zekrom_64.mathlib.tuple.VectorNumeric;
 
@@ -24,6 +26,10 @@ public class VectorArrayDouble implements VectorDouble, VectorNumeric<Double> {
 	@Override
 	public void setDouble(int i, double val) {
 		values[i] = val;
+	}
+	
+	public boolean equals(VectorArrayDouble other) {
+		return Arrays.equals(values, other.values);
 	}
 
 }

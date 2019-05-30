@@ -282,4 +282,12 @@ public interface VectorNumeric<T extends Number> extends Vector<T> {
 		for(int i = 0; i < size(); i++) setDouble(i,0);
 	}
 	
+	public default boolean equals(VectorNumeric<?> other) {
+		if (other.size() != size()) return false;
+		for(int i = 0; i < size(); i++) {
+			if (getDouble(i) != other.getDouble(i)) return false;
+		}
+		return true;
+	}
+	
 }

@@ -17,6 +17,8 @@ import org.lwjgl.glfw.GLFWDropCallback;
 import org.lwjgl.glfw.GLFWImage;
 import org.lwjgl.glfw.GLFWKeyCallback;
 import org.lwjgl.glfw.GLFWMouseButtonCallback;
+import org.lwjgl.glfw.GLFWNativeWin32;
+import org.lwjgl.glfw.GLFWNativeX11;
 import org.lwjgl.glfw.GLFWScrollCallback;
 import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.glfw.GLFWVulkan;
@@ -24,8 +26,11 @@ import org.lwjgl.glfw.GLFWWindowFocusCallback;
 import org.lwjgl.glfw.GLFWWindowIconifyCallback;
 import org.lwjgl.glfw.GLFWWindowPosCallback;
 import org.lwjgl.glfw.GLFWWindowSizeCallback;
+import org.lwjgl.opengl.GLX;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
+import org.lwjgl.system.Platform;
+import org.lwjgl.system.windows.User32;
 
 import com.zekrom_64.ze.base.image.ZEImage;
 import com.zekrom_64.ze.base.image.ZEImageLoader;
@@ -34,6 +39,7 @@ import com.zekrom_64.ze.base.input.ZEInputSource;
 import com.zekrom_64.ze.base.input.ZEWindowListener;
 import com.zekrom_64.ze.base.input.ZEWindowSource;
 import com.zekrom_64.ze.gl.GLContext;
+import com.zekrom_64.ze.gl.GLNativeContext;
 import com.zekrom_64.ze.nat.ZEStructUtils;
 import com.zekrom_64.ze.vulkan.VKContext;
 import com.zekrom_64.ze.vulkan.VKSurfaceProvider;
@@ -390,14 +396,6 @@ public class GLFWWindow implements GLContext, VKSurfaceProvider, ZEInputSource, 
 		if (window!=0) GLFW.glfwSetWindowShouldClose(window, shouldClose);
 	}
 	
-	/** Gets the native context for the current window
-	 * 
-	 * @return
-	 */
-	public long getNativeContext() {
-		return GLFWU.glfwGetPlatformContext(window);
-	}
-	
 	/** Iconifies (minimizes) the window.
 	 * 
 	 */
@@ -558,6 +556,24 @@ public class GLFWWindow implements GLContext, VKSurfaceProvider, ZEInputSource, 
 	@Override
 	public void swapBuffers() {
 		if (window!=0) GLFW.glfwSwapBuffers(window);
+	}
+
+	@Override
+	public GLNativeContext getNativeContext() {
+		long context = GLFWU.glfwGetPlatformContext(window);
+		long aux0 = 0, aux1 = 0;
+		switch(Platform.get()) {
+		case WINDOWS:
+			long hwnd = GLFWNativeWin32.glfwGetWin32Window(window);
+			aux0 = User32.GetDC(hwnd);
+			break;
+		case LINUX:
+			aux0 = GLFWNativeX11.glfwGetX11Display();
+			aux1 = GLX.glXGetCurrentDrawable();
+			break;
+		case MACOSX: break;
+		}
+		return GLNativeContext.getContext(context, aux0, aux1);
 	}
 	
 	// Vulkan

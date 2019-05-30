@@ -9,5 +9,6 @@
 	<classpathentry kind="lib" path="/Libraries/lib/lwjgl3.1.2/lwjgl-glfw.jar" sourcepath="/Libraries/lib/lwjgl3.1.2/lwjgl-glfw-sources.jar"/>
 	<classpathentry kind="lib" path="/Libraries/lib/lwjgl3.1.2/lwjgl.jar" sourcepath="/Libraries/lib/lwjgl3.1.2/lwjgl-sources.jar"/>
 	<classpathentry kind="lib" path="/Libraries/lib/lwjgl3.1.2/lwjgl-vulkan.jar" sourcepath="/Libraries/lib/lwjgl3.1.2/lwjgl-vulkan-sources.jar"/>
+	<classpathentry kind="lib" path="/Libraries/lib/lwjgl3.1.2/lwjgl-opengl.jar" sourcepath="/Libraries/lib/lwjgl3.1.2/lwjgl-opengl-sources.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

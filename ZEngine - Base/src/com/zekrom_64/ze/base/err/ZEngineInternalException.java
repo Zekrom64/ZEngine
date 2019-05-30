@@ -7,8 +7,9 @@ import com.zekrom_64.ze.base.ZEApplication;
  * if one is running. This allows the main application to decide how the exception is handled.
  * 
  * @author Zekrom_64
- *
+ * @deprecated Moved away fromg generic engine exceptions
  */
+@Deprecated
 public final class ZEngineInternalException extends ZEngineException {
 
 	private static final long serialVersionUID = -2760310014018057603L;

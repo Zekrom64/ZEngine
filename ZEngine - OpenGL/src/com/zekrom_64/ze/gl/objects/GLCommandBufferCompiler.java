@@ -21,20 +21,21 @@ import com.zekrom_64.mathlib.tuple.impl.Vector3I;
 import com.zekrom_64.ze.base.backend.render.ZERenderCommandBuffer;
 import com.zekrom_64.ze.base.backend.render.ZERenderWorkRecorder;
 import com.zekrom_64.ze.base.backend.render.obj.ZEBuffer;
+import com.zekrom_64.ze.base.backend.render.obj.ZEColorClearValue;
 import com.zekrom_64.ze.base.backend.render.obj.ZEFramebuffer;
-import com.zekrom_64.ze.base.backend.render.obj.ZEIndexBuffer;
 import com.zekrom_64.ze.base.backend.render.obj.ZERenderEvent;
 import com.zekrom_64.ze.base.backend.render.obj.ZERenderPass;
+import com.zekrom_64.ze.base.backend.render.obj.ZESampler.ZEFilter;
 import com.zekrom_64.ze.base.backend.render.obj.ZETexture;
+import com.zekrom_64.ze.base.backend.render.obj.ZETexture.ZETextureLayer;
 import com.zekrom_64.ze.base.backend.render.obj.ZETexture.ZETextureLayout;
-import com.zekrom_64.ze.base.backend.render.obj.ZEVertexBuffer;
+import com.zekrom_64.ze.base.backend.render.obj.ZETexture.ZETextureRange;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEFrontBack;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipeline;
-import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipeline.ZEVertexInput;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBindSet;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBuilder.ZEViewport;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineStage;
-import com.zekrom_64.ze.base.image.ZEPixelFormat;
+import com.zekrom_64.ze.base.util.ZEPrimitiveType;
 import com.zekrom_64.ze.gl.GLException;
 import com.zekrom_64.ze.gl.GLRenderBackend;
 
@@ -62,6 +63,70 @@ public class GLCommandBufferCompiler extends ClassLoader implements ZERenderWork
 		FieldGen fConstObjs = new FieldGen(Const.ACC_PUBLIC, Type.getType(Object[].class), "constObjs", constPoolGen);
 		classGenerator.addField(fConstObjs.getField());
 	}
+	
+	private class GLCommandBufferCompiled extends GLCommandBuffer {
+
+		private final Runnable commands;
+		
+		public GLCommandBufferCompiled(GLRenderBackend backend, Runnable commands) {
+			super(backend, false);
+			this.commands = commands;
+		}
+
+		@Override
+		public ZERenderWorkRecorder beginRecording() {
+			return null;
+		}
+
+		@Override
+		public ZERenderWorkRecorder beginRecording(ZERenderCommandBuffer parent) {
+			return null;
+		}
+
+		@Override
+		public void endRecording() { }
+
+		@Override
+		public void executeCommands() {
+			commands.run();
+		}
+		
+	}
+	
+	private Method lastMethodGen = null;
+	
+	/** Compiles the current list of commands into a usable command buffer.
+	 * 
+	 * @return
+	 */
+	public synchronized Runnable compile() {
+		// Build method
+		if (lastMethodGen != null) classGenerator.removeMethod(lastMethodGen);
+		MethodGen mRun = new MethodGen(Const.ACC_PUBLIC, Type.VOID, new Type[0], new String[0], "run", null, insnList, constPoolGen);
+		classGenerator.addMethod(lastMethodGen = mRun.getMethod());
+		
+		// Generate class, attempt to find class in cache
+		JavaClass jclazz = classGenerator.getJavaClass();
+		Runnable run = compilationCache.get(jclazz);
+		if (run != null) return run;
+		
+		// Build the class
+		jclazz = jclazz.copy();
+		jclazz.setClassName("com/zekrom_64/ze/gl/cmd/runtime/CMDGEN" + compilerNameVar++);
+		byte[] bytes = jclazz.getBytes();
+		
+		try {
+			// Define and instantiate class
+			Class<?> clazz = defineClass(jclazz.getClassName(), bytes, 0, bytes.length);
+			run = (Runnable) clazz.newInstance();
+			// Set constObjs array
+			Field fieldConstObjs = clazz.getField("constObjs");
+			fieldConstObjs.set(run, constObjects.toArray(new Object[0]));
+		} catch (Exception e) {
+			throw new GLException("Failed to dynamically compile command buffer", e);
+		}
+		return run;
+	}
 
 	@Override
 	public void executeBuffer(ZERenderCommandBuffer buffer) {
@@ -76,7 +141,7 @@ public class GLCommandBufferCompiler extends ClassLoader implements ZERenderWork
 	}
 
 	@Override
-	public void beginPass(ZERenderPass renderPass, ZEFramebuffer framebuffer) {
+	public void beginPass(ZERenderPass renderPass, ZEFramebuffer framebuffer, ZEAttachmentClearValue[] clearVals) {
 		// TODO Auto-generated method stub
 		
 	}
@@ -109,20 +174,14 @@ public class GLCommandBufferCompiler extends ClassLoader implements ZERenderWork
 		// TODO Auto-generated method stub
 
 	}
-
-	@Override
-	public void bindVertexBuffer(ZEVertexInput bindPoint, ZEVertexBuffer buffer) {
-		// TODO Auto-generated method stub
-
-	}
 	
 	@Override
-	public void bindVertexBuffers(ZEVertexInput baseBindPoint, ZEVertexBuffer ... buffers) {
+	public void bindVertexBuffers(int baseBindPoint, ZEBuffer ... buffers) {
 		
 	}
 
 	@Override
-	public void bindIndexBuffer(ZEIndexBuffer buffer) {
+	public void bindIndexBuffer(ZEBuffer buffer, ZEPrimitiveType indexType) {
 		// TODO Auto-generated method stub
 
 	}
@@ -172,13 +231,15 @@ public class GLCommandBufferCompiler extends ClassLoader implements ZERenderWork
 	}
 
 	@Override
-	public void blitBuffer(ZEBuffer src, ZEBuffer dst, int srcPos, int dstPos, int size) {
+	public void blitBuffer(ZEBuffer src, ZEBuffer dst, long srcPos, long dstPos, long size) {
 		// TODO Auto-generated method stub
 
 	}
 
 	@Override
-	public void blitTexture(ZETexture srcTex, ZETexture dstTex, Vector3I src, Vector3I dst, Vector3I size) {
+	public void blitTexture(ZETexture srcTex, ZETextureLayer srcLayer, ZETextureLayout srcLayout, Vector3I srcPos,Vector3I srcSize,
+			ZETexture dstTex, ZETextureLayer dstLayer, ZETextureLayout dstLayout, Vector3I dstPos, Vector3I dstSize,
+			ZEFilter filter) {
 		// TODO Auto-generated method stub
 
 	}
@@ -190,13 +251,13 @@ public class GLCommandBufferCompiler extends ClassLoader implements ZERenderWork
 	}
 
 	@Override
-	public void clearTexture(ZETexture tex, Vector3I start, Vector3I size, ZEPixelFormat format, ByteBuffer color) {
+	public void clearTexture(ZETexture tex, Vector3I start, Vector3I size, ZETextureRange range, ZEColorClearValue color) {
 		// TODO Auto-generated method stub
 
 	}
 
 	@Override
-	public void imageToBuffer(ZETexture src, Vector3I srcPos, Vector3I srcSize, ZEBuffer dst, int dstOffset,
+	public void imageToBuffer(ZETexture src, Vector3I srcPos, Vector3I srcSize, ZETextureLayer range, ZEBuffer dst, int dstOffset,
 			int dstRowLength, int dstHeight) {
 		// TODO Auto-generated method stub
 
@@ -204,7 +265,7 @@ public class GLCommandBufferCompiler extends ClassLoader implements ZERenderWork
 
 	@Override
 	public void bufferToImage(ZEBuffer src, int srcOffset, int srcRowLength, int srcHeight, ZETexture dst,
-			Vector3I dstPos, Vector3I dstSize) {
+			Vector3I dstPos, Vector3I dstSize, ZETextureLayer range) {
 		// TODO Auto-generated method stub
 
 	}
@@ -254,37 +315,6 @@ public class GLCommandBufferCompiler extends ClassLoader implements ZERenderWork
 		// TODO Auto-generated method stub
 		
 	}
-	
-	private Method lastMethodGen = null;
-	
-	public synchronized Runnable compile() {
-		// Build method
-		if (lastMethodGen != null) classGenerator.removeMethod(lastMethodGen);
-		MethodGen mRun = new MethodGen(Const.ACC_PUBLIC, Type.VOID, new Type[0], new String[0], "run", null, insnList, constPoolGen);
-		classGenerator.addMethod(lastMethodGen = mRun.getMethod());
-		
-		// Generate class, attempt to find class in cache
-		JavaClass jclazz = classGenerator.getJavaClass();
-		Runnable run = compilationCache.get(jclazz);
-		if (run != null) return run;
-		
-		// Build the class
-		jclazz = jclazz.copy();
-		jclazz.setClassName("com/zekrom_64/ze/gl/cmd/runtime/CMDGEN" + compilerNameVar++);
-		byte[] bytes = jclazz.getBytes();
-		
-		try {
-			// Define and instantiate class
-			Class<?> clazz = defineClass(jclazz.getClassName(), bytes, 0, bytes.length);
-			run = (Runnable) clazz.newInstance();
-			// Set constObjs array
-			Field fieldConstObjs = clazz.getField("constObjs");
-			fieldConstObjs.set(run, constObjects.toArray(new Object[0]));
-		} catch (Exception e) {
-			throw new GLException("Failed to dynamically compile command buffer", e);
-		}
-		return run;
-	}
 
 	@Override
 	public void waitForEvents(ZEPipelineStage[] readyStages, ZEPipelineStage[] waitingStages, ZERenderEvent[] events,
@@ -296,6 +326,12 @@ public class GLCommandBufferCompiler extends ClassLoader implements ZERenderWork
 	@Override
 	public void pipelineBarrier(ZEPipelineStage[] readyStages, ZEPipelineStage[] waitingStages,
 			ZEPipelineBarrier... barriers) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void generateMipmaps(ZETexture tex) {
 		// TODO Auto-generated method stub
 		
 	}

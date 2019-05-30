@@ -18,10 +18,5 @@ public class GLEnvironment {
 	 * is normally false for performance.
 	 */
 	public static boolean quirkGLTextureBadATIMipmaps = tryParse(System.getProperty("gl.quirk.texture.badATIMipmap"), false);
-	
-	/** Some drivers won't render textures properly unless they have had mipmaps
-	 * forcibly generated. If true, mipmap generation is forced for every texture.
-	 */
-	public static boolean quirkGLTextureForceMipmap = tryParse(System.getProperty("gl.quirk.texture.forceMipmap"), false);
 
 }

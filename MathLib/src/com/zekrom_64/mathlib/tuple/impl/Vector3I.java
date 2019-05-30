@@ -55,5 +55,12 @@ public class Vector3I extends Vector2I implements Vector3<Integer> {
 		case 2: z = val; break;
 		}
 	}
+	
+	public boolean equals(Vector3I other) {
+		return
+				x == other.x &&
+				y == other.y &&
+				z == other.z;
+	}
 
 }

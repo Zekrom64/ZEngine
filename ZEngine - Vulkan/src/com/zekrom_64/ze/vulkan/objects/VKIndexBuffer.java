@@ -6,20 +6,20 @@ import org.bridj.Pointer;
 
 import com.zekrom_64.ze.base.backend.render.obj.ZEIndexBuffer;
 import com.zekrom_64.ze.base.mem.ZEMapMode;
-import com.zekrom_64.ze.base.util.PrimitiveType;
+import com.zekrom_64.ze.base.util.ZEPrimitiveType;
 
 public class VKIndexBuffer implements ZEIndexBuffer {
 
 	public final VKBuffer buffer;
-	public final PrimitiveType indexType;
+	public final ZEPrimitiveType indexType;
 	
-	public VKIndexBuffer(VKBuffer buf, PrimitiveType indexType) {
+	public VKIndexBuffer(VKBuffer buf, ZEPrimitiveType indexType) {
 		buffer = buf;
 		this.indexType = indexType;
 	}
 	
 	@Override
-	public PrimitiveType getIndexType() {
+	public ZEPrimitiveType getIndexType() {
 		return indexType;
 	}
 

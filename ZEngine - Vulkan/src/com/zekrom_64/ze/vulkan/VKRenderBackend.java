@@ -32,7 +32,7 @@ import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBuilder;
 import com.zekrom_64.ze.base.backend.render.shader.ZEShader;
 import com.zekrom_64.ze.base.backend.render.shader.ZEShaderCompiler;
 import com.zekrom_64.ze.base.image.ZEPixelFormat;
-import com.zekrom_64.ze.base.util.PrimitiveType;
+import com.zekrom_64.ze.base.util.ZEPrimitiveType;
 import com.zekrom_64.ze.vulkan.objects.VKBuffer;
 import com.zekrom_64.ze.vulkan.objects.VKFence;
 import com.zekrom_64.ze.vulkan.objects.VKRenderEvent;
@@ -275,7 +275,7 @@ public class VKRenderBackend implements ZERenderBackend<VKRenderBackend> {
 	}
 
 	@Override
-	public ZEIndexBuffer createIndexBuffer(ZEGraphicsMemory buffer, PrimitiveType indexType) {
+	public ZEIndexBuffer createIndexBuffer(ZEGraphicsMemory buffer, ZEPrimitiveType indexType) {
 		// TODO Auto-generated method stub
 		return null;
 	}

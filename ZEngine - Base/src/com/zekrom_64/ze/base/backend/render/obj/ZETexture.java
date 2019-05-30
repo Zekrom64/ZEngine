@@ -111,6 +111,27 @@ public interface ZETexture extends ZEGraphicsMemory {
 		
 	}
 	
+	/** A texture layer selects a single part of a texture as described in {@link ZETextureRange}.
+	 * 
+	 * @author Zekrom_64
+	 *
+	 */
+	public static class ZETextureLayer {
+
+		/** The texture aspects included in the range, <b>null</b> includes all aspects. */
+		public ZETextureAspect[] aspects = null;
+		/** The first mipmap level to include. */
+		public int mipLevel = 0;
+		/** The first array layer for cube and array textures. */
+		public int baseArrayLayer = 0;
+		/** The number of array layers to include starting at {@link #baseArrayLayer}. This
+		 * is clamped to the maximum number of layers after the base, so {@link Integer#MAX_VALUE}
+		 * selects all array layers.
+		 */
+		public int arrayLayerCount = Integer.MAX_VALUE;
+		
+	}
+	
 	/** The texture memory layout describes how the elements of a texture are laid
 	 * out in memory.
 	 * 
@@ -191,6 +212,19 @@ public interface ZETexture extends ZEGraphicsMemory {
 	 */
 	public int getDepth();
 	
+	/** Gets the number of array layers this texture has. Returns
+	 * zero if the texture is not an array texture.
+	 * 
+	 * @return Texture array layer count
+	 */
+	public int getArrayLayers();
+	
+	/** Gets the number of mipmap levels this texture has.
+	 * 
+	 * @return Mipmap level count
+	 */
+	public int getMipmapLevels();
+	
 	/** Gets the pixel format of this texture.
 	 * 
 	 * @return Texture pixel format
@@ -214,5 +248,38 @@ public interface ZETexture extends ZEGraphicsMemory {
 	 * @return Valid usages
 	 */
 	public ZETextureUsage[] getValidUsages();
+	
+	/** Gets access to the settings to use when constructing the default sampler
+	 * for the texture.
+	 * 
+	 * @return Default sampler settings
+	 */
+	public ZESamplerSettings getDefaultSamplerSettings();
+	
+	/** Gets the default sampler for the texture. The sampler has settings defined with
+	 * {@link #getDefaultSamplerSettings()} before the first invocation of this
+	 * method. All subsequent calls will return a sampler with fixed settings.
+	 * 
+	 * @return The default sampler
+	 */
+	public ZESampler getDefaultSampler();
+	
+	/** Creates a new builder for a sampler linked to this texture. The render backend
+	 * must support {@link com.zekrom_64.ze.base.backend.render.ZERenderBackend#FEATURE_INDEPENDENT_SAMPLER
+	 * FEATURE_INDEPENDENT_SAMPLER} to use samplers independent of the default sampler.
+	 * 
+	 * @return Sampler builder
+	 */
+	public ZESamplerBuilder createSamplerBuilder();
+	
+	/** Creates a duplicate of an existing sampler, using the same
+	 * sampler settings but sampling this texture. This may be more
+	 * efficient on some backends than creating samplers with the same
+	 * settings for multiple textures.
+	 * 
+	 * @param other Sampler to duplicate from settings
+	 * @return Duplicate sampler sampling this texture
+	 */
+	public ZESampler duplicateSampler(ZESampler other);
 	
 }

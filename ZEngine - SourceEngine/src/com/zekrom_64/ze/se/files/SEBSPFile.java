@@ -269,7 +269,7 @@ public class SEBSPFile {
 		
 	}
 	
-	public class ZEBSPFileModelLump {
+	public class SEBSPFileModelLump {
 		
 		public Vector3f mins = new Vector3f(), maxs = new Vector3f();
 		public float[] origin = new float[3];

@@ -4,8 +4,9 @@ package com.zekrom_64.ze.base.err;
  * the engine. It can still be thrown as a normal java exception.
  * 
  * @author Zekrom_64
- *
+ * @deprecated Moved away from generic engine exceptions
  */
+@Deprecated
 public class ZEngineException extends Exception {
 
 	private static final long serialVersionUID = -5480815079698622084L;

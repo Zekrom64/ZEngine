@@ -5,18 +5,37 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.bridj.Pointer;
+import org.lwjgl.opengl.EXTTextureFilterAnisotropic;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
 import org.lwjgl.opengl.GL13;
+import org.lwjgl.opengl.GL14;
 import org.lwjgl.opengl.GL15;
 import org.lwjgl.opengl.GL21;
+import org.lwjgl.opengl.GL30;
+import org.lwjgl.opengl.GL33;
+import org.lwjgl.opengl.GL42;
+import org.lwjgl.opengl.GL44;
+import org.lwjgl.opengl.GL45;
+import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.system.MemoryUtil;
+import org.lwjgl.system.libc.LibCStdlib;
+import org.lwjgl.system.libc.LibCString;
 
+import com.zekrom_64.ze.base.backend.render.obj.ZECompareOp;
+import com.zekrom_64.ze.base.backend.render.obj.ZESampler;
+import com.zekrom_64.ze.base.backend.render.obj.ZESampler.ZEAddressingMode;
+import com.zekrom_64.ze.base.backend.render.obj.ZESampler.ZEBorderColor;
+import com.zekrom_64.ze.base.backend.render.obj.ZESampler.ZEFilter;
+import com.zekrom_64.ze.base.backend.render.obj.ZESampler.ZEMipmapFilter;
+import com.zekrom_64.ze.base.backend.render.obj.ZESamplerBuilder;
+import com.zekrom_64.ze.base.backend.render.obj.ZESamplerSettings;
 import com.zekrom_64.ze.base.backend.render.obj.ZETexture;
 import com.zekrom_64.ze.base.backend.render.obj.ZETextureDimension;
 import com.zekrom_64.ze.base.image.ZEPixelFormat;
 import com.zekrom_64.ze.base.mem.ZEMapMode;
 import com.zekrom_64.ze.gl.GLNativeContext;
+import com.zekrom_64.ze.gl.GLRenderBackend;
 import com.zekrom_64.ze.gl.GLValues;
 
 /** OpenGL implementation of a {@link ZETexture}. Mapping the texture results in different operations based on the
@@ -31,81 +50,82 @@ import com.zekrom_64.ze.gl.GLValues;
 public class GLTexture implements ZETexture {
 	
 	/** The OpenGL texture ID */
-	public final int texID;
+	public final int textureObject;
 	
-	private GLNativeContext ctx;
+	private final GLNativeContext ctx;
+	private final GLRenderBackend backend;
 	
-	private int width, height, depth;
+	private final int width, height, depth;
+	private final int arrays, mipmaps;
 	
 	private ZEMapMode mappingMode = null;
-	private ByteBuffer mappedMem;
-	private Pointer<?> mappedPtr;
-	private int pixelBuf;
+	private ByteBuffer mappedMem = null;
+	private Pointer<?> mappedPtr = null;
+	private int pixelBuf = 0;
 	
-	private ZEPixelFormat pxfmt;
-	private int glFormat, glType;
-	private ZETextureDimension dimension;
+	private final ZEPixelFormat pxfmt;
+	private final int glFormat, glType;
+	private final ZETextureDimension dimension;
 	
-	private ZETextureMemoryLayout layout;
+	private final ZETextureMemoryLayout layout;
 	
-	public GLTexture(int tex, ZETextureDimension dim, ZEPixelFormat pixelFormat) {
-		this.texID = tex;
-		pxfmt = pixelFormat;
-		glFormat = GLValues.getGLTextureFormat(pixelFormat);
-		glType = GLValues.getGLTextureType(pixelFormat);
+	public GLTexture(GLRenderBackend backend, int tex, ZETextureDimension dim, int w, int h, int d, int a, int m, ZEPixelFormat pixelFormat) {
+		textureObject = tex;
 		
-		ctx = GLNativeContext.getNativeContext();
-		int target = GLValues.getGLTextureTarget(dim);
-		ctx.bindExclusively();
-		try {
-			GL11.glBindTexture(target, tex);
-			width = GL11.glGetTexLevelParameteri(target, 0, GL11.GL_TEXTURE_WIDTH);
-			height = GL11.glGetTexLevelParameteri(target, 0, GL11.GL_TEXTURE_HEIGHT);
-			depth = GL11.glGetTexLevelParameteri(target, 0, GL12.GL_TEXTURE_DEPTH);
-		} finally {
-			ctx.unbindExclusively();
-		}
+		this.backend = backend;
+		ctx = backend.getNativeContext();
 		
-		layout = new ZETextureMemoryLayout(
-				0,
-				pxfmt.sizeOf * width * (height != 0 ? height : 1) * (depth != 0 ? depth : 1),
-				pxfmt.sizeOf * width,
-				pxfmt.sizeOf * width * height,
-				pxfmt.sizeOf * width * height
-		);
-	}
-	
-	public GLTexture(int tex, ZETextureDimension dim, int w, int h, int d, ZEPixelFormat pixelFormat) {
-		texID = tex;
-		ctx = GLNativeContext.getNativeContext();
 		width = w;
-		height = h;
-		depth = d;
+		height = dim.numSampleDimensions > 1 ? h : 0;
+		depth = dim.numSampleDimensions > 2 ? d : 0;
+		arrays = dim.isArray ? a : 0;
+		mipmaps = m;
+		
 		dimension = dim;
 		pxfmt = pixelFormat;
+		layout = new ZETextureMemoryLayout(
+			0,
+			width * (height != 0 ? height : 1) * (depth != 0 ? depth : 1) * (dim.isCubemap ? 6 : 1) * (arrays != 0 ? arrays : 1),
+			pixelFormat.sizeOf * width,
+			pixelFormat.sizeOf * width * height,
+			pixelFormat.sizeOf * width * (height != 0 ? height : 1)
+		);
+		
 		glFormat = GLValues.getGLTextureFormat(pixelFormat);
 		glType = GLValues.getGLTextureType(pixelFormat);
+		
+		GLCapabilities caps = backend.getCapabilities();
 		ctx.bindExclusively();
 		try {
-			GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, 0);
-			glTexImage(0, w, h, d, 0);
+			int target = GLValues.getGLTextureBindTarget(dim);
+			GL11.glBindTexture(target, textureObject);
+			backend.checkErrorFine();
+			GL11.glTexParameteri(target, GL12.GL_TEXTURE_BASE_LEVEL, 0);
+			backend.checkErrorFine();
+			GL11.glTexParameteri(target, GL12.GL_TEXTURE_MAX_LEVEL, m-1);
+			backend.checkErrorFine();
+			if (caps.OpenGL42 || caps.GL_ARB_texture_storage) {
+				glTexStorage(w,h,d,a);
+			} else {
+				GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, 0);
+				backend.checkErrorFine();
+				ByteBuffer initdata = LibCStdlib.malloc(layout.size);
+				try {
+					LibCString.memset(initdata, 0);
+					glTexImage(0, width, height, depth, arrays, MemoryUtil.memAddress(initdata));
+				} finally {
+					LibCStdlib.free(initdata);
+				}
+			}
+			if (caps.glGenerateMipmap != 0) GL30.glGenerateMipmap(target);
+			else {
+				GL11.glTexParameteri(target, GL14.GL_GENERATE_MIPMAP, GL11.GL_TRUE);
+				backend.checkErrorFine();
+			}
 		} finally {
+			backend.checkErrorCoarse("Failed to create texture");
 			ctx.unbindExclusively();
 		}
-	}
-	
-	private static int _glGenTextures() {
-		GLNativeContext ctx = GLNativeContext.getNativeContext();
-		ctx.bindExclusively();
-		try {
-			return GL11.glGenTextures();
-		} finally {
-			ctx.unbindExclusively();
-		}
-	}
-	
-	public GLTexture(int w, int h, int d, ZETextureDimension dim, ZEPixelFormat pixelFormat) {
-		this(_glGenTextures(), dim, w, h, d, pixelFormat);
 	}
 	
 	private static int[] cubeFaceTargets = new int[] {
@@ -117,26 +137,184 @@ public class GLTexture implements ZETexture {
 		GL13.GL_TEXTURE_CUBE_MAP_NEGATIVE_Z
 	};
 	
-	void glTexImage(int mipmap, int w, int h, int d, long data) {
-		int target = GLValues.getGLTextureTarget(dimension);
-		if (target != -1) GL11.glBindTexture(target, texID);
+	private void glTexStorage(int w, int h, int d, int a) {
+		int target = GLValues.getGLTextureBindTarget(dimension);
+		GL11.glBindTexture(target, textureObject);
+		backend.checkErrorFine();
 		switch(dimension) {
+		case DIM_1D:
+			GL42.glTexStorage1D(target, mipmaps, glFormat, w);
+			break;
+		case DIM_1D_ARRAY:
+			GL42.glTexStorage2D(target, mipmaps, glFormat, w, a);
+			break;
+		case DIM_2D:
+			GL42.glTexStorage2D(target, mipmaps, glFormat, w, h);
+			break;
+		case DIM_2D_ARRAY:
+			GL42.glTexStorage3D(target, mipmaps, glFormat, w, h, a);
+			break;
+		case DIM_3D:
+			GL42.glTexStorage3D(target, mipmaps, glFormat, w, h, d);
+			break;
+		case CUBE:
+			GL42.glTexStorage2D(target, mipmaps, glFormat, w, h);
+			break;
+		case CUBE_ARRAY:
+			GL42.glTexStorage3D(target, mipmaps, glFormat, w, h, a);
+			break;
+		}
+		backend.checkErrorFine();
+	}
+	
+	void glTextureSubImage(int mipmap, int x, int y, int z, int w, int h, int d, int a, int ac, long data) {
+		switch(dimension) {
+		case DIM_1D:
+			GL45.glTextureSubImage1D(textureObject, mipmap, x, w, glFormat, glType, data);
+			break;
+		case DIM_1D_ARRAY:
+			GL45.glTextureSubImage2D(textureObject, mipmap, x, a, w, ac, glFormat, glType, data);
+			break;
+		case DIM_2D:
+			GL45.glTextureSubImage2D(textureObject, mipmap, x, y, w, h, glFormat, glType, data);
+			break;
+		case DIM_2D_ARRAY:
+			GL45.glTextureSubImage3D(textureObject, mipmap, x, y, a, w, h, ac, glFormat, glType, data);
+			break;
+		case DIM_3D:
+			GL45.glTextureSubImage3D(textureObject, mipmap, x, y, z, w, h, d, glFormat, glType, data);
+			break;
+		case CUBE:
+			GL45.glTextureSubImage2D(textureObject, mipmap, x, y, w, h, glFormat, glType, data);
+			break;
+		case CUBE_ARRAY:
+			GL45.glTextureSubImage3D(textureObject, mipmap, x, y, a, w, h, ac, glFormat, glType, data);
+			break;
+		}
+		backend.checkErrorFine();
+	}
+	
+	void glTexSubImage(int mipmap, int x, int y, int z, int w, int h, int d, int a, int ac, long data) {
+		int target = GLValues.getGLTextureBindTarget(dimension);
+		GL11.glBindTexture(target, textureObject);
+		backend.checkErrorFine();
+		switch(dimension) {
+		case DIM_1D:
+			GL11.glTexSubImage1D(target, mipmap, x, w, glFormat, glType, data);
+			break;
+		case DIM_1D_ARRAY:
+			GL11.glTexSubImage2D(target, mipmap, x, a, w, ac, glFormat, glType, data);
+			break;
+		case DIM_2D:
+			GL11.glTexSubImage2D(target, mipmap, x, y, w, h, glFormat, glType, data);
+			break;
+		case DIM_2D_ARRAY:
+			GL12.glTexSubImage3D(target, mipmap, x, y, a, w, h, ac, glFormat, glType, data);
+			break;
+		case DIM_3D:
+			GL12.glTexSubImage3D(target, mipmap, x, y, z, w, h, d, glFormat, glType, data);
+			break;
+		case CUBE:
+			GL11.glTexSubImage2D(target, mipmap, x, y, w, h, glFormat, glType, data);
+			break;
+		case CUBE_ARRAY:
+			GL12.glTexSubImage3D(target, mipmap, x, y, a, w, h, ac, glFormat, glType, data);
+			break;
+		}
+		backend.checkErrorFine();
+	}
+	
+	void glTexSubImage(int target, int mipmap, int x, int y, int z, int w, int h, int d, int a, int ac, long data) {
+		switch(dimension) {
+		case DIM_1D:
+			GL11.glTexSubImage1D(target, mipmap, x, w, glFormat, glType, data);
+			break;
+		case DIM_1D_ARRAY:
+			GL11.glTexSubImage2D(target, mipmap, x, a, w, ac, glFormat, glType, data);
+			break;
+		case DIM_2D:
+			GL11.glTexSubImage2D(target, mipmap, x, y, w, h, glFormat, glType, data);
+			break;
+		case DIM_2D_ARRAY:
+			GL12.glTexSubImage3D(target, mipmap, x, y, a, w, h, ac, glFormat, glType, data);
+			break;
+		case DIM_3D:
+			GL12.glTexSubImage3D(target, mipmap, x, y, z, w, h, d, glFormat, glType, data);
+			break;
+		case CUBE:
+			GL11.glTexSubImage2D(target, mipmap, x, y, w, h, glFormat, glType, data);
+			break;
+		case CUBE_ARRAY:
+			GL12.glTexSubImage3D(target, mipmap, x, y, a, w, h, ac, glFormat, glType, data);
+			break;
+		}
+		backend.checkErrorFine();
+	}
+	
+	private void glTexImage(int mipmap, int w, int h, int d, int a, long data) {
+		int target = GLValues.getGLTextureBindTarget(dimension);
+		GL11.glBindTexture(target, textureObject);
+		backend.checkErrorFine();
+		switch(dimension) {
+		case DIM_1D:
+			GL11.glTexImage1D(target, mipmap, glFormat, w, 0, glFormat, glType, data);
+			break;
+		case DIM_1D_ARRAY:
+			GL11.glTexImage2D(target, mipmap, glFormat, w, a, 0, glFormat, glType, data);
+			break;
+		case DIM_2D:
+			GL11.glTexImage2D(target, mipmap, glFormat, w, h, 0, glFormat, glType, data);
+			break;
+		case DIM_2D_ARRAY:
+			GL12.glTexImage3D(target, mipmap, glFormat, w, h, a, 0, glFormat, glType, data);
+			break;
+		case DIM_3D:
+			GL12.glTexImage3D(target, mipmap, glFormat, w, h, d, 0, glFormat, glType, data);
+			break;
 		case CUBE: {
 			target = cubeFaceTargets[d];
+			GL11.glBindTexture(target, textureObject);
+			backend.checkErrorFine();
 			GL11.glTexImage2D(target, mipmap, glFormat, w, h, 0, glFormat, glType, data);
 		} break;
-		case DIM_1D: GL11.glTexImage1D(target, mipmap, glFormat, w, 0, glFormat, glType, data); break;
-		case DIM_1D_ARRAY:
-		case DIM_2D: GL11.glTexImage2D(target, mipmap, glFormat, w, h, 0, glFormat, glType, data); break;
-		case DIM_2D_ARRAY:
-		case DIM_3D: GL12.glTexImage3D(target, mipmap, glFormat, w, h, d, 0, glFormat, glType, data); break;
 		case CUBE_ARRAY: {
-			int cubeFace = d % 6;
-			d /= 6;
+			int cubeFace = a % 6;
+			a /= 6;
 			target = cubeFaceTargets[cubeFace];
-			GL12.glTexImage3D(target, mipmap, glFormat, w, h, d, 0, glFormat, glType, 0);
+			GL11.glBindTexture(target, textureObject);
+			backend.checkErrorFine();
+			GL12.glTexImage3D(target, mipmap, glFormat, w, h, a, 0, glFormat, glType, data);
 		} break;
 		}
+		backend.checkErrorFine();
+	}
+	
+	void glClearTexSubImage(int mipmap, int x, int y, int z, int w, int h, int d, int a, int ac, ByteBuffer data) {
+		int target = GLValues.getGLTextureBindTarget(dimension);
+		GL11.glBindTexture(target, textureObject);
+		backend.checkErrorFine();
+		switch(dimension) {
+		case DIM_1D:
+			GL44.glClearTexSubImage(target, mipmap, x, 0, 0, w, 0, 0, glFormat, glType, data);
+			break;
+		case DIM_1D_ARRAY:
+			GL44.glClearTexSubImage(target, mipmap, x, a, 0, w, ac, 0, glFormat, glType, data);
+			break;
+		case DIM_2D:
+			GL44.glClearTexSubImage(target, mipmap, x, y, 0, w, h, 0, glFormat, glType, data);
+			break;
+		case DIM_2D_ARRAY:
+			GL44.glClearTexSubImage(target, mipmap, x, y, a, w, h, ac, glFormat, glType, data);
+			break;
+		case DIM_3D:
+			GL44.glClearTexSubImage(target, mipmap, x, y, z, w, h, d, glFormat, glType, data);
+			break;
+		case CUBE:
+		case CUBE_ARRAY:
+			GL44.glClearTexSubImage(target, mipmap, x, y, a, w, h, ac, glFormat, glType, data);
+			break;
+		}
+		backend.checkErrorFine();
 	}
 
 	private Lock mapLock = new ReentrantLock();
@@ -167,25 +345,41 @@ public class GLTexture implements ZETexture {
 	private void map(ZEMapMode mode) {
 		mappingMode = mode;
 		ctx.executeExclusivly(() -> {
-			if (pixelBuf != 0) pixelBuf = GL15.glGenBuffers();
-			int target = GLValues.getGLTextureTarget(dimension);
+			// Ensure pixel buffer is ready
+			if (pixelBuf != 0) {
+				pixelBuf = GL15.glGenBuffers();
+				backend.checkErrorFine();
+			}
+			int target = GLValues.getGLTextureBindTarget(dimension);
 			switch(mode) {
 			case READ_ONLY:
 			case READ_WRITE:
+				// Unpack buffer may be read, unpack pixels
 				GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, pixelBuf);
-				GL11.glBindTexture(target, texID);
+				backend.checkErrorFine();
+				GL11.glBindTexture(target, textureObject);
+				backend.checkErrorFine();
 				GL11.glGetTexImage(target, 0, glFormat, glType, 0);
+				backend.checkErrorFine();
 				mappedMem = GL15.glMapBuffer(GL21.GL_PIXEL_PACK_BUFFER, GL15.GL_READ_ONLY);
+				backend.checkErrorFine();
 				mappedPtr = Pointer.pointerToAddress(MemoryUtil.memAddress(mappedMem));
 				GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, 0);
+				backend.checkErrorFine();
 				break;
-			case WRITE_ONLY:
+			case WRITE_ONLY: // Write-only, just initialize pixel unpack buffer
 				GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, pixelBuf);
+				backend.checkErrorFine();
+				GL15.glBufferData(GL21.GL_PIXEL_UNPACK_BUFFER, layout.size, GL15.GL_WRITE_ONLY);
+				backend.checkErrorFine();
 				mappedMem = GL15.glMapBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, GL15.GL_WRITE_ONLY);
+				backend.checkErrorFine();
 				mappedPtr = Pointer.pointerToAddress(MemoryUtil.memAddress(mappedMem));
 				GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, 0);
+				backend.checkErrorFine();
 				break;
 			}
+			backend.checkErrorCoarse("Failed to map texture memory");
 		});
 	}
 
@@ -195,26 +389,35 @@ public class GLTexture implements ZETexture {
 		try {
 			if (mappingMode != null) {
 				ctx.executeExclusivly(() -> {
-					int target = GLValues.getGLTextureTarget(dimension);
+					int target = GLValues.getGLTextureBindTarget(dimension);
 					switch(mappingMode) {
 					case READ_ONLY:
 						GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, pixelBuf);
+						backend.checkErrorFine();
 						GL15.glUnmapBuffer(GL21.GL_PIXEL_PACK_BUFFER);
+						backend.checkErrorFine();
 						GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, 0);
+						backend.checkErrorFine();
 						mappedMem = null;
 						mappedPtr = null;
 						break;
 					case WRITE_ONLY:
 					case READ_WRITE:
 						GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, pixelBuf);
+						backend.checkErrorFine();
 						GL15.glUnmapBuffer(GL21.GL_PIXEL_UNPACK_BUFFER);
+						backend.checkErrorFine();
+						GL11.glBindTexture(target, textureObject);
+						backend.checkErrorFine();
+						glTexSubImage(0, 0, 0, 0, width, height, depth, 0, arrays, 0);
+						backend.checkErrorFine();
 						GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, 0);
-						GL11.glBindTexture(target, texID);
-						GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, glFormat, width, height, 0, glFormat, glType, 0);
+						backend.checkErrorFine();
 						mappedMem = null;
 						mappedPtr = null;
 						break;
 					}
+					backend.checkErrorCoarse("Failed to unmap texture memory");
 				});
 				mappingMode = null;
 			}
@@ -295,6 +498,417 @@ public class GLTexture implements ZETexture {
 			ZETextureUsage.DEPTH_STENCIL_ATTACHMENT,
 			ZETextureUsage.INPUT_ATTACHMENT
 		};
+	}
+	
+	private boolean defaultHasAnisotropy = false;
+	private boolean defaultHasDepth = false;
+	private boolean defaultHasBounds = false;
+	private boolean mayEditDefaultSampler = true;
+
+	@Override
+	public ZESamplerSettings getDefaultSamplerSettings() {
+		return new ZESamplerSettings() {
+			
+			private ZEMipmapFilter mipFilter = ZEMipmapFilter.NEAREST;
+			private ZEFilter minFilter = ZEFilter.NEAREST;
+
+			@Override
+			public void setFilters(ZEFilter minFilter, ZEFilter magFilter) {
+				if (!mayEditDefaultSampler) return;
+				this.minFilter = minFilter;
+				ctx.executeExclusivly(() -> {
+					int target = GLValues.getGLTextureBindTarget(dimension);
+					GL11.glBindTexture(target, textureObject);
+					backend.checkErrorFine();
+					GL11.glTexParameteri(target, GL11.GL_TEXTURE_MAG_FILTER, GLValues.getGLMagFilter(magFilter));
+					backend.checkErrorFine();
+					GL11.glTexParameteri(target, GL11.GL_TEXTURE_MIN_FILTER, GLValues.getGLMinFilter(minFilter, mipFilter));
+					backend.checkErrorFine();
+					backend.checkErrorCoarse("Failed to set default sampler filters");
+				});
+			}
+
+			@Override
+			public void setMipmapFilter(ZEMipmapFilter filter) {
+				if (!mayEditDefaultSampler) return;
+				this.mipFilter = filter;
+				ctx.executeExclusivly(() -> {
+					int target = GLValues.getGLTextureBindTarget(dimension);
+					GL11.glBindTexture(target, textureObject);
+					backend.checkErrorFine();
+					GL11.glTexParameteri(target, GL11.GL_TEXTURE_MIN_FILTER, GLValues.getGLMinFilter(minFilter, filter));
+					backend.checkErrorFine();
+					backend.checkErrorCoarse("Failed to set default sampler mipmap filter");
+				});
+			}
+
+			@Override
+			public void setAddressingModes(ZEAddressingMode u, ZEAddressingMode v, ZEAddressingMode w) {
+				if (!mayEditDefaultSampler) return;
+				ctx.executeExclusivly(() -> {
+					int target = GLValues.getGLTextureBindTarget(dimension);
+					GL11.glBindTexture(target, textureObject);
+					backend.checkErrorFine();
+					GL11.glTexParameteri(target, GL11.GL_TEXTURE_WRAP_S, GLValues.getGLAddressingMode(u));
+					backend.checkErrorFine();
+					GL11.glTexParameteri(target, GL11.GL_TEXTURE_WRAP_T, GLValues.getGLAddressingMode(v));
+					backend.checkErrorFine();
+					GL11.glTexParameteri(target, GL12.GL_TEXTURE_WRAP_R, GLValues.getGLAddressingMode(w));
+					backend.checkErrorFine();
+					backend.checkErrorCoarse("Failed to set default sampler addressing modes");
+				});
+			}
+
+			@Override
+			public void setMipmapBias(float bias) {
+				if (!mayEditDefaultSampler) return;
+				ctx.executeExclusivly(() -> {
+					int target = GLValues.getGLTextureBindTarget(dimension);
+					GL11.glBindTexture(target, textureObject);
+					backend.checkErrorFine();
+					GL11.glTexParameterf(target, GL14.GL_TEXTURE_LOD_BIAS, bias);
+					backend.checkErrorFine();
+					backend.checkErrorCoarse("Failed to set default sampler mipmap bias");
+				});
+			}
+
+			@Override
+			public void setAnisotropy(boolean enable, float maxAnisotropy) {
+				if (!mayEditDefaultSampler) return;
+				defaultHasAnisotropy = enable;
+				ctx.executeExclusivly(() -> {
+					int target = GLValues.getGLTextureBindTarget(dimension);
+					GL11.glBindTexture(target, textureObject);
+					backend.checkErrorFine();
+					GL11.glTexParameterf(target, EXTTextureFilterAnisotropic.GL_TEXTURE_MAX_ANISOTROPY_EXT, enable ? maxAnisotropy : 1);
+					backend.checkErrorFine();
+					backend.checkErrorCoarse("Failed to set default sampler anisotropy");
+				});
+			}
+
+			@Override
+			public void setDepthCompare(boolean enable, ZECompareOp compareOp) {
+				if (!mayEditDefaultSampler) return;
+				defaultHasDepth = enable;
+				ctx.executeExclusivly(() -> {
+					int target = GLValues.getGLTextureBindTarget(dimension);
+					GL11.glBindTexture(target, textureObject);
+					backend.checkErrorFine();
+					if (enable) {
+						GL11.glTexParameteri(target, GL14.GL_TEXTURE_COMPARE_MODE, GL14.GL_COMPARE_R_TO_TEXTURE);
+						backend.checkErrorFine();
+						GL11.glTexParameteri(target, GL14.GL_TEXTURE_COMPARE_FUNC, GLValues.getGLCompare(compareOp));
+						backend.checkErrorFine();
+					} else {
+						GL11.glTexParameteri(target, GL14.GL_TEXTURE_COMPARE_MODE, GL11.GL_NONE);
+						backend.checkErrorFine();
+					}
+					backend.checkErrorCoarse("Failed to set default sampler depth comparison");
+				});
+			}
+
+			@Override
+			public void setMipmapBounds(float minLod, float maxLod) {
+				if (!mayEditDefaultSampler) return;
+				defaultHasBounds = true;
+				ctx.executeExclusivly(() -> {
+					int target = GLValues.getGLTextureBindTarget(dimension);
+					GL11.glBindTexture(target, textureObject);
+					backend.checkErrorFine();
+					GL11.glTexParameterf(target, GL12.GL_TEXTURE_MIN_LOD, minLod);
+					backend.checkErrorFine();
+					GL11.glTexParameterf(target, GL12.GL_TEXTURE_MAX_LOD, maxLod);
+					backend.checkErrorFine();
+					backend.checkErrorCoarse("Failed to set default sampler mipmap bounds");
+				});
+			}
+
+			@Override
+			public void setBorderColor(ZEBorderColor borderColor) {
+				if (!mayEditDefaultSampler) return;
+				ctx.executeExclusivly(() -> {
+					int target = GLValues.getGLTextureBindTarget(dimension);
+					GL11.glBindTexture(target, textureObject);
+					backend.checkErrorFine();
+					switch(borderColor) {
+					case OPAQUE_BLACK:
+						GL11.glTexParameterfv(target, GL11.GL_TEXTURE_BORDER_COLOR, new float[] { 0, 0, 0, 1});
+						backend.checkErrorFine();
+						break;
+					case TRANSPARENT_BLACK:
+						GL11.glTexParameterfv(target, GL11.GL_TEXTURE_BORDER_COLOR, new float[] { 0, 0, 0, 0});
+						backend.checkErrorFine();
+						break;
+					case TRANSPARENT_WHITE:
+						GL11.glTexParameterfv(target, GL11.GL_TEXTURE_BORDER_COLOR, new float[] { 1, 1, 1, 0});
+						backend.checkErrorFine();
+						break;
+					}
+					backend.checkErrorCoarse("Failed to set default sampler border color");
+				});
+			}
+			
+		};
+	}
+
+	private GLSampler defaultSampler;
+	
+	@Override
+	public ZESampler getDefaultSampler() {
+		mayEditDefaultSampler = false;
+		if (defaultSampler != null) defaultSampler = new GLSampler(textureObject, 0, defaultHasAnisotropy, defaultHasDepth, defaultHasBounds);
+		return defaultSampler;
+	}
+
+	private class GLSamplerBuilder implements ZESamplerBuilder {
+
+		private ZEFilter minFilter = ZEFilter.NEAREST, magFilter = ZEFilter.NEAREST;
+		
+		@Override
+		public void setFilters(ZEFilter minFilter, ZEFilter magFilter) {
+			this.minFilter = minFilter;
+			this.magFilter = magFilter;
+		}
+
+		private ZEMipmapFilter mipFilter = ZEMipmapFilter.NEAREST;
+		
+		@Override
+		public void setMipmapFilter(ZEMipmapFilter filter) {
+			mipFilter = filter;
+		}
+
+		private ZEAddressingMode modeU = ZEAddressingMode.CLAMP_TO_EDGE, modeV = ZEAddressingMode.CLAMP_TO_EDGE, modeW = ZEAddressingMode.CLAMP_TO_EDGE;
+		
+		@Override
+		public void setAddressingModes(ZEAddressingMode u, ZEAddressingMode v, ZEAddressingMode w) {
+			modeU = u;
+			modeV = v;
+			modeW = w;
+		}
+
+		private float mipBias = 0;
+		
+		@Override
+		public void setMipmapBias(float bias) {
+			mipBias = bias;
+		}
+
+		private boolean anisotropy = false;
+		private float maxAnisotropy = 1;
+		
+		@Override
+		public void setAnisotropy(boolean enable, float maxAnisotropy) {
+			anisotropy = enable;
+			this.maxAnisotropy = maxAnisotropy;
+		}
+		
+		private boolean depthCompare = false;
+		private ZECompareOp depthOp = ZECompareOp.ALWAYS;
+
+		@Override
+		public void setDepthCompare(boolean enable, ZECompareOp compareOp) {
+			depthCompare = enable;
+			depthOp = compareOp;
+		}
+
+		private boolean hasBounds = false;
+		private float minLod, maxLod;
+		
+		@Override
+		public void setMipmapBounds(float minLod, float maxLod) {
+			this.minLod = minLod;
+			this.maxLod = maxLod;
+			hasBounds = true;
+		}
+		
+		private ZEBorderColor borderColor = ZEBorderColor.TRANSPARENT_BLACK;
+
+		@Override
+		public void setBorderColor(ZEBorderColor borderColor) {
+			this.borderColor = borderColor;
+		}
+
+		@Override
+		public ZESampler build() {
+			ctx.bindExclusively();
+			int sampler = GL33.glGenSamplers();
+			backend.checkErrorFine();
+			GL33.glSamplerParameteri(sampler, GL11.GL_TEXTURE_MIN_FILTER, GLValues.getGLMinFilter(minFilter, mipFilter));
+			backend.checkErrorFine();
+			GL33.glSamplerParameteri(sampler, GL11.GL_TEXTURE_MAG_FILTER, GLValues.getGLMagFilter(magFilter));
+			backend.checkErrorFine();
+			GL33.glSamplerParameteri(sampler, GL11.GL_TEXTURE_WRAP_S, GLValues.getGLAddressingMode(modeU));
+			backend.checkErrorFine();
+			GL33.glSamplerParameteri(sampler, GL11.GL_TEXTURE_WRAP_T, GLValues.getGLAddressingMode(modeV));
+			backend.checkErrorFine();
+			GL33.glSamplerParameteri(sampler, GL12.GL_TEXTURE_WRAP_R, GLValues.getGLAddressingMode(modeW));
+			backend.checkErrorFine();
+			GL33.glSamplerParameterf(sampler, GL14.GL_TEXTURE_LOD_BIAS, mipBias);
+			backend.checkErrorFine();
+			if (anisotropy) {
+				GL33.glSamplerParameterf(sampler, EXTTextureFilterAnisotropic.GL_TEXTURE_MAX_ANISOTROPY_EXT, maxAnisotropy);
+				backend.checkErrorFine();
+			}
+			if (depthCompare) {
+				GL33.glSamplerParameteri(sampler, GL14.GL_TEXTURE_COMPARE_MODE, GL14.GL_COMPARE_R_TO_TEXTURE);
+				backend.checkErrorFine();
+				GL33.glSamplerParameteri(sampler, GL14.GL_TEXTURE_COMPARE_FUNC, GLValues.getGLCompare(depthOp));
+				backend.checkErrorFine();
+			}
+			if (hasBounds) {
+				GL33.glSamplerParameterf(sampler, GL12.GL_TEXTURE_MIN_LOD, minLod);
+				backend.checkErrorFine();
+				GL33.glSamplerParameterf(sampler, GL12.GL_TEXTURE_MAX_LOD, maxLod);
+				backend.checkErrorFine();
+			}
+			switch(borderColor) {
+			case OPAQUE_BLACK:
+				GL33.glSamplerParameterfv(sampler, GL11.GL_TEXTURE_BORDER_COLOR, new float[] { 0, 0, 0, 1});
+				backend.checkErrorFine();
+				break;
+			case TRANSPARENT_BLACK:
+				GL33.glSamplerParameterfv(sampler, GL11.GL_TEXTURE_BORDER_COLOR, new float[] { 0, 0, 0, 0});
+				backend.checkErrorFine();
+				break;
+			case TRANSPARENT_WHITE:
+				GL33.glSamplerParameterfv(sampler, GL11.GL_TEXTURE_BORDER_COLOR, new float[] { 1, 1, 1, 0});
+				backend.checkErrorFine();
+				break;
+			}
+			backend.checkErrorCoarse("Failed to create new sampler object");
+			ctx.unbindExclusively();
+			return new GLSampler(textureObject, sampler, anisotropy, depthCompare, hasBounds);
+		}
+		
+	}
+	
+	@Override
+	public ZESamplerBuilder createSamplerBuilder() {
+		return new GLSamplerBuilder();
+	}
+
+	@Override
+	public ZESampler duplicateSampler(ZESampler other) {
+		GLSampler glother = (GLSampler)other;
+		
+		int minFilter, magFilter;
+		int modeS, modeT, modeR;
+		float mipBias;
+		float anisotropy = 1;
+		int depthCompareOp = GL11.GL_ALWAYS;
+		float minLod = -1000, maxLod = 1000;
+		float[] borderColor = new float[4];
+		
+		ctx.bindExclusively();
+		
+		if (glother.samplerObject == 0) { // Texture sampler
+			int target = GLValues.getGLTextureBindTarget(dimension);
+			minFilter = GL11.glGetTexParameteri(target, GL11.GL_TEXTURE_MIN_FILTER);
+			backend.checkErrorFine();
+			magFilter = GL11.glGetTexParameteri(target, GL11.GL_TEXTURE_MAG_FILTER);
+			backend.checkErrorFine();
+			modeS = GL11.glGetTexParameteri(target, GL11.GL_TEXTURE_WRAP_S);
+			backend.checkErrorFine();
+			modeT = GL11.glGetTexParameteri(target, GL11.GL_TEXTURE_WRAP_T);
+			backend.checkErrorFine();
+			modeR = GL11.glGetTexParameteri(target, GL12.GL_TEXTURE_WRAP_R);
+			backend.checkErrorFine();
+			mipBias = GL11.glGetTexParameterf(target, GL14.GL_TEXTURE_LOD_BIAS);
+			backend.checkErrorFine();
+			if (glother.hasAnisotropy) {
+				anisotropy = GL11.glGetTexParameterf(target, EXTTextureFilterAnisotropic.GL_TEXTURE_MAX_ANISOTROPY_EXT);
+				backend.checkErrorFine();
+			}
+			if (glother.hasDepthCompare) {
+				depthCompareOp = GL11.glGetTexParameteri(target, GL14.GL_TEXTURE_COMPARE_FUNC);
+				backend.checkErrorFine();
+			}
+			if (glother.hasMinMaxLod) {
+				minLod = GL11.glGetTexParameterf(target, GL12.GL_TEXTURE_MIN_LOD);
+				backend.checkErrorFine();
+				maxLod = GL11.glGetTexParameterf(target, GL12.GL_TEXTURE_MAX_LOD);
+				backend.checkErrorFine();
+			}
+			GL11.glGetTexParameterfv(target, GL11.GL_TEXTURE_BORDER_COLOR, borderColor);
+			backend.checkErrorFine();
+		} else { // Sampler object
+			int sampler = glother.samplerObject;
+			minFilter = GL33.glGetSamplerParameteri(sampler, GL11.GL_TEXTURE_MIN_FILTER);
+			backend.checkErrorFine();
+			magFilter = GL33.glGetSamplerParameteri(sampler, GL11.GL_TEXTURE_MAG_FILTER);
+			backend.checkErrorFine();
+			modeS = GL33.glGetSamplerParameteri(sampler, GL11.GL_TEXTURE_WRAP_S);
+			backend.checkErrorFine();
+			modeT = GL33.glGetSamplerParameteri(sampler, GL11.GL_TEXTURE_WRAP_T);
+			backend.checkErrorFine();
+			modeR = GL33.glGetSamplerParameteri(sampler, GL12.GL_TEXTURE_WRAP_R);
+			backend.checkErrorFine();
+			mipBias = GL33.glGetSamplerParameterf(sampler, GL14.GL_TEXTURE_LOD_BIAS);
+			backend.checkErrorFine();
+			if (glother.hasAnisotropy) {
+				anisotropy = GL33.glGetSamplerParameterf(sampler, EXTTextureFilterAnisotropic.GL_TEXTURE_MAX_ANISOTROPY_EXT);
+				backend.checkErrorFine();
+			}
+			if (glother.hasDepthCompare) {
+				depthCompareOp = GL33.glGetSamplerParameteri(sampler, GL14.GL_TEXTURE_COMPARE_FUNC);
+				backend.checkErrorFine();
+			}
+			if (glother.hasMinMaxLod) {
+				minLod = GL33.glGetSamplerParameterf(sampler, GL12.GL_TEXTURE_MIN_LOD);
+				backend.checkErrorFine();
+				maxLod = GL33.glGetSamplerParameterf(sampler, GL12.GL_TEXTURE_MAX_LOD);
+				backend.checkErrorFine();
+			}
+			GL33.glGetSamplerParameterfv(sampler, GL11.GL_TEXTURE_BORDER_COLOR, borderColor);
+			backend.checkErrorFine();
+		}
+		
+		int sampler = GL33.glGenSamplers();
+		backend.checkErrorFine();
+		GL33.glSamplerParameteri(sampler, GL11.GL_TEXTURE_MIN_FILTER, minFilter);
+		backend.checkErrorFine();
+		GL33.glSamplerParameteri(sampler, GL11.GL_TEXTURE_MAG_FILTER, magFilter);
+		backend.checkErrorFine();
+		GL33.glSamplerParameteri(sampler, GL11.GL_TEXTURE_WRAP_S, modeS);
+		backend.checkErrorFine();
+		GL33.glSamplerParameteri(sampler, GL11.GL_TEXTURE_WRAP_T, modeT);
+		backend.checkErrorFine();
+		GL33.glSamplerParameteri(sampler, GL12.GL_TEXTURE_WRAP_R, modeR);
+		backend.checkErrorFine();
+		GL33.glSamplerParameterf(sampler, GL14.GL_TEXTURE_LOD_BIAS, mipBias);
+		backend.checkErrorFine();
+		if (glother.hasAnisotropy) {
+			GL33.glSamplerParameterf(sampler, EXTTextureFilterAnisotropic.GL_TEXTURE_MAX_ANISOTROPY_EXT, anisotropy);
+			backend.checkErrorFine();
+		}
+		if (glother.hasDepthCompare) {
+			GL33.glSamplerParameteri(sampler, GL14.GL_TEXTURE_COMPARE_MODE, GL14.GL_COMPARE_R_TO_TEXTURE);
+			backend.checkErrorFine();
+			GL33.glSamplerParameteri(sampler, GL14.GL_TEXTURE_COMPARE_FUNC, depthCompareOp);
+			backend.checkErrorFine();
+		}
+		if (glother.hasMinMaxLod) {
+			GL33.glSamplerParameterf(sampler, GL12.GL_TEXTURE_MIN_LOD, minLod);
+			backend.checkErrorFine();
+			GL33.glSamplerParameterf(sampler, GL12.GL_TEXTURE_MAX_LOD, maxLod);
+			backend.checkErrorFine();
+		}
+		GL33.glSamplerParameterfv(sampler, GL11.GL_TEXTURE_BORDER_COLOR, borderColor);
+		backend.checkErrorFine();
+		backend.checkErrorCoarse("Failed to duplicate sampler");
+		
+		ctx.unbindExclusively();
+		return new GLSampler(textureObject, sampler, glother.hasAnisotropy, glother.hasDepthCompare, glother.hasMinMaxLod);
+	}
+
+	@Override
+	public int getArrayLayers() {
+		return arrays;
+	}
+
+	@Override
+	public int getMipmapLevels() {
+		return mipmaps;
 	}
 	
 }

@@ -32,11 +32,61 @@ public class GLNativeContext implements GLContext {
 	
 	private Lock bindLock = new ReentrantLock();
 	
+	private GLNativeContext() { }
+	
+	private GLNativeContext(long context, long aux0, long aux1) {
+		this.context = context;
+		this.auxiliary0 = aux0;
+		this.auxiliary1 = aux1;
+	}
+	
+	/** Gets a native context with the given handles. The values of these
+	 * handles are platform dependent:
+	 * <ul>
+	 * <li><b>Windows:</b></br>
+	 * <i>context</i> - <b>HGLRC</b> of current context</br>
+	 * <i>aux0</i> - <b>HDC</b> of current render target</br>
+	 * </li>
+	 * <li><b>Linux:</b></br>
+	 * <i>context</i> - <b>GLXContext</b> of current context</br>
+	 * <i>aux0</i> - <b>Display*</b> of current render target</br>
+	 * <i>aux1</i> - <b>GLXDrawable</b> of current render target</br>
+	 * </li>
+	 * <li><b>MacOS X</b></br>
+	 * <i>context</i> - <b>CGLContextObj</b> of current context</br>
+	 * </li>
+	 * </ul>
+	 * Only the <i>context</i> parameter is used to lookup the context, but because
+	 * this may need to create a new context object, the auxiliary handles required
+	 * for constructing a native context are also necessary.
+	 * 
+	 * @param context The OpenGL context object
+	 * @param aux0 First auxiliary handle
+	 * @param aux1 Second auxiliary handle
+	 */
+	public static GLNativeContext getContext(long context, long aux0, long aux1) {
+		GLNativeContext ctx = nativeContexts.get(Long.valueOf(context));
+		if (ctx == null) {
+			ctx = new GLNativeContext(context, aux0, aux1);
+			nativeContexts.put(Long.valueOf(context), ctx);
+		}
+		return ctx;
+	}
+	
+	/** Gets an existing native context based on its native context handle.
+	 * 
+	 * @param context Native context handle
+	 * @return Native context bound to handle, or <b>null</b>
+	 */
+	public static GLNativeContext getExistingContext(long context) {
+		return nativeContexts.get(Long.valueOf(context));
+	}
+	
 	/** Gets the native OpenGL context for the current thread.
 	 * 
 	 * @return Current context
 	 */
-	public static GLNativeContext getNativeContext() {
+	public static GLNativeContext getCurrentContext() {
 		long ctx;
 		GLNativeContext nctx = null;
 		switch(Platform.get()) {
@@ -129,8 +179,11 @@ public class GLNativeContext implements GLContext {
 	public void executeExclusivly(Runnable r) {
 		bindLock.lock();
 		if (!isBound()) bind();
-		r.run();
-		bindLock.unlock();
+		try {
+			r.run();
+		} finally {
+			bindLock.unlock();
+		}
 	}
 	
 	/** Acquires a lock on the context and binds it to the current thread.
@@ -147,6 +200,11 @@ public class GLNativeContext implements GLContext {
 	 */
 	public void unbindExclusively() {
 		bindLock.unlock();
+	}
+
+	@Override
+	public GLNativeContext getNativeContext() {
+		return this;
 	}
 	
 }

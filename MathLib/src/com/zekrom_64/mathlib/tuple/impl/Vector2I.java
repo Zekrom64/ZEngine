@@ -159,5 +159,11 @@ public class Vector2I extends ScalarInt implements Vector2<Integer> {
 		x = (int)op.applyAsDouble(x);
 		y = (int)op.applyAsDouble(y);
 	}
+	
+	public boolean equals(Vector2I other) {
+		return
+				x == other.x &&
+				y == other.y;
+	}
 
 }

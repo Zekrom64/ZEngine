@@ -34,8 +34,6 @@ public class GLCanvas extends Canvas implements GLContext {
 	private long dpy = 0;
 	private long win = 0;
 	
-	private Platform platform = Platform.get();
-	
 	/** <p>Creates a new OpenGL context for this canvas. If a context
 	 * already exists, it is destroyed.</p>
 	 * 
@@ -53,7 +51,7 @@ public class GLCanvas extends Canvas implements GLContext {
 	 */
 	@SuppressWarnings({ "unchecked", "deprecation" })
 	public void initGLShared(long ctx) {
-		if (platform==Platform.WINDOWS) {
+		if (Platform.get()==Platform.WINDOWS) {
 			WComponentPeer peer = (WComponentPeer)this.getPeer();
 			long hWnd = peer.getHWnd();
 			
@@ -103,7 +101,7 @@ public class GLCanvas extends Canvas implements GLContext {
 	 * 
 	 */
 	public void deinitGL() {
-		if (platform==Platform.WINDOWS) {
+		if (Platform.get()==Platform.WINDOWS) {
 			WGL.wglMakeCurrent(hdc, 0);
 			WGL.wglDeleteContext(glcontext);
 			
@@ -123,7 +121,7 @@ public class GLCanvas extends Canvas implements GLContext {
 	
 	@Override
 	public void swapBuffers() {
-		if (platform==Platform.WINDOWS) {
+		if (Platform.get()==Platform.WINDOWS) {
 			GDI32.SwapBuffers(hdc);
 		} else {
 			GLX.glXSwapBuffers(dpy, win);
@@ -133,7 +131,7 @@ public class GLCanvas extends Canvas implements GLContext {
 	@SuppressWarnings({ "deprecation", "unchecked" })
 	@Override
 	public void bind() {
-		if (platform==Platform.WINDOWS) {
+		if (Platform.get()==Platform.WINDOWS) {
 			com.zekrom_64.ze.nat.win.WGL.wglMakeCurrent(
 					(Pointer<HDC>)Pointer.pointerToAddress(hdc),
 					(Pointer<HGLRC>)Pointer.pointerToAddress(glcontext)
@@ -158,8 +156,17 @@ public class GLCanvas extends Canvas implements GLContext {
 
 	@Override
 	public boolean isBound() {
-		if (platform==Platform.WINDOWS) return WGL.wglGetCurrentContext() == glcontext;
+		if (Platform.get()==Platform.WINDOWS) return WGL.wglGetCurrentContext() == glcontext;
 		else return GLX.glXGetCurrentContext() == glcontext;
+	}
+
+	@Override
+	public GLNativeContext getNativeContext() {
+		if (Platform.get()==Platform.WINDOWS) {
+			return GLNativeContext.getContext(glcontext, hdc, 0);
+		} else {
+			return GLNativeContext.getContext(glcontext, dpy, win);
+		}
 	}
 
 }

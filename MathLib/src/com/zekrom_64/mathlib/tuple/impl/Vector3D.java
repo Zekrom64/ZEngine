@@ -109,5 +109,12 @@ public class Vector3D extends Vector2D {
 		y = op.applyAsDouble(y);
 		z = op.applyAsDouble(z);
 	}
+	
+	public boolean equals(Vector3D other) {
+		return
+				x == other.x &&
+				y == other.y &&
+				z == other.z;
+	}
 
 }

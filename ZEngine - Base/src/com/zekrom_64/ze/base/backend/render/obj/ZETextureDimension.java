@@ -37,11 +37,14 @@ public enum ZETextureDimension {
 	public final boolean isArray;
 	/** The number of dimensions used by the texture. */
 	public final int numDimensions;
+	/** The number of dimensions used when sampling the texture (excluding array layers). */
+	public final int numSampleDimensions;
 	
 	private ZETextureDimension(boolean cube, boolean array, int dims) {
 		isCubemap = cube;
 		isArray = array;
 		numDimensions = dims;
+		numSampleDimensions = dims - (array || cube ? 1 : 0);
 	}
 	
 	private ZETextureDimension(int dims) {

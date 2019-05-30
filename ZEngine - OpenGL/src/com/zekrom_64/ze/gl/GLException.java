@@ -40,7 +40,7 @@ public class GLException extends ZERenderException {
 	}
 	
 	public GLException(String msg, int err) {
-		super(msg + getGLError(err));
+		super(msg + " " + getGLError(err));
 	}
 	
 	public GLException(String msg, Throwable cause) {

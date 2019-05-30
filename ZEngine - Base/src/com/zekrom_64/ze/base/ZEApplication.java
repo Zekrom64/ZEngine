@@ -14,8 +14,10 @@ import com.zekrom_64.ze.base.err.ZEngineInternalException;
  * boiler plate code.
  * 
  * @author Zekrom_64
+ * @deprecated Applications should manage their components on their own
  *
  */
+@Deprecated
 public abstract class ZEApplication {
 	
 	private static ZEApplication mainApplication = null;

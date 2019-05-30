@@ -2,7 +2,7 @@ package com.zekrom_64.ze.voxel.blocktypes;
 
 import java.util.Random;
 
-import com.zekrom_64.ze.voxel.world.ZEWorld;
+import com.zekrom_64.ze.voxel.cartesian.ZECartesianWorld;
 
 /** Interface for blocks that are growable like a plant
  * 
@@ -19,6 +19,6 @@ public interface ZEBlockGrowable {
 	 * @param z THe Z coordinate of the block
 	 * @param rand Random number source
 	 */
-	public void onGrowTick(ZEWorld w, int x, int y, int z, Random rand);
+	public void onGrowTick(ZECartesianWorld w, int x, int y, int z, Random rand);
 	
 }

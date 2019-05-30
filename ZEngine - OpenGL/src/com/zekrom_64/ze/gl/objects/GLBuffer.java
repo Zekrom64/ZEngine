@@ -10,6 +10,7 @@ import com.zekrom_64.ze.base.backend.render.obj.ZEBuffer;
 import com.zekrom_64.ze.base.backend.render.obj.ZEGraphicsMemory;
 import com.zekrom_64.ze.base.mem.ZEMapMode;
 import com.zekrom_64.ze.gl.GLNativeContext;
+import com.zekrom_64.ze.gl.GLRenderBackend;
 
 /** OpenGL implementation of a {@link ZEGraphicsMemory}.
  * 
@@ -22,11 +23,17 @@ public class GLBuffer implements ZEBuffer {
 	public final int bufferObject;
 	private ByteBuffer mappedBuffer;
 	private Pointer<?> mappedPointer;
-	private GLNativeContext context;
+	private long size = 0;
 	
-	public GLBuffer(int buf) {
+	
+	private final GLNativeContext context;
+	private final GLRenderBackend backend;
+	
+	public GLBuffer(GLRenderBackend backend, int buf, long size) {
 		this.bufferObject = buf;
-		context = GLNativeContext.getNativeContext();
+		this.backend = backend;
+		this.context = backend.getNativeContext();
+		this.size = size;
 	}
 	
 	@Override
@@ -43,24 +50,32 @@ public class GLBuffer implements ZEBuffer {
 	
 	@SuppressWarnings("deprecation")
 	private void ensureMapped(ZEMapMode mode) {
-		context.ensureBound();
-		GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, bufferObject);
-		int mapmode = 0;
-		switch(mode) {
-		case READ_ONLY: mapmode = GL15.GL_READ_ONLY; break;
-		case WRITE_ONLY: mapmode = GL15.GL_WRITE_ONLY; break;
-		case READ_WRITE: mapmode = GL15.GL_READ_WRITE;
-		}
-		mappedBuffer = GL15.glMapBuffer(GL15.GL_ARRAY_BUFFER, mapmode);
+		context.executeExclusivly(() -> {
+			GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, bufferObject);
+			backend.checkErrorFine();
+			int mapmode = 0;
+			switch(mode) {
+			case READ_ONLY: mapmode = GL15.GL_READ_ONLY; break;
+			case WRITE_ONLY: mapmode = GL15.GL_WRITE_ONLY; break;
+			case READ_WRITE: mapmode = GL15.GL_READ_WRITE;
+			}
+			mappedBuffer = GL15.glMapBuffer(GL15.GL_ARRAY_BUFFER, mapmode);
+			backend.checkErrorFine();
+			backend.checkErrorCoarse("Failed to map buffer memory");
+		});
 		mappedPointer = Pointer.pointerToAddress(MemoryUtil.memAddress(mappedBuffer));
 	}
 
 	@Override
 	public void unmapMemory() {
 		if (mappedBuffer != null) {
-			context.ensureBound();
-			GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, bufferObject);
-			GL15.glUnmapBuffer(GL15.GL_ARRAY_BUFFER);
+			context.executeExclusivly(() -> {
+				GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, bufferObject);
+				backend.checkErrorFine();
+				GL15.glUnmapBuffer(GL15.GL_ARRAY_BUFFER);
+				backend.checkErrorFine();
+				backend.checkErrorCoarse("Failed to unmap buffer memory");
+			});
 			mappedBuffer = null;
 			mappedPointer = null;
 		}
@@ -78,13 +93,7 @@ public class GLBuffer implements ZEBuffer {
 
 	@Override
 	public long size() {
-		context.bindExclusively();
-		try {
-			GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, bufferObject);
-			return GL15.glGetBufferParameteri(GL15.GL_ARRAY_BUFFER, GL15.GL_BUFFER_SIZE);
-		} finally {
-			context.unbindExclusively();
-		}
+		return size;
 	}
 
 	@Override

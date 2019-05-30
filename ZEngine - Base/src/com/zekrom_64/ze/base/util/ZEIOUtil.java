@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 
-import com.zekrom_64.ze.base.mem.ByteQueue;
+import com.zekrom_64.ze.base.mem.ZEByteQueue;
 
 /** Class for I/O utility methods.
  * 
@@ -34,7 +34,7 @@ public class ZEIOUtil {
 	 * @throws IOException If an IOException occurred
 	 */
 	public static byte[] readFully(InputStream s) throws IOException {
-		ByteQueue queue = new ByteQueue();
+		ZEByteQueue queue = new ZEByteQueue();
 		byte[] buffer = new byte[2048];
 		int read = 0;
 		while((read = s.read(buffer))!=-1) queue.put(buffer, 0, read);

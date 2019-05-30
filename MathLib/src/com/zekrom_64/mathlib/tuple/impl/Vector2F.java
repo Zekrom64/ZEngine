@@ -163,5 +163,11 @@ public class Vector2F extends ScalarFloat {
 		x = (float)op.applyAsDouble(x);
 		y = (float)op.applyAsDouble(y);
 	}
+	
+	public boolean equals(Vector2F other) {
+		return
+				x == other.x &&
+				y == other.y;
+	}
 
 }

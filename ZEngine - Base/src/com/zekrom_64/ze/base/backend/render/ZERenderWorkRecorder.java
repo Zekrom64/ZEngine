@@ -7,20 +7,20 @@ import com.zekrom_64.mathlib.tuple.impl.Vector3I;
 import com.zekrom_64.ze.base.backend.render.obj.ZEBuffer;
 import com.zekrom_64.ze.base.backend.render.obj.ZEColorClearValue;
 import com.zekrom_64.ze.base.backend.render.obj.ZEFramebuffer;
-import com.zekrom_64.ze.base.backend.render.obj.ZEIndexBuffer;
 import com.zekrom_64.ze.base.backend.render.obj.ZERenderEvent;
 import com.zekrom_64.ze.base.backend.render.obj.ZERenderPass;
+import com.zekrom_64.ze.base.backend.render.obj.ZESampler.ZEFilter;
 import com.zekrom_64.ze.base.backend.render.obj.ZETexture;
+import com.zekrom_64.ze.base.backend.render.obj.ZETexture.ZETextureLayer;
 import com.zekrom_64.ze.base.backend.render.obj.ZETexture.ZETextureLayout;
 import com.zekrom_64.ze.base.backend.render.obj.ZETexture.ZETextureRange;
-import com.zekrom_64.ze.base.backend.render.obj.ZEVertexBuffer;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEAccessType;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEFrontBack;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipeline;
-import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipeline.ZEVertexInput;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBindSet;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBuilder.ZEViewport;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineStage;
+import com.zekrom_64.ze.base.util.ZEPrimitiveType;
 
 /** A render work recorder implements a way to record a series of commands to be
  * issued to a render backend. Values provided to record commands can be safely
@@ -170,25 +170,19 @@ public interface ZERenderWorkRecorder {
 	 */
 	public void bindPipelineBindSet(ZEPipelineBindSet bindSet);
 	
-	/** Binds a vertex buffer to a vertex input in the pipeline.
-	 * 
-	 * @param bindPoint Vertex input point
-	 * @param buffer Vertex buffer to bind
-	 */
-	public void bindVertexBuffer(ZEVertexInput bindPoint, ZEVertexBuffer buffer);
-	
 	/** Binds several vertex buffers to a vertex input in the pipeline.
 	 * 
 	 * @param firstBindPoint The starting binding point to use
 	 * @param buffers Vertex buffers to bind
 	 */
-	public void bindVertexBuffers(ZEVertexInput firstBindPoint, ZEVertexBuffer ... buffers);
+	public void bindVertexBuffers(int firstBindPoint, ZEBuffer ... buffers);
 	
 	/** Binds an index buffer for rendering.
 	 * 
 	 * @param buffer Index buffer
+	 * @param indexType The type of index to use
 	 */
-	public void bindIndexBuffer(ZEIndexBuffer buffer);
+	public void bindIndexBuffer(ZEBuffer buffer, ZEPrimitiveType indexType);
 	
 	// ------[Rendering]------
 	
@@ -412,17 +406,25 @@ public interface ZERenderWorkRecorder {
 	 * @param dstPos Destination position
 	 * @param size Block size
 	 */
-	public void blitBuffer(ZEBuffer src, ZEBuffer dst, int srcPos, int dstPos, int size);
+	public void blitBuffer(ZEBuffer src, ZEBuffer dst, long srcPos, long dstPos, long size);
 	
 	/** Performs a block transfer from one texture to another.
 	 * 
 	 * @param srcTex Source texture
+	 * @param srcLayer Source texture layer
+	 * @param srcLayout Source texture layout
+	 * @param srcPos Source position
+	 * @param srcSize Source blit area size
 	 * @param dstTex Destination texture
-	 * @param src Source position
-	 * @param dst Destination position
-	 * @param size Transfer size
+	 * @param dstLayer Destination texture layer
+	 * @param dstLayout Destination texture layout
+	 * @param dstPos Destination position
+	 * @param dstSize Destination blit area size
+	 * @param filter Filter to apply if scaling
 	 */
-	public void blitTexture(ZETexture srcTex, ZETexture dstTex, Vector3I src, Vector3I dst, Vector3I size);
+	public void blitTexture(ZETexture srcTex, ZETextureLayer srcLayer, ZETextureLayout srcLayout, Vector3I srcPos, Vector3I srcSize,
+			ZETexture dstTex, ZETextureLayer dstLayer, ZETextureLayout dstLayout, Vector3I dstPos, Vector3I dstSize,
+			ZEFilter filter);
 	
 	/** Clears a buffer region to the given value. Some backends might optimize this depending on
 	 * alignment and value size (ex. Vulkan backends will use vkCmdFillBuffer if the command
@@ -448,18 +450,18 @@ public interface ZERenderWorkRecorder {
 	public void clearTexture(ZETexture tex, Vector3I start, Vector3I size, ZETextureRange range, ZEColorClearValue color);
 	
 	/** Transfers data from an image to a buffer. Some backends will optimize this into a native
-	 * command or optimize it depending on the image area and buffer segment.
+	 * command or optimize it depending on the image area and buffer segment. 
 	 * 
 	 * @param src Source texture
 	 * @param srcPos Source position
 	 * @param srcSize Source size
-	 * @param srcRange Source range
+	 * @param srcLayer Source layer
 	 * @param dst Destination buffer
 	 * @param dstOffset Destination offset
 	 * @param dstRowLength Row length in the buffer in texels
 	 * @param dstHeight Height length in the buffer in texels
 	 */
-	public void imageToBuffer(ZETexture src, Vector3I srcPos, Vector3I srcSize, ZETextureRange srcRange, ZEBuffer dst, int dstOffset, int dstRowLength, int dstHeight);
+	public void imageToBuffer(ZETexture src, Vector3I srcPos, Vector3I srcSize, ZETextureLayer srcLayer, ZEBuffer dst, int dstOffset, int dstRowLength, int dstHeight);
 	
 	/** Transfers data from a buffer to an image. Some backends will optimize this into a native
 	 * command or optimize it depending on the image area and buffer segment.
@@ -471,9 +473,9 @@ public interface ZERenderWorkRecorder {
 	 * @param dst Destination texture
 	 * @param dstPos Destination position
 	 * @param dstSize Destination size
-	 * @param dstRange Destination range
+	 * @param dstLayer Destination layer
 	 */
-	public void bufferToImage(ZEBuffer src, int srcOffset, int srcRowLength, int srcHeight, ZETexture dst, Vector3I dstPos, Vector3I dstSize, ZETextureRange dstRange);
+	public void bufferToImage(ZEBuffer src, int srcOffset, int srcRowLength, int srcHeight, ZETexture dst, Vector3I dstPos, Vector3I dstSize, ZETextureLayer dstLayer);
 	
 	/** Uploads data to a render backend buffer from a local buffer. Some backends may have
 	 * limits on the size of data uploaded.
@@ -492,6 +494,14 @@ public interface ZERenderWorkRecorder {
 	 * @param newLayout New texture layout
 	 */
 	public void transitionTextureLayout(ZETexture tex, ZETextureLayout oldLayout, ZETextureLayout newLayout);
+	
+	/** Generates mipmaps for the given texture based on the base level
+	 * of detail. The generation algorithm is implementation dependent, but
+	 * usable across APIs.
+	 * 
+	 * @param tex Texture to generate mipmaps for
+	 */
+	public void generateMipmaps(ZETexture tex);
 	
 	// ------[Presentation]------
 	

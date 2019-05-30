@@ -5,33 +5,11 @@ import java.util.Set;
 import com.zekrom_64.mathlib.shape.Rectangle;
 import com.zekrom_64.mathlib.shape.RectanglePosSizeDouble;
 import com.zekrom_64.ze.base.backend.render.ZEGeometryType;
+import com.zekrom_64.ze.base.backend.render.obj.ZECompareOp;
 import com.zekrom_64.ze.base.backend.render.shader.ZEShaderProgram;
+import com.zekrom_64.ze.base.image.ZEPixelFormat;
 
 public interface ZEPipelineBuilder {
-	
-	/** A compare op specifies how values are compared for a rendering test.
-	 * 
-	 * @author Zekrom_64
-	 *
-	 */
-	public enum ZECompareOp {
-		/** The depth test always fails */
-		NEVER,
-		/** The depth test always succeeds */
-		ALWAYS,
-		/** The test succeeds if the new depth value is less than the existing depth value */
-		LESS,
-		/** The test succeeds if the new depth value is less than or equal to the existing depth value */
-		LESS_OR_EQUAL,
-		/** The test succeeds if the new depth value is greater than the existing depth value */
-		GREATER,
-		/** The test succeeds if the new depth value is greater than or equal to the existing depth value */
-		GREATER_OR_EQUAL,
-		/** The test succeeds if the new depth value is equal to the existing depth value */
-		EQUAL,
-		/** The test succeeds if the new depth value is not equal to the existing depth value */
-		NOT_EQUAL
-	}
 	
 	// -----------
 	// | SHADERS |
@@ -61,6 +39,79 @@ public interface ZEPipelineBuilder {
 	 */
 	public void setPrimitiveRestartEnable(boolean enable);
 	
+	/** A vertex attribute describes where specific value read from a vertex buffer
+	 * and supplied to shaders.
+	 * 
+	 * @author Zekrom_64
+	 *
+	 */
+	public static class ZEVertexAttribute {
+		
+		/** The location number for using this attribute in shaders. */
+		public int location;
+		/** The format of the attribute read from the buffer. */
+		public ZEPixelFormat format;
+		/** The offset of this attribute from the start of an element in the vertex binding. */
+		public int offset;
+		
+		public ZEVertexAttribute() {}
+		
+		public ZEVertexAttribute(int location, ZEPixelFormat format, int offset) {
+			this.location = location;
+			this.format = format;
+			this.offset = offset;
+		}
+		
+	}
+	
+	/** A vertex input rate determines how often vertex attributes are read.
+	 * 
+	 * @author Zekrom_64
+	 *
+	 */
+	public enum ZEVertexInputRate {
+		/** The attribute is read for every vertex drawn. */
+		PER_VERTEX,
+		/** The attribute is read for every instance in instanced rendering. The
+		 * render backend must support {@link com.zekrom_64.ze.base.backend.render.ZERenderBackend#FEATURE_PER_INSTANCE_VERTEX_BINDING
+		 * FEATURE_PER_INSTANCE_VERTEX_BINDING} to use this. */
+		PER_INSTANCE
+	}
+	
+	/** A vertex binding describes a binding for a vertex buffer that can supply
+	 * vertex attributes to the pipeline.
+	 * 
+	 * @author Zekrom_64
+	 *
+	 */
+	public static class ZEVertexBinding {
+		
+		/** The binding number of the vertex binding. */
+		public int binding;
+		/** The distance between vertices in the buffer. */
+		public int stride;
+		/** The input rate that vertex attributes are read at. */
+		public ZEVertexInputRate inputRate;
+		/** The attributes for this binding. */
+		public ZEVertexAttribute[] attributes;
+		
+		public ZEVertexBinding() {}
+		
+		public ZEVertexBinding(int binding, int stride, ZEVertexInputRate inputRate, ZEVertexAttribute ... attributes) {
+			this.binding = binding;
+			this.stride = stride;
+			this.inputRate = inputRate;
+			this.attributes = attributes;
+		}
+		
+	}
+	
+	/** Sets the vertex input bindings describing how vertices will be read.
+	 * 
+	 * @param bindings Vertex input bindings
+	 */
+	public void setVertexInput(ZEVertexBinding ... bindings);
+	
 	// ------------------
 	// | VIEWPORT STATE |
 	// ------------------
@@ -80,6 +131,14 @@ public interface ZEPipelineBuilder {
 		public double maxDepth = 0;
 		/** Viewport framebuffer area */
 		public final RectanglePosSizeDouble area = new RectanglePosSizeDouble();
+		
+		public ZEViewport() {}
+		
+		public ZEViewport(Rectangle area, double minDepth, double maxDepth) {
+			this.minDepth = minDepth;
+			this.maxDepth = maxDepth;
+			area.set(area);
+		}
 		
 	}
 	

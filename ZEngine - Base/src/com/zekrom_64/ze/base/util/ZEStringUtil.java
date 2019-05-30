@@ -2,6 +2,11 @@ package com.zekrom_64.ze.base.util;
 
 import java.util.Arrays;
 
+/** Collection of methods for operating on strings.
+ * 
+ * @author Zekrom_64
+ *
+ */
 public class ZEStringUtil {
 
 	/** Converts a string into a comment. This prepends a '#' character at

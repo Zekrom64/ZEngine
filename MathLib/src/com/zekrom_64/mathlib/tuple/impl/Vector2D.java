@@ -158,5 +158,11 @@ public class Vector2D extends ScalarDouble {
 		x = op.applyAsDouble(x);
 		y = op.applyAsDouble(y);
 	}
+	
+	public boolean equals(Vector2D other) {
+		return
+				x == other.x &&
+				y == other.y;
+	}
 
 }

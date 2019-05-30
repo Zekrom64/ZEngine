@@ -1,11 +1,10 @@
 package com.zekrom_64.ze.base.lang;
 
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-
-import com.zekrom_64.ze.base.util.ZEContent;
 
 public class ZELanguageRegistry extends HashMap<String, String> {
 
@@ -40,7 +39,7 @@ public class ZELanguageRegistry extends HashMap<String, String> {
 	/** Korean - Korea */
 	public static final String KOREAN_KOREA = "ko_KR";
 	
-	private static final Map<String, ZELanguageRegistry> registries = new HashMap<>();
+	private static final Map<Locale, ZELanguageRegistry> registries = new HashMap<>();
 	
 	/** Registry for English-US, since it is used most commonly.*/
 	public static final ZELanguageRegistry REGISTRY_ENGLISH_US = getRegistry(ENGLISH_US);
@@ -52,19 +51,45 @@ public class ZELanguageRegistry extends HashMap<String, String> {
 	 * @return The registry for the language
 	 */
 	public static ZELanguageRegistry getRegistry(String key) {
-		ZELanguageRegistry reg = registries.get(key);
+		String[] vals = key.split("\\_");
+		Locale locale = new Locale(vals[0], vals[1]);
+		ZELanguageRegistry reg = registries.get(locale);
 		if (reg==null) {
 			reg = new ZELanguageRegistry(key);
-			registries.put(key, reg);
+			registries.put(locale, reg);
 		}
 		return reg;
 	}
 	
-	/** The language id of the registry */
+	/** Attempts to find a registry for a locale and creates and registers a new registry if none
+	 * is currently found.
+	 * 
+	 * @param locale Locale
+	 * @return The registry for the locale
+	 */
+	public static ZELanguageRegistry getRegistry(Locale locale) {
+		ZELanguageRegistry reg = registries.get(locale);
+		if (reg==null) {
+			reg = new ZELanguageRegistry(locale);
+			registries.put(locale, reg);
+		}
+		return reg;
+	}
+	
+	/** The language id of the registry. */
 	public final String registryId;
+	/** The locale of the registry. */
+	public final Locale locale;
 	
 	private ZELanguageRegistry(String key) {
 		registryId = key;
+		String[] vals = key.split("\\_");
+		locale = new Locale(vals[0], vals[1]);
+	}
+	
+	private ZELanguageRegistry(Locale loc) {
+		locale = loc;
+		registryId = loc.getLanguage() + "_" + loc.getLanguage();
 	}
 	
 	/** Sets the localized name for a piece of content.
@@ -73,8 +98,17 @@ public class ZELanguageRegistry extends HashMap<String, String> {
 	 * @param value Localized name
 	 * @return The previous localized name, or null
 	 */
-	public String put(ZEContent content, String value) {
+	public String put(ZEHasUnlocalizedName content, String value) {
 		return put(content.getUnlocalizedName(), value);
+	}
+	
+	/** Gets the localized name for a piece of content.
+	 * 
+	 * @param content Content
+	 * @return Localized name, or <b>null</b>
+	 */
+	public String get(ZEHasUnlocalizedName content) {
+		return get(content.getUnlocalizedName());
 	}
 	
 	/** Registers all the values in a set of properties in the language registry.

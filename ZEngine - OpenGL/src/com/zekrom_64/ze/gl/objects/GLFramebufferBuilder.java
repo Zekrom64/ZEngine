@@ -2,20 +2,21 @@ package com.zekrom_64.ze.gl.objects;
 
 import java.util.Arrays;
 
-import org.lwjgl.opengl.GL30;
-
 import com.zekrom_64.ze.base.backend.render.obj.ZEFramebuffer;
 import com.zekrom_64.ze.base.backend.render.obj.ZEFramebufferBuilder;
 import com.zekrom_64.ze.base.backend.render.obj.ZERenderPass;
 import com.zekrom_64.ze.base.backend.render.obj.ZETexture;
 import com.zekrom_64.ze.gl.GLNativeContext;
+import com.zekrom_64.ze.gl.GLRenderBackend;
 
 public class GLFramebufferBuilder implements ZEFramebufferBuilder {
 
-	private GLNativeContext context;
+	private final GLRenderBackend backend;
+	private final GLNativeContext context;
 	
-	public GLFramebufferBuilder(GLNativeContext ctx) {
-		context = ctx;
+	public GLFramebufferBuilder(GLRenderBackend backend) {
+		this.backend = backend;
+		context = backend.getNativeContext();
 	}
 	
 	private GLTexture[] attachments;
@@ -40,7 +41,9 @@ public class GLFramebufferBuilder implements ZEFramebufferBuilder {
 	public ZEFramebuffer build() {
 		context.bindExclusively();
 		try {
-			int fb = GL30.glGenFramebuffers();
+			int fb = backend.getExtensions().glGenFramebuffers();
+			backend.checkErrorFine();
+			backend.checkErrorCoarse("Failed to create framebuffer");
 			return new GLFramebuffer(fb, attachments);
 		} finally {
 			context.unbindExclusively();

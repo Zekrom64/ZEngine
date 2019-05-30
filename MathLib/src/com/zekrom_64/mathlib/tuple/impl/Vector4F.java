@@ -122,5 +122,13 @@ public class Vector4F extends Vector3F {
 		z = (float)op.applyAsDouble(z);
 		w = (float)op.applyAsDouble(w);
 	}
+	
+	public boolean equals(Vector4F other) {
+		return
+				x == other.x &&
+				y == other.y &&
+				z == other.z &&
+				w == other.w;
+	}
 
 }

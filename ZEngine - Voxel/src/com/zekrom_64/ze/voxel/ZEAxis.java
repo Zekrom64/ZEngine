@@ -14,7 +14,4 @@ public enum ZEAxis {
 	/** The Z axis */
 	Z;
 	
-	/** Faster way of accessing all the values */
-	public static final ZEAxis[] values = new ZEAxis[] {X, Y, Z};
-	
 }
