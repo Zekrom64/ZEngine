@@ -1,4 +1,4 @@
-package com.zekrom_64.ze.base.backend.render;
+package com.zekrom_64.ze.base.backend.render.pipeline;
 
 /** Render backends can use different geometry types. This enumeration contains all cross-compatible
  * geometry types.

@@ -24,6 +24,7 @@ import com.zekrom_64.ze.base.backend.render.obj.ZERenderFence;
 import com.zekrom_64.ze.base.backend.render.obj.ZERenderPassBuilder;
 import com.zekrom_64.ze.base.backend.render.obj.ZERenderSemaphore;
 import com.zekrom_64.ze.base.backend.render.obj.ZERenderThread;
+import com.zekrom_64.ze.base.backend.render.obj.ZESampler;
 import com.zekrom_64.ze.base.backend.render.obj.ZETexture;
 import com.zekrom_64.ze.base.backend.render.obj.ZETexture.ZETextureUsage;
 import com.zekrom_64.ze.base.backend.render.obj.ZETextureDimension;
@@ -41,6 +42,7 @@ import com.zekrom_64.ze.gl.objects.GLRenderEvent;
 import com.zekrom_64.ze.gl.objects.GLRenderFence;
 import com.zekrom_64.ze.gl.objects.GLRenderPassBuilder;
 import com.zekrom_64.ze.gl.objects.GLRenderSemaphore;
+import com.zekrom_64.ze.gl.objects.GLSampler;
 import com.zekrom_64.ze.gl.objects.GLTexture;
 import com.zekrom_64.ze.gl.shader.GLShaderCompiler;
 
@@ -225,14 +227,14 @@ public class GLRenderBackend implements ZERenderBackend<GLRenderBackend> {
 		if (capabilities == null) return false;
 		switch(feature) {
 		case ZERenderBackend.FEATURE_MULTITHREAD_SYNCHRONIZATION:
-			return true;
+			return true; // Done in software
 		case ZERenderBackend.FEATURE_MULTIPLE_PIPELINES:
-			return true;
+			return true; // Done in software
 		case ZERenderBackend.FEATURE_MULTIPLE_FRAMEBUFFERS:
 			return extensions.framebufferObjects;
 			
 		case ZERenderBackend.FEATURE_MULTILEVEL_RENDER_WORK_BUFFER:
-			return true;
+			return true; // Done in software
 			
 		case ZERenderBackend.FEATURE_DEPTH_BIAS_CLAMP:
 			return extensions.polygonOffsetClamp;
@@ -240,28 +242,28 @@ public class GLRenderBackend implements ZERenderBackend<GLRenderBackend> {
 			return extensions.vertexBindingDivisor;
 			
 		case ZERenderBackend.FEATURE_SHADER_UNIFORM_BUFFER:
-			return capabilities.OpenGL31 || capabilities.GL_ARB_uniform_buffer_object;
+			return extensions.uniformBufferObject;
 		case ZERenderBackend.FEATURE_SHADER_STORAGE_BUFFER:
-			return capabilities.OpenGL43 || capabilities.GL_ARB_shader_storage_buffer_object;
+			return extensions.shaderStorageBufferObject;
 		case ZERenderBackend.FEATURE_SHADER_STORAGE_IMAGE:
-			return capabilities.OpenGL42 ||
-					capabilities.GL_ARB_shader_image_load_store ||
-					capabilities.GL_EXT_shader_image_load_store;
+			return extensions.shaderImageLoadStore;
+			
+		case ZERenderBackend.FEATURE_BIND_SET_PRIMTIVE_WRITE:
+			return true; // Implicitly supported via glUniform* calls
+		case ZERenderBackend.FEATURE_BIND_SET_BUFFER_WRITE:
+			return extensions.uniformBufferObject;
 			
 		case ZERenderBackend.FEATURE_COMMAND_DRAW_INDIRECT:
-			return capabilities.OpenGL40 ||
-					capabilities.GL_ARB_draw_indirect ||
-					capabilities.GL_ARB_multi_draw_indirect ||
-					capabilities.GL_ARB_base_instance;
+			return extensions.drawIndirect;
 			
 		case ZERenderBackend.FEATURE_CUBEMAP_ARRAY:
-			return capabilities.OpenGL40 || capabilities.GL_ARB_texture_cube_map_array;
+			return extensions.textureCubeMapArray;
 		case ZERenderBackend.FEATURE_TEXTURE_ARRAY:
-			return capabilities.OpenGL30 || capabilities.GL_EXT_texture_array;
+			return extensions.textureArray;
 		case ZERenderBackend.FEATURE_INDEPENDENT_SAMPLER:
-			return capabilities.OpenGL33 || capabilities.GL_ARB_sampler_objects;
+			return extensions.samplerObjects;
 		case ZERenderBackend.FEATURE_ANISOTROPY:
-			return capabilities.GL_EXT_texture_filter_anisotropic;
+			return extensions.textureFilterAnisotropic;
 		}
 		return false;
 	}
@@ -298,10 +300,10 @@ public class GLRenderBackend implements ZERenderBackend<GLRenderBackend> {
 		
 		context.executeExclusivly(() -> {
 			// Get limit values
-			if (capabilities.GL_EXT_texture_filter_anisotropic)
+			if (extensions.textureFilterAnisotropic)
 				limitFloatMaxAnisotropy = GL11.glGetFloat(EXTTextureFilterAnisotropic.GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT);
 			
-			if (capabilities.OpenGL43) limitIntMaxVertexBindings = GL11.glGetInteger(GL43.GL_MAX_VERTEX_ATTRIB_BINDINGS);
+			if (extensions.vertexAttribBinding) limitIntMaxVertexBindings = GL11.glGetInteger(GL43.GL_MAX_VERTEX_ATTRIB_BINDINGS);
 			else limitIntMaxVertexBindings = 1;
 		});
 	}
@@ -341,12 +343,24 @@ public class GLRenderBackend implements ZERenderBackend<GLRenderBackend> {
 		context.bindExclusively();
 		int buf = GL15.glGenBuffers();
 		checkErrorFine();
-		GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, buf);
-		checkErrorFine();
-		if (capabilities.glBufferStorage != 0) {
-			GL44.glBufferStorage(GL15.GL_ARRAY_BUFFER, size, GL30.GL_MAP_READ_BIT | GL30.GL_MAP_WRITE_BIT | GL44.GL_DYNAMIC_STORAGE_BIT);
+		if (extensions.namedBufferStorage) {
+			extensions.glNamedBufferStorage(buf, size, GL30.GL_MAP_READ_BIT | GL30.GL_MAP_WRITE_BIT | GL44.GL_DYNAMIC_STORAGE_BIT);
+		} if (extensions.bufferStorage) {
+			int boundBuf = GL11.glGetInteger(GL15.GL_ARRAY_BUFFER_BINDING);
+			checkErrorFine();
+			GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, buf);
+			checkErrorFine();
+			extensions.glBufferStorage(GL15.GL_ARRAY_BUFFER, size, GL30.GL_MAP_READ_BIT | GL30.GL_MAP_WRITE_BIT | GL44.GL_DYNAMIC_STORAGE_BIT);
+			checkErrorFine();
+			GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, boundBuf);
 		} else {
+			int boundBuf = GL11.glGetInteger(GL15.GL_ARRAY_BUFFER_BINDING);
+			checkErrorFine();
+			GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, buf);
+			checkErrorFine();
 			GL15.glBufferData(GL15.GL_ARRAY_BUFFER, size, GL15.GL_DYNAMIC_DRAW);
+			checkErrorFine();
+			GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, boundBuf);
 		}
 		checkErrorFine();
 		checkErrorCoarse("Failed to allocate buffer");
@@ -386,6 +400,21 @@ public class GLRenderBackend implements ZERenderBackend<GLRenderBackend> {
 		int[] texs = new int[textures.length];
 		for(int i = 0; i < texs.length; i++) texs[i] = ((GLTexture)textures[i]).textureObject;
 		releasables.add(() -> GL11.glDeleteTextures(texs));
+	}
+
+	@Override
+	public void destroySamplers(ZESampler... samplers) {
+		GLSampler[] glsamplers = Arrays.copyOf(samplers, samplers.length, GLSampler[].class);
+		int nsamplers = 0;
+		for(GLSampler s : glsamplers) {
+			if (s.samplerObject != 0) nsamplers++;
+		}
+		int[] smplrs = new int[nsamplers];
+		int i = 0;
+		for(GLSampler s : glsamplers) {
+			if (s.samplerObject != 0) smplrs[i++] = s.samplerObject;
+		}
+		releasables.add(() -> extensions.glDeleteSamplers(smplrs));
 	}
 
 	@Override

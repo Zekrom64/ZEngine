@@ -8,6 +8,7 @@ import com.zekrom_64.ze.base.backend.render.obj.ZERenderFence;
 import com.zekrom_64.ze.base.backend.render.obj.ZERenderPassBuilder;
 import com.zekrom_64.ze.base.backend.render.obj.ZERenderSemaphore;
 import com.zekrom_64.ze.base.backend.render.obj.ZERenderThread;
+import com.zekrom_64.ze.base.backend.render.obj.ZESampler;
 import com.zekrom_64.ze.base.backend.render.obj.ZETexture;
 import com.zekrom_64.ze.base.backend.render.obj.ZETexture.ZETextureUsage;
 import com.zekrom_64.ze.base.backend.render.obj.ZETextureDimension;
@@ -68,6 +69,15 @@ public interface ZERenderBackend<B extends ZERenderBackend<?>> {
 	public static final String FEATURE_SHADER_STORAGE_BUFFER = "ze.features.shader.sbo";
 	/** The render backend supports storage images. */
 	public static final String FEATURE_SHADER_STORAGE_IMAGE = "ze.features.shader.storageImage";
+	/** The render backend supports input attachments. */
+	public static final String FEATURE_SHADER_INPUT_ATTACHMENT = "ze.features.shader.inputAttachment";
+	
+	// Bind set features
+	
+	/** The render backend supports primitive writes to a bind set. */
+	public static final String FEATURE_BIND_SET_PRIMTIVE_WRITE = "ze.features.bindSet.primitiveWrite";
+	/** The render backend supports writing from buffer objects to a bind set. */
+	public static final String FEATURE_BIND_SET_BUFFER_WRITE = "ze.features.bindSet.bufferWrite";
 	
 	// Object features
 	
@@ -288,6 +298,12 @@ public interface ZERenderBackend<B extends ZERenderBackend<?>> {
 	 * @param textures Textures to destroy
 	 */
 	public void destroyTextures(ZETexture ... textures);
+	
+	/** Destroys a set of samplers.
+	 * 
+	 * @param samplers Samplers to destroy
+	 */
+	public void destroySamplers(ZESampler ... samplers);
 	
 	// --------------------------------
 	// | COMMAND BUFFERS / SUBMISSION |

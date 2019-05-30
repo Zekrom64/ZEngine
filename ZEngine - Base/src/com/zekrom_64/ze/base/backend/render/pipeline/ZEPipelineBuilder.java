@@ -4,7 +4,6 @@ import java.util.Set;
 
 import com.zekrom_64.mathlib.shape.Rectangle;
 import com.zekrom_64.mathlib.shape.RectanglePosSizeDouble;
-import com.zekrom_64.ze.base.backend.render.ZEGeometryType;
 import com.zekrom_64.ze.base.backend.render.obj.ZECompareOp;
 import com.zekrom_64.ze.base.backend.render.shader.ZEShaderProgram;
 import com.zekrom_64.ze.base.image.ZEPixelFormat;

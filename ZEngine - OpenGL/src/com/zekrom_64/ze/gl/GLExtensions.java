@@ -2,14 +2,24 @@ package com.zekrom_64.ze.gl;
 
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
 
+import org.lwjgl.PointerBuffer;
+import org.lwjgl.opengl.ARBBufferStorage;
 import org.lwjgl.opengl.ARBClearBufferObject;
+import org.lwjgl.opengl.ARBTextureStorage;
 import org.lwjgl.opengl.EXTFramebufferBlit;
 import org.lwjgl.opengl.EXTFramebufferObject;
 import org.lwjgl.opengl.EXTPolygonOffsetClamp;
 import org.lwjgl.opengl.GL30;
+import org.lwjgl.opengl.GL31;
+import org.lwjgl.opengl.GL32;
+import org.lwjgl.opengl.GL33;
+import org.lwjgl.opengl.GL40;
 import org.lwjgl.opengl.GL41;
+import org.lwjgl.opengl.GL42;
 import org.lwjgl.opengl.GL43;
+import org.lwjgl.opengl.GL44;
 import org.lwjgl.opengl.GL45;
 import org.lwjgl.opengl.GLCapabilities;
 
@@ -26,7 +36,9 @@ public class GLExtensions {
 		this.caps = caps;
 		
 		framebufferObjects = caps.OpenGL30 || caps.GL_ARB_framebuffer_object || caps.GL_EXT_framebuffer_object;
+		
 		framebufferBlit = caps.OpenGL30 || caps.GL_EXT_framebuffer_blit;
+		
 		framebufferTextureLayer = caps.OpenGL30;
 		
 		generateMipmap = caps.OpenGL30 || caps.GL_EXT_framebuffer_object;
@@ -64,6 +76,40 @@ public class GLExtensions {
 		vertexBindingDivisor = caps.OpenGL43;
 		
 		vertexAttribBinding = caps.OpenGL43;
+		
+		drawIndirect = caps.OpenGL40 || caps.GL_ARB_draw_indirect;
+		
+		uniformBufferObject = caps.OpenGL31 || caps.GL_ARB_uniform_buffer_object;
+		
+		shaderStorageBufferObject = caps.OpenGL43 || caps.GL_ARB_shader_storage_buffer_object;
+		
+		shaderImageLoadStore = caps.OpenGL42 || caps.GL_ARB_shader_image_load_store || caps.GL_EXT_shader_image_load_store;
+		
+		textureCubeMapArray = caps.OpenGL40 || caps.GL_ARB_texture_cube_map;
+		
+		textureArray = caps.OpenGL30 || caps.GL_EXT_texture_array;
+		
+		samplerObjects = caps.OpenGL33 || caps.GL_ARB_sampler_objects;
+		
+		textureFilterAnisotropic = caps.GL_EXT_texture_filter_anisotropic;
+		
+		texStorage = caps.OpenGL42 || caps.GL_ARB_texture_storage;
+		
+		textureStorage = caps.OpenGL45 || caps.GL_ARB_texture_storage;
+		
+		bufferStorage = caps.OpenGL44 || caps.GL_ARB_buffer_storage;
+		
+		namedBufferStorage = caps.OpenGL45 || caps.GL_ARB_buffer_storage;
+		
+		drawElementsBaseVertex = caps.OpenGL32 || caps.GL_ARB_draw_elements_base_vertex;
+		
+		bindVertexBuffers = caps.OpenGL44 || caps.GL_ARB_multi_bind;
+		
+		bindVertexBuffer = caps.OpenGL43;
+		
+		scissorArray = caps.OpenGL41;
+		
+		scissorIndexed = caps.OpenGL41;
 	}
 	
 	// Framebuffers
@@ -175,9 +221,29 @@ public class GLExtensions {
 	
 	public final boolean textureSubImage;
 	
+	public void glTextureSubImage1D(int texture, int level, int xoffset, int width, int format, int type, long pixels) {
+		if (caps.OpenGL45) GL45.glTextureSubImage1D(texture, level, xoffset, width, format, type, pixels);
+		else throw new GLException("glTextureSubImage1D is not supported");
+	}
+	
+	public void glTextureSubImage2D(int texture, int level, int xoffset, int yoffset, int width, int height, int format, int type, long pixels) {
+		if (caps.OpenGL45) GL45.glTextureSubImage2D(texture, level, xoffset, yoffset, width, height, format, type, pixels);
+		else throw new GLException("glTextureSubImage2D is not supported");
+	}
+	
+	public void glTextureSubImage3D(int texture, int level, int xoffset, int yoffset, int zoffset, int width, int height, int depth, int format, int type, long pixels) {
+		if (caps.OpenGL45) GL45.glTextureSubImage3D(texture, level, xoffset, yoffset, zoffset, width, height, depth, format, type, pixels);
+		else throw new GLException("glTextureSubImage3D is not supported");
+	}
+	
 	// Clear tex sub image
 	
 	public final boolean clearTexSubImage;
+	
+	public void glClearTexSubImage(int texture, int level, int xoffset, int yoffset, int zoffset, int width, int height, int depth, int format, int type, ByteBuffer data) {
+		if (caps.OpenGL44 || caps.GL_ARB_clear_texture) GL44.glClearTexSubImage(texture, level, xoffset, yoffset, zoffset, width, height, depth, format, type, data);
+		else throw new GLException("glClearTexSubImage is not supported");
+	}
 	
 	// Clear buffer
 	
@@ -206,6 +272,16 @@ public class GLExtensions {
 	
 	public final boolean mapNamedBuffer;
 	
+	public ByteBuffer glMapNamedBuffer(int buffer, int access) {
+		if (caps.OpenGL45) return GL45.glMapNamedBuffer(buffer, access);
+		else throw new GLException("glMapNamedBuffer is not supported");
+	}
+	
+	public void glUnmapNamedBuffer(int buffer) {
+		if (caps.OpenGL45) GL45.glUnmapNamedBuffer(buffer);
+		else throw new GLException("glUnmapNamedBuffer");
+	}
+	
 	// Copy image sub data
 	
 	public final boolean copyImageSubData;
@@ -222,9 +298,19 @@ public class GLExtensions {
 	
 	public final boolean copyBufferSubData;
 	
+	public void glCopyBufferSubData(int readTarget, int writeTarget, long readOffset, long writeOffset, long size) {
+		if (caps.OpenGL31) GL31.glCopyBufferSubData(readTarget, writeTarget, readOffset, writeOffset, size);
+		else throw new GLException("glCopyBufferSubData is not supported");
+	}
+	
 	// Copy named buffer sub data
 	
 	public final boolean copyNamedBufferSubData;
+	
+	public void glCopyNamedBufferSubData(int readBuffer, int writeBuffer, long readOffset, long writeOffset, long size) {
+		if (caps.OpenGL45) GL45.glCopyNamedBufferSubData(readBuffer, writeBuffer, readOffset, writeOffset, size);
+		else throw new GLException("glCopyNamedBufferSubData is not supported");
+	}
 	
 	// Program interface query
 	
@@ -237,4 +323,207 @@ public class GLExtensions {
 	// Vertex attrib binding
 	
 	public final boolean vertexAttribBinding;
+	
+	// Draw indirect
+	
+	public final boolean drawIndirect;
+	
+	public void glDrawArraysIndirect(int mode, ByteBuffer indirect) {
+		if (caps.OpenGL40 || caps.GL_ARB_draw_indirect) GL40.glDrawArraysIndirect(mode, indirect);
+		else throw new GLException("glDrawArraysIndirect is not supported");
+	}
+	
+	public void glDrawElementsIndirect(int mode, int type, ByteBuffer indirect) {
+		if (caps.OpenGL40 || caps.GL_ARB_draw_indirect) GL40.glDrawElementsIndirect(mode, type, indirect);
+		else throw new GLException("glDrawElementsIndirect is not supported");
+	}
+	
+	// Uniform buffer object
+	
+	public final boolean uniformBufferObject;
+	
+	public int glGetUniformBlockIndex(int program, String uniformBlockName) {
+		if (caps.OpenGL31 || caps.GL_ARB_uniform_buffer_object) return GL31.glGetUniformBlockIndex(program, uniformBlockName);
+		else throw new GLException("glGetUniformBlockIndex is not supported");
+	}
+	
+	public void glUniformBlockBinding(int program, int uniformBlockIndex, int uniformBlockBinding) {
+		if (caps.OpenGL31 || caps.GL_ARB_uniform_buffer_object) GL31.glUniformBlockBinding(program, uniformBlockIndex, uniformBlockBinding);
+		else throw new GLException("glUniformBlockBinding is not supported");
+	}
+	
+	// Shader storage buffer object
+	
+	public final boolean shaderStorageBufferObject;
+	
+	// Shader image load store
+	
+	public final boolean shaderImageLoadStore;
+	
+	// Cubemap array
+	
+	public final boolean textureCubeMapArray;
+	
+	// Texture array
+	
+	public final boolean textureArray;
+	
+	// Sampler objects
+	
+	public final boolean samplerObjects;
+	
+	public int glGenSamplers() {
+		if (caps.OpenGL33 || caps.GL_ARB_sampler_objects) return GL33.glGenSamplers();
+		else throw new GLException("glGenSamplers is not supported");
+	}
+	
+	public void glDeleteSamplers(int sampler) {
+		if (caps.OpenGL33 || caps.GL_ARB_sampler_objects) GL33.glDeleteSamplers(sampler);
+		else throw new GLException("glDeleteSamplers is not supported");
+	}
+	
+	public void glDeleteSamplers(int[] samplers) {
+		if (caps.OpenGL33 || caps.GL_ARB_sampler_objects) GL33.glDeleteSamplers(samplers);
+		else throw new GLException("glDeleteSamplers is not supported");
+	}
+	
+	public void glSamplerParameteri(int sampler, int pname, int param) {
+		if (caps.OpenGL33 || caps.GL_ARB_sampler_objects) GL33.glSamplerParameteri(sampler, pname, param);
+		else throw new GLException("glSamplerParameteri is not supported");
+	}
+	
+	public void glSamplerParameterf(int sampler, int pname, float param) {
+		if (caps.OpenGL33 || caps.GL_ARB_sampler_objects) GL33.glSamplerParameterf(sampler, pname, param);
+		else throw new GLException("glSamplerParameterf is not supported");
+	}
+	
+	public void glSamplerParameterfv(int sampler, int pname, float[] params) {
+		if (caps.OpenGL33 || caps.GL_ARB_sampler_objects) GL33.glSamplerParameterfv(sampler, pname, params);
+		else throw new GLException("glSamplerParameterfv is not supported");
+	}
+	
+	public int glGetSamplerParameteri(int sampler, int pname) {
+		if (caps.OpenGL33 || caps.GL_ARB_sampler_objects) return GL33.glGetSamplerParameteri(sampler, pname);
+		else throw new GLException("glGetSamplerParameteri is not supported");
+	}
+	
+	public float glGetSamplerParameterf(int sampler, int pname) {
+		if (caps.OpenGL33 || caps.GL_ARB_sampler_objects) return GL33.glGetSamplerParameterf(sampler, pname);
+		else throw new GLException("glGetSamplerParameterf is not supported");
+	}
+	
+	public void glGetSamplerParameterfv(int sampler, int pname, float[] params) {
+		if (caps.OpenGL33 || caps.GL_ARB_sampler_objects) GL33.glGetSamplerParameterfv(sampler, pname, params);
+		else throw new GLException("glGetSamplerParameterfv is not supported");
+	}
+	
+	// Texture filter anisotropic
+	
+	public final boolean textureFilterAnisotropic;
+	
+	// Tex storage
+	
+	public final boolean texStorage;
+	
+	public void glTexStorage1D(int target, int levels, int internalformat, int width) {
+		if (caps.OpenGL42 || caps.GL_ARB_texture_storage) GL42.glTexStorage1D(target, levels, internalformat, width);
+		else throw new GLException("glTexStorage1D is not supported");
+	}
+	
+	public void glTexStorage2D(int target, int levels, int internalformat, int width, int height) {
+		if (caps.OpenGL42 || caps.GL_ARB_texture_storage) GL42.glTexStorage2D(target, levels, internalformat, width, height);
+		else throw new GLException("glTexStorage2D is not supported");
+	}
+	
+	public void glTexStorage3D(int target, int levels, int internalformat, int width, int height, int depth) {
+		if (caps.OpenGL42 || caps.GL_ARB_texture_storage) GL42.glTexStorage3D(target, levels, internalformat, width, height, depth);
+		else throw new GLException("glTexStorage3D is not supported");
+	}
+	
+	// Texture storage
+	
+	public final boolean textureStorage;
+	
+	public void glTextureStorage1D(int texture, int target, int levels, int internalformat, int width) {
+		if (caps.OpenGL42) GL45.glTextureStorage1D(texture, levels, internalformat, width);
+		else if (caps.GL_ARB_texture_storage) ARBTextureStorage.glTextureStorage1DEXT(texture, target, levels, internalformat, width);
+		else throw new GLException("glTexStorage1D is not supported");
+	}
+	
+	public void glTextureStorage2D(int texture, int target, int levels, int internalformat, int width, int height) {
+		if (caps.OpenGL42) GL45.glTextureStorage2D(texture, levels, internalformat, width, height);
+		else if (caps.GL_ARB_texture_storage) ARBTextureStorage.glTextureStorage2DEXT(texture, target, levels, internalformat, width, height);
+		else throw new GLException("glTexStorage2D is not supported");
+	}
+	
+	public void glTextureStorage3D(int texture, int target, int levels, int internalformat, int width, int height, int depth) {
+		if (caps.OpenGL42) GL45.glTextureStorage3D(texture, levels, internalformat, width, height, depth);
+		else if (caps.GL_ARB_texture_storage) ARBTextureStorage.glTextureStorage3DEXT(texture, target, levels, internalformat, width, height, depth);
+		else throw new GLException("glTexStorage3D is not supported");
+	}
+	
+	// Buffer storage
+	
+	public final boolean bufferStorage;
+	
+	public void glBufferStorage(int target, long size, int flags) {
+		if (caps.OpenGL44 || caps.GL_ARB_buffer_storage) GL44.glBufferStorage(target, size, flags);
+		else throw new GLException("glBufferStorage is not supported");
+	}
+	
+	// Named buffer storage
+	
+	public final boolean namedBufferStorage;
+	
+	public void glNamedBufferStorage(int buffer, long size, int flags) {
+		if (caps.OpenGL44) GL45.glNamedBufferStorage(buffer, size, flags);
+		else if (caps.GL_ARB_buffer_storage) ARBBufferStorage.glNamedBufferStorageEXT(buffer, size, flags);
+		else throw new GLException("glNamedBufferStorage is not supported");
+	}
+	
+	// Draw elements base vertex
+	
+	public final boolean drawElementsBaseVertex;
+	
+	public void glDrawElementsBaseVertex(int mode, int count, int type, long indices, int basevertex) {
+		if (caps.OpenGL32 || caps.GL_ARB_draw_elements_base_vertex) GL32.glDrawElementsBaseVertex(mode, count, type, indices, basevertex);
+		else throw new GLException("glDrawElementsBaseVertex is not supported");
+	}
+	
+	// Bind vertex buffers
+	
+	public final boolean bindVertexBuffers;
+	
+	public void glBindVertexBuffers(int first, IntBuffer buffers, PointerBuffer offsets, IntBuffer strides) {
+		if (caps.OpenGL44 || caps.GL_ARB_multi_bind) GL44.glBindVertexBuffers(first, buffers, offsets, strides);
+		else throw new GLException("glBindVertexBuffers is not supported");
+	}
+	
+	// Bind vertex buffer
+	
+	public final boolean bindVertexBuffer;
+	
+	public void glBindVertexBuffer(int bindingindex, int buffer, long offset, int stride) {
+		if (caps.OpenGL43) GL43.glBindVertexBuffer(bindingindex, buffer, offset, stride);
+		else throw new GLException("glBindVertexBuffer is not supported");
+	}
+	
+	// Scissor array
+	
+	public final boolean scissorArray;
+	
+	public void glScissorArrayv(int first, IntBuffer v) {
+		if (caps.OpenGL41) GL41.glScissorArrayv(first, v);
+		else throw new GLException("glScissorArrayv is not supported");
+	}
+	
+	// Scissor indexed
+	
+	public final boolean scissorIndexed;
+	
+	public void glScissorIndexed(int index, int left, int bottom, int width, int height) {
+		if (caps.OpenGL41) GL41.glScissorIndexed(index, left, bottom, width, height);
+		else throw new GLException("glScissorIndexed is not supported");
+	}
+	
 }

@@ -19,11 +19,7 @@ import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GL21;
 import org.lwjgl.opengl.GL30;
 import org.lwjgl.opengl.GL31;
-import org.lwjgl.opengl.GL32;
-import org.lwjgl.opengl.GL40;
 import org.lwjgl.opengl.GL41;
-import org.lwjgl.opengl.GL43;
-import org.lwjgl.opengl.GL44;
 import org.lwjgl.opengl.GL45;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
@@ -32,7 +28,6 @@ import org.lwjgl.system.libc.LibCString;
 import com.zekrom_64.mathlib.shape.Rectangle;
 import com.zekrom_64.mathlib.tuple.impl.Vector2I;
 import com.zekrom_64.mathlib.tuple.impl.Vector3I;
-import com.zekrom_64.ze.base.backend.render.ZEGeometryType;
 import com.zekrom_64.ze.base.backend.render.ZERenderCommandBuffer;
 import com.zekrom_64.ze.base.backend.render.ZERenderWorkRecorder;
 import com.zekrom_64.ze.base.backend.render.obj.ZEBuffer;
@@ -49,6 +44,7 @@ import com.zekrom_64.ze.base.backend.render.obj.ZETexture.ZETextureLayout;
 import com.zekrom_64.ze.base.backend.render.obj.ZETexture.ZETextureRange;
 import com.zekrom_64.ze.base.backend.render.obj.ZETextureDimension;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEFrontBack;
+import com.zekrom_64.ze.base.backend.render.pipeline.ZEGeometryType;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipeline;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBindSet;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBuilder.ZEViewport;
@@ -183,36 +179,43 @@ public class GLCommandBufferInterpreted extends GLCommandBuffer {
 		private boolean defaultFramebuffer;
 		private GLTexture[] attachments = new GLTexture[0];
 		
-		// TODO: Add error checks
 		@Override
 		public void beginPass(ZERenderPass renderPass, ZEFramebuffer framebuffer,
 				ZEAttachmentClearValue[] clearValues) {
 			GLRenderPass rp = (GLRenderPass)renderPass;
+			GLExtensions exts = backend.getExtensions();
 			if (((GLFramebuffer)framebuffer).framebufferObject == 0) { // Default framebuffer
 				buildingCommands.add(() -> {
-					GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, ((GLFramebuffer)framebuffer).framebufferObject);
+					exts.glBindFramebuffer(GL30.GL_FRAMEBUFFER, 0);
+					backend.checkErrorFine();
 				});
 				ZEAttachmentUsage colorUsage = rp.attachmentUsages[0];
 				if (colorUsage.loadOp == ZEAttachmentLoadOp.CLEAR) {
 					buildingCommands.add(() -> {
 						ZEColorClearValue color = clearValues[0].color;
 						GL11.glClearColor(color.getFloatR(), color.getFloatG(), color.getFloatB(), color.getFloatA());
+						backend.checkErrorFine();
 						GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
+						backend.checkErrorFine();
 					});
 				}
 				ZEAttachmentUsage depthstencilUsage = rp.attachmentUsages[1];
 				if (depthstencilUsage.loadOp == ZEAttachmentLoadOp.CLEAR) {
 					buildingCommands.add(() -> {
 						GL11.glClearDepth(clearValues[1].depth);
+						backend.checkErrorFine();
 						GL11.glClearStencil(clearValues[1].stencil);
+						backend.checkErrorFine();
 						GL11.glClear(GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_STENCIL_BUFFER_BIT);
+						backend.checkErrorFine();
 					});
 				}
 				defaultFramebuffer = true;
 				attachments = new GLTexture[0];
 			} else { // Framebuffer with attachments
 				buildingCommands.add(() -> {
-					GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, ((GLFramebuffer)framebuffer).framebufferObject);
+					exts.glBindFramebuffer(GL30.GL_FRAMEBUFFER, ((GLFramebuffer)framebuffer).framebufferObject);
+					backend.checkErrorFine();
 				});
 				attachments = ((GLFramebuffer)framebuffer).attachments;
 				for(int i = 0; i < attachments.length; i++) {
@@ -225,33 +228,47 @@ public class GLCommandBufferInterpreted extends GLCommandBuffer {
 					if (isDepth || isStencil) { // Depth and stencil formats are kind of weird
 						if (isDepth && !isStencil) {
 							buildingCommands.add(() -> {
-								backend.getExtensions().glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_ATTACHMENT, GL11.GL_TEXTURE_2D, tex.textureObject, 0);
+								exts.glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_ATTACHMENT, GL11.GL_TEXTURE_2D, tex.textureObject, 0);
+								backend.checkErrorFine();
 								GL11.glClearDepth(depth);
+								backend.checkErrorFine();
 								GL11.glClear(GL11.GL_DEPTH_BUFFER_BIT);
+								backend.checkErrorFine();
 							});
 						} else if (isStencil && !isDepth) {
 							buildingCommands.add(() -> {
-								backend.getExtensions().glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_STENCIL_ATTACHMENT, GL11.GL_TEXTURE_2D, tex.textureObject, 0);
+								exts.glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_STENCIL_ATTACHMENT, GL11.GL_TEXTURE_2D, tex.textureObject, 0);
+								backend.checkErrorFine();
 								GL11.glClearStencil(stencil);
+								backend.checkErrorFine();
 								GL11.glClear(GL11.GL_STENCIL_BUFFER_BIT);
+								backend.checkErrorFine();
 							});
 						} else {
 							buildingCommands.add(() -> {
-								backend.getExtensions().glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_STENCIL_ATTACHMENT, GL11.GL_TEXTURE_2D, tex.textureObject, 0);
+								exts.glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_STENCIL_ATTACHMENT, GL11.GL_TEXTURE_2D, tex.textureObject, 0);
+								backend.checkErrorFine();
 								GL11.glClearDepth(depth);
+								backend.checkErrorFine();
 								GL11.glClearStencil(stencil);
+								backend.checkErrorFine();
 								GL11.glClear(GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_STENCIL_BUFFER_BIT);
+								backend.checkErrorFine();
 							});
 						}
 					} else { // Clear the color attachment
 						buildingCommands.add(() -> {
-							backend.getExtensions().glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_COLOR_ATTACHMENT0, GL11.GL_TEXTURE_2D, tex.textureObject, 0);
+							exts.glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_COLOR_ATTACHMENT0, GL11.GL_TEXTURE_2D, tex.textureObject, 0);
+							backend.checkErrorFine();
 						});
 						buildingCommands.add(clearColorToCommand(tex, clearValues[i].color));
 					}
 				}
 				defaultFramebuffer = false;
 			}
+			buildingCommands.add(() -> {
+				backend.checkErrorCoarse("Failed to begin render pass");
+			});
 			renderPass = rp;
 			subpass = -1;
 			nextPass();
@@ -261,20 +278,21 @@ public class GLCommandBufferInterpreted extends GLCommandBuffer {
 		public void nextPass() {
 			subpass++;
 			GLSubpass subpass = renderPass.subpasses[this.subpass];
+			GLExtensions exts = backend.getExtensions();
 			if (!defaultFramebuffer) { // Default framebuffer cannot be remapped
 				buildingCommands.add(() -> {
 					Integer depthStencil = subpass.depthStencilAttachment;
 					//TODO: Array texture support
 					if (depthStencil == null)
-						backend.getExtensions().glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_STENCIL_ATTACHMENT, GL11.GL_TEXTURE_2D, 0, 0);
+						exts.glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_STENCIL_ATTACHMENT, GL11.GL_TEXTURE_2D, 0, 0);
 					else
-						backend.getExtensions().glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_STENCIL_ATTACHMENT, GL11.GL_TEXTURE_2D, attachments[depthStencil].textureObject, 0);
+						exts.glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_STENCIL_ATTACHMENT, GL11.GL_TEXTURE_2D, attachments[depthStencil].textureObject, 0);
 					for(int i = 0; i < subpass.colorAttachments.length; i++) {
 						Integer color = subpass.colorAttachments[i];
 						if (color == null)
-							backend.getExtensions().glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_COLOR_ATTACHMENT0+i, GL11.GL_TEXTURE_2D, 0, 0);
+							exts.glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_COLOR_ATTACHMENT0+i, GL11.GL_TEXTURE_2D, 0, 0);
 						else
-							backend.getExtensions().glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_COLOR_ATTACHMENT0+i, GL11.GL_TEXTURE_2D, attachments[color].textureObject, 0);
+							exts.glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_COLOR_ATTACHMENT0+i, GL11.GL_TEXTURE_2D, attachments[color].textureObject, 0);
 					}
 				});
 			}
@@ -297,7 +315,8 @@ public class GLCommandBufferInterpreted extends GLCommandBuffer {
 		@Override
 		public void setScissor(Rectangle[] scissors, int firstScissor, int numScissors) {
 			/** Complete */
-			if (backend.getCapabilities().glScissorArrayv != 0) {
+			GLExtensions exts = backend.getExtensions();
+			if (exts.scissorArray) {
 				IntBuffer pScissors = BufferUtils.createIntBuffer(numScissors * 4);
 				for(int i = 0; i < numScissors; i++) {
 					Rectangle scissor = scissors[i];
@@ -308,11 +327,11 @@ public class GLCommandBufferInterpreted extends GLCommandBuffer {
 				}
 				pScissors.rewind();
 				buildingCommands.add(() -> {
-					GL41.glScissorArrayv(firstScissor, pScissors);
+					exts.glScissorArrayv(firstScissor, pScissors);
 					backend.checkErrorFine();
 					backend.checkErrorCoarse("Failed to set scissor");
 				});
-			} else if (backend.getCapabilities().glScissorIndexed != 0) {
+			} else if (exts.scissorIndexed) {
 				int[] posX = new int[numScissors];
 				int[] posY = new int[numScissors];
 				int[] w = new int[numScissors];
@@ -325,7 +344,7 @@ public class GLCommandBufferInterpreted extends GLCommandBuffer {
 				}
 				buildingCommands.add(() -> {
 					for(int i = 0; i < numScissors; i++) {
-						GL41.glScissorIndexed(i + firstScissor, posX[i], posY[i], w[i], h[i]);
+						exts.glScissorIndexed(i + firstScissor, posX[i], posY[i], w[i], h[i]);
 						backend.checkErrorFine();
 					}
 					backend.checkErrorCoarse("Failed to set scissor");
@@ -367,7 +386,8 @@ public class GLCommandBufferInterpreted extends GLCommandBuffer {
 			/** Complete */
 			int[] bufs = new int[buffers.length];
 			for(int i = 0; i < buffers.length; i++) bufs[i] = ((GLBuffer)buffers[i]).bufferObject;
-			if (backend.getCapabilities().glBindVertexBuffers != 0) {
+			GLExtensions exts = backend.getExtensions();
+			if (exts.bindVertexBuffers) {
 				IntBuffer pBuffers = BufferUtils.createIntBuffer(buffers.length);
 				for(ZEBuffer buf : buffers) pBuffers.put(((GLBuffer)buf).bufferObject);
 				pBuffers.rewind();
@@ -375,15 +395,15 @@ public class GLCommandBufferInterpreted extends GLCommandBuffer {
 					try(MemoryStack sp = MemoryStack.stackPush()) {
 						PointerBuffer pOffsets = sp.callocPointer(pBuffers.capacity());
 						IntBuffer pStrides = sp.callocInt(pBuffers.capacity());
-						GL44.glBindVertexBuffers(firstBindPoint, pBuffers, pOffsets, pStrides);
+						exts.glBindVertexBuffers(firstBindPoint, pBuffers, pOffsets, pStrides);
 						backend.checkErrorFine();
 						backend.checkErrorCoarse("Failed to bind vertex buffers");
 					}
 				});
-			} else if (backend.getCapabilities().glBindVertexBuffer != 0) {
+			} else if (exts.bindVertexBuffer) {
 				buildingCommands.add(() -> {
 					for(int i = 0; i < bufs.length; i++) {
-						GL43.glBindVertexBuffer(i + firstBindPoint, bufs[i], 0, 0);
+						exts.glBindVertexBuffer(i + firstBindPoint, bufs[i], 0, 0);
 						backend.checkErrorFine();
 					}
 					backend.checkErrorCoarse("Failed to bind vertex buffers");
@@ -434,12 +454,13 @@ public class GLCommandBufferInterpreted extends GLCommandBuffer {
 		@Override
 		public void drawIndexed(int nIndices, int startIndex, int startVertex) {
 			/** Complete */
-			if (backend.getCapabilities().glDrawElementsBaseVertex != 0) {
+			GLExtensions exts = backend.getExtensions();
+			if (exts.drawElementsBaseVertex) {
 				buildingCommands.add(() -> {
 					GLPipelineGeometryState state = backend.getCurrentPipeline().pipelineState.geometryState;
 					ZEGeometryType geoType = state.getInputGeometryType();
 					ZEPrimitiveType indexType = state.getIndexType();
-					GL32.glDrawElementsBaseVertex(
+					exts.glDrawElementsBaseVertex(
 						GLValues.getGLInputGeometryType(geoType),
 						nIndices,
 						GLValues.getGLType(indexType),
@@ -471,9 +492,14 @@ public class GLCommandBufferInterpreted extends GLCommandBuffer {
 		@Override
 		public void drawIndirect(ZEBuffer paramBuffer, int offset, int drawCount, int stride) {
 			/** Complete */
-			if (backend.getCapabilities().glDrawArraysIndirect != 0)
+			GLExtensions exts = backend.getExtensions();
+			if (exts.drawIndirect)
 				buildingCommands.add(() -> {
-					GL40.glDrawArraysIndirect(0, (ByteBuffer)null);
+					GLPipelineGeometryState state = backend.getCurrentPipeline().pipelineState.geometryState;
+					ZEGeometryType geoType = state.getInputGeometryType();
+					exts.glDrawArraysIndirect(
+							GLValues.getGLInputGeometryType(geoType),
+							(ByteBuffer)null);
 					backend.checkErrorFine();
 					backend.checkErrorCoarse("Failed to draw indirect");
 				});
@@ -483,9 +509,16 @@ public class GLCommandBufferInterpreted extends GLCommandBuffer {
 		@Override
 		public void drawIndexedIndirect(ZEBuffer paramBuffer, int offset, int drawCount, int stride) {
 			/** Complete */
-			if (backend.getCapabilities().glDrawElementsIndirect != 0)
+			GLExtensions exts = backend.getExtensions();
+			if (exts.drawIndirect)
 				buildingCommands.add(() -> {
-					GL40.glDrawElementsIndirect(0, 0, (ByteBuffer)null);
+					GLPipelineGeometryState state = backend.getCurrentPipeline().pipelineState.geometryState;
+					ZEGeometryType geoType = state.getInputGeometryType();
+					ZEPrimitiveType indexType = state.getIndexType();
+					exts.glDrawElementsIndirect(
+							GLValues.getGLInputGeometryType(geoType),
+							GLValues.getGLType(indexType),
+							(ByteBuffer)null);
 					backend.checkErrorFine();
 					backend.checkErrorCoarse("Failed to draw indexed indirect");
 				});
@@ -530,7 +563,7 @@ public class GLCommandBufferInterpreted extends GLCommandBuffer {
 			if (exts.copyNamedBufferSubData) {
 				// Use glCopyNamedBufferSubData if available
 				buildingCommands.add(() -> {
-					GL45.glCopyNamedBufferSubData(glsrc, gldst, srcPos, dstPos, size);
+					exts.glCopyNamedBufferSubData(glsrc, gldst, srcPos, dstPos, size);
 					backend.checkErrorFine();
 					backend.checkErrorCoarse("Failed to blit buffer");
 				});
@@ -541,22 +574,21 @@ public class GLCommandBufferInterpreted extends GLCommandBuffer {
 					backend.checkErrorFine();
 					GL15.glBindBuffer(GL31.GL_COPY_WRITE_BUFFER, gldst);
 					backend.checkErrorFine();
-					GL31.glCopyBufferSubData(GL31.GL_COPY_READ_BUFFER, GL31.GL_COPY_WRITE_BUFFER, srcPos, dstPos, size);
+					exts.glCopyBufferSubData(GL31.GL_COPY_READ_BUFFER, GL31.GL_COPY_WRITE_BUFFER, srcPos, dstPos, size);
 					backend.checkErrorFine();
 					backend.checkErrorCoarse("Failed to blit buffer");
 				});
-			/* If we don't have glCopyBufferSubData we don't have glMapNamedBuffer
 			} else if (exts.mapNamedBuffer) {
-				// Else fall back to GL20 functions
+				// We can try glMapNamedBuffer and client-side copy (if we somehow have glMapNamedBuffer??)
 				buildingCommands.add(() -> {
-					ByteBuffer srcBuf = GL45.glMapNamedBuffer(glsrc, GL15.GL_READ_ONLY);
-					ByteBuffer dstBuf = GL45.glMapNamedBuffer(gldst, GL15.GL_WRITE_ONLY);
+					ByteBuffer srcBuf = exts.glMapNamedBuffer(glsrc, GL15.GL_READ_ONLY);
+					ByteBuffer dstBuf = exts.glMapNamedBuffer(gldst, GL15.GL_WRITE_ONLY);
 					LibCString.nmemcpy(MemoryUtil.memAddress(srcBuf) + srcPos, MemoryUtil.memAddress(dstBuf) + dstPos, size);
-					GL45.glUnmapNamedBuffer(glsrc);
-					GL45.glUnmapNamedBuffer(gldst);
+					exts.glUnmapNamedBuffer(glsrc);
+					exts.glUnmapNamedBuffer(gldst);
 				});
-			*/
 			} else {
+				// Else fall back to GL20 functions
 				buildingCommands.add(() -> {
 					int bindingArray = GL11.glGetInteger(GL15.GL_ARRAY_BUFFER_BINDING);
 					backend.checkErrorFine();

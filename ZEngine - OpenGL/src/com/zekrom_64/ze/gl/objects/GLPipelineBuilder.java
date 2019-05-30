@@ -9,9 +9,9 @@ import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GL43;
 
 import com.zekrom_64.mathlib.shape.Rectangle;
-import com.zekrom_64.ze.base.backend.render.ZEGeometryType;
 import com.zekrom_64.ze.base.backend.render.obj.ZECompareOp;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEFrontBack;
+import com.zekrom_64.ze.base.backend.render.pipeline.ZEGeometryType;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipeline;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBuilder;
 import com.zekrom_64.ze.base.backend.render.shader.ZEShaderProgram;
