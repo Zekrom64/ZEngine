@@ -4,12 +4,24 @@
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/ZEngine - Native"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/ZEngine - Base"/>
-	<classpathentry kind="lib" path="/Libraries/lib/bridj/bridj-0.7.0.jar" sourcepath="/Libraries/lib/bridj/bridj-0.7.0-sources.jar"/>
 	<classpathentry kind="lib" path="/Libraries/ref/rt-linux-1.8.0_92.jar"/>
 	<classpathentry kind="lib" path="/Libraries/ref/rt-windows-1.8.0_92.jar"/>
-	<classpathentry kind="lib" path="/Libraries/lib/lwjgl3.1.2/lwjgl-opengl.jar" sourcepath="/Libraries/lib/lwjgl3.1.2/lwjgl-opengl-sources.jar"/>
-	<classpathentry kind="lib" path="/Libraries/lib/lwjgl3.1.2/lwjgl.jar" sourcepath="/Libraries/lib/lwjgl3.1.2/lwjgl-sources.jar"/>
-	<classpathentry kind="lib" path="/Libraries/lib/apache/bcel/bcel-6.0.jar" sourcepath="/Libraries/lib/apache/bcel/bcel-6.0-sources.jar"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/MathLib"/>
+	<classpathentry kind="lib" path="/Libraries/libref/bcel/bcel-6.0.jar" sourcepath="/Libraries/libref/bcel/bcel-6.0-sources.jar"/>
+	<classpathentry kind="lib" path="/Libraries/libref/bridj/bridj-0.7.0.jar" sourcepath="/Libraries/libref/bridj/bridj-0.7.0-sources.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:platform:/resource/Libraries/libref/bridj/bridj-0.7.0-javadoc.jar!/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="/Libraries/libref/lwjgl/lwjgl-opengl.jar" sourcepath="/Libraries/libref/lwjgl/lwjgl-opengl-sources.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:platform:/resource/Libraries/libref/lwjgl/lwjgl-opengl-javadoc.jar!/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="/Libraries/libref/lwjgl/lwjgl.jar" sourcepath="/Libraries/libref/lwjgl/lwjgl-sources.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:platform:/resource/Libraries/libref/lwjgl/lwjgl-javadoc.jar!/"/>
+		</attributes>
+	</classpathentry>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

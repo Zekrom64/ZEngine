@@ -3,6 +3,10 @@
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/ZEngine - Base"/>
-	<classpathentry kind="lib" path="/Libraries/lib/lwjgl3.1.2/lwjgl-openal.jar" sourcepath="/Libraries/lib/lwjgl3.1.2/lwjgl-openal-sources.jar"/>
+	<classpathentry kind="lib" path="/Libraries/libref/lwjgl/lwjgl-openal.jar" sourcepath="/Libraries/libref/lwjgl/lwjgl-openal-sources.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:platform:/resource/Libraries/libref/lwjgl/lwjgl-openal-javadoc.jar!/"/>
+		</attributes>
+	</classpathentry>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

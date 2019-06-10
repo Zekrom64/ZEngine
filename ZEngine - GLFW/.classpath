@@ -6,9 +6,25 @@
 	<classpathentry combineaccessrules="false" kind="src" path="/ZEngine - OpenGL"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/ZEngine - Vulkan"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/ZEngine - Native"/>
-	<classpathentry kind="lib" path="/Libraries/lib/lwjgl3.1.2/lwjgl-glfw.jar" sourcepath="/Libraries/lib/lwjgl3.1.2/lwjgl-glfw-sources.jar"/>
-	<classpathentry kind="lib" path="/Libraries/lib/lwjgl3.1.2/lwjgl.jar" sourcepath="/Libraries/lib/lwjgl3.1.2/lwjgl-sources.jar"/>
-	<classpathentry kind="lib" path="/Libraries/lib/lwjgl3.1.2/lwjgl-vulkan.jar" sourcepath="/Libraries/lib/lwjgl3.1.2/lwjgl-vulkan-sources.jar"/>
-	<classpathentry kind="lib" path="/Libraries/lib/lwjgl3.1.2/lwjgl-opengl.jar" sourcepath="/Libraries/lib/lwjgl3.1.2/lwjgl-opengl-sources.jar"/>
+	<classpathentry kind="lib" path="/Libraries/libref/lwjgl/lwjgl-glfw.jar" sourcepath="/Libraries/libref/lwjgl/lwjgl-glfw-sources.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:platform:/resource/Libraries/libref/lwjgl/lwjgl-glfw-javadoc.jar!/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="/Libraries/libref/lwjgl/lwjgl-opengl.jar" sourcepath="/Libraries/libref/lwjgl/lwjgl-opengl-sources.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:platform:/resource/Libraries/libref/lwjgl/lwjgl-opengl-javadoc.jar!/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="/Libraries/libref/lwjgl/lwjgl-vulkan.jar" sourcepath="/Libraries/libref/lwjgl/lwjgl-vulkan-sources.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:platform:/resource/Libraries/libref/lwjgl/lwjgl-vulkan-javadoc.jar!/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="/Libraries/libref/lwjgl/lwjgl.jar" sourcepath="/Libraries/libref/lwjgl/lwjgl-sources.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:platform:/resource/Libraries/libref/lwjgl/lwjgl-javadoc.jar!/"/>
+		</attributes>
+	</classpathentry>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

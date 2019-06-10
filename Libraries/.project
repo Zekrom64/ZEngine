@@ -14,4 +14,26 @@
 	<natures>
 		<nature>org.eclipse.jdt.core.javanature</nature>
 	</natures>
+	<linkedResources>
+		<link>
+			<name>libref/bcel</name>
+			<type>2</type>
+			<locationURI>PROJECT_LOC/lib/apache/bcel-6.0</locationURI>
+		</link>
+		<link>
+			<name>libref/bridj</name>
+			<type>2</type>
+			<locationURI>PROJECT_LOC/lib/bridj/bridj-0.7.0</locationURI>
+		</link>
+		<link>
+			<name>libref/lwjgl</name>
+			<type>2</type>
+			<locationURI>PROJECT_LOC/lib/lwjgl/lwjgl-3.2.2</locationURI>
+		</link>
+		<link>
+			<name>libref/vecmath</name>
+			<type>2</type>
+			<locationURI>PROJECT_LOC/lib/javax/vecmath-1.5.2</locationURI>
+		</link>
+	</linkedResources>
 </projectDescription>
