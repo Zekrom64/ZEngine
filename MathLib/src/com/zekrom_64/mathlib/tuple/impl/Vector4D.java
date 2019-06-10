@@ -29,6 +29,13 @@ public class Vector4D extends Vector3D {
 		w = values[3];
 	}
 	
+	public void set(Vector4D v) {
+		this.x = v.x;
+		this.y = v.y;
+		this.z = v.z;
+		this.w = v.w;
+	}
+	
 	public void set(double x, double y, double z, double w) {
 		this.x = x;
 		this.y = y;

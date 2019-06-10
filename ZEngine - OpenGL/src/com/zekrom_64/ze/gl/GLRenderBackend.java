@@ -29,6 +29,9 @@ import com.zekrom_64.ze.base.backend.render.obj.ZETexture;
 import com.zekrom_64.ze.base.backend.render.obj.ZETexture.ZETextureUsage;
 import com.zekrom_64.ze.base.backend.render.obj.ZETextureDimension;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipeline;
+import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBindLayout;
+import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBindLayoutBuilder;
+import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBindPool;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBuilder;
 import com.zekrom_64.ze.base.backend.render.shader.ZEShaderCompiler;
 import com.zekrom_64.ze.base.image.ZEPixelFormat;
@@ -37,6 +40,9 @@ import com.zekrom_64.ze.gl.objects.GLCommandBuffer;
 import com.zekrom_64.ze.gl.objects.GLCommandBufferInterpreted;
 import com.zekrom_64.ze.gl.objects.GLFramebufferBuilder;
 import com.zekrom_64.ze.gl.objects.GLPipeline;
+import com.zekrom_64.ze.gl.objects.GLPipelineBindLayoutBuilder;
+import com.zekrom_64.ze.gl.objects.GLPipelineBindPool;
+import com.zekrom_64.ze.gl.objects.GLPipelineBindSet;
 import com.zekrom_64.ze.gl.objects.GLPipelineBuilder;
 import com.zekrom_64.ze.gl.objects.GLRenderEvent;
 import com.zekrom_64.ze.gl.objects.GLRenderFence;
@@ -54,6 +60,7 @@ public class GLRenderBackend implements ZERenderBackend<GLRenderBackend> {
 	private Set<GLReleasable> releasables = new HashSet<>();
 	private GLShaderCompiler shaderCompiler = null;
 	private GLPipeline currentPipeline = null;
+	private GLPipelineBindSet currentBindSet = null;
 	private GLVersion glversion;
 	private GLExtensions extensions;
 	
@@ -155,12 +162,13 @@ public class GLRenderBackend implements ZERenderBackend<GLRenderBackend> {
 	 * @param pipeline Pipeline to set
 	 */
 	public void setCurrentPipeline(GLPipeline pipeline) {
-		context.ensureBound();
-		if (pipeline != null) {
-			if (currentPipeline == null) pipeline.pipelineState.bind();
-			else pipeline.pipelineState.bind(currentPipeline.pipelineState);
-			currentPipeline = pipeline;
-		}
+		context.executeExclusivly(() -> {
+			if (pipeline != null) {
+				if (currentPipeline == null) pipeline.pipelineState.bind();
+				else pipeline.pipelineState.bind(currentPipeline.pipelineState);
+				currentPipeline = pipeline;
+			}
+		});
 	}
 	
 	/** Gets the current pipeline bound to the backend.
@@ -169,6 +177,16 @@ public class GLRenderBackend implements ZERenderBackend<GLRenderBackend> {
 	 */
 	public GLPipeline getCurrentPipeline() {
 		return currentPipeline;
+	}
+	
+	public void setCurrentBindSet(GLPipelineBindSet bindSet) {
+		context.executeExclusivly(() -> {
+			if (bindSet != null) {
+				if (currentBindSet != null) currentBindSet.currentlyBound = false;
+				currentBindSet = bindSet;
+				bindSet.bind();
+			}
+		});
 	}
 	
 	/** Gets the render output bound to the backend.
@@ -332,6 +350,22 @@ public class GLRenderBackend implements ZERenderBackend<GLRenderBackend> {
 
 	@Override
 	public void destroyPipeline(ZEPipeline pipeline) { } // Pipeline is just a collection of settings, doesn't need to be destroyed
+
+	@Override
+	public ZEPipelineBindLayoutBuilder createPipelineBindLayoutBuilder() {
+		return new GLPipelineBindLayoutBuilder();
+	}
+
+	@Override
+	public void destroyPipelineBindLayout(ZEPipelineBindLayout pipelineBindLayout) { }
+
+	@Override
+	public ZEPipelineBindPool createBindPool(ZEBindingCount[] allocBindings) {
+		return new GLPipelineBindPool(this);
+	}
+
+	@Override
+	public void destroyBindPool(ZEPipelineBindPool bindPool) { }
 
 	@Override
 	public ZEShaderCompiler getShaderCompiler() {

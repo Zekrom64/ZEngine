@@ -29,6 +29,13 @@ public class Vector4F extends Vector3F {
 		w = values[3];
 	}
 	
+	public void set(Vector4F v) {
+		this.x = v.x;
+		this.y = v.y;
+		this.z = v.z;
+		this.w = v.w;
+	}
+	
 	public void set(float x, float y, float z, float w) {
 		this.x = x;
 		this.y = y;

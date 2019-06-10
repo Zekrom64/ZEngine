@@ -1,6 +1,7 @@
 package com.zekrom_64.ze.gl.objects;
 
 import com.zekrom_64.ze.base.backend.render.obj.ZEFramebuffer;
+import com.zekrom_64.ze.base.backend.render.obj.ZETexture.ZETextureLayer;
 
 public class GLFramebuffer implements ZEFramebuffer {
 
@@ -12,15 +13,17 @@ public class GLFramebuffer implements ZEFramebuffer {
 	 * These attachments can be cleared starting a render pass by passing clear values
 	 * at their respective indices.
 	 */
-	public static final GLFramebuffer DEFAULT = new GLFramebuffer(0, new GLTexture[0]);
+	public static final GLFramebuffer DEFAULT = new GLFramebuffer(0, new GLTexture[0], new ZETextureLayer[0]);
 	
 	public final int framebufferObject;
 	
 	public final GLTexture[] attachments;
+	public final ZETextureLayer[] attachmentLayers;
 	
-	public GLFramebuffer(int fbo, GLTexture[] attach) {
+	public GLFramebuffer(int fbo, GLTexture[] attach, ZETextureLayer[] attachLayers) {
 		framebufferObject = fbo;
 		attachments = attach;
+		attachmentLayers = attachLayers;
 	}
 	
 }

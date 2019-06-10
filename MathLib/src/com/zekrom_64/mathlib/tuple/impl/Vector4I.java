@@ -29,6 +29,13 @@ public class Vector4I extends Vector3I implements Vector4<Integer> {
 		w = values[3];
 	}
 	
+	public void set(Vector4I v) {
+		this.x = v.x;
+		this.y = v.y;
+		this.z = v.z;
+		this.w = v.w;
+	}
+	
 	public void set(int x, int y, int z, int w) {
 		this.x = x;
 		this.y = y;

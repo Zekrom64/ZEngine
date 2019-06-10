@@ -1,8 +1,8 @@
 package com.zekrom_64.ze.bullet3;
 
 import com.zekrom_64.mathlib.matrix.impl.Matrix3x3D;
+import com.zekrom_64.mathlib.tuple.impl.ScalarDouble;
 import com.zekrom_64.mathlib.tuple.impl.Vector3D;
-import com.zekrom_64.ze.base.math.DoubleByRef;
 
 public class BTAABBUtil {
 
@@ -45,7 +45,7 @@ public class BTAABBUtil {
 	}
 	
 	public boolean rayAABB2(Vector3D rayFrom, Vector3D rayInvDirection, int[] raySign,
-			Vector3D boundsMin, Vector3D boundsMax, DoubleByRef tmin_out, double lambdaMin, double lambdaMax)  {
+			Vector3D boundsMin, Vector3D boundsMax, ScalarDouble tmin_out, double lambdaMin, double lambdaMax)  {
 		double tmin, tmax, tymin, tymax, tzmin, tzmax;
 		
 		tmin = ((raySign[0] == 0 ? boundsMin : boundsMax).x - rayFrom.x) * rayInvDirection.x;
@@ -54,7 +54,7 @@ public class BTAABBUtil {
 		tymax = ((1-raySign[1] == 0 ? boundsMin : boundsMax).y - rayFrom.y) * rayInvDirection.y;
 		
 		if ((tmin > tymax) || (tymin > tmax)) {
-			if (tmin_out != null) tmin_out.value = tmin;
+			if (tmin_out != null) tmin_out.x = tmin;
 			return false;
 		}
 		
@@ -65,18 +65,18 @@ public class BTAABBUtil {
 		tzmax = ((1-raySign[2] == 0 ? boundsMin : boundsMax).z - rayFrom.z) * rayInvDirection.z;
 		
 		if ((tmin > tzmax) || (tzmin > tmax)) {
-			if (tmin_out != null) tmin_out.value = tmin;
+			if (tmin_out != null) tmin_out.x = tmin;
 			return false;
 		}
 		
 		if (tzmin > tmin) tmin = tzmin;
 		if (tzmax < tmax) tmax = tzmax;
 		
-		if (tmin_out != null) tmin_out.value = tmin;
+		if (tmin_out != null) tmin_out.x = tmin;
 		return ((tmin < lambdaMax) && (tmax > lambdaMin));
 	}
 	
-	public boolean rayAABB(Vector3D rayFrom, Vector3D rayTo, Vector3D aabbMin, Vector3D aabbMax, DoubleByRef param_inout, Vector3D normal) {
+	public boolean rayAABB(Vector3D rayFrom, Vector3D rayTo, Vector3D aabbMin, Vector3D aabbMax, ScalarDouble param_inout, Vector3D normal) {
 		Vector3D aabbHalfExtent = new Vector3D(aabbMax);
 		aabbHalfExtent.sub(aabbMin);
 		aabbHalfExtent.mul(0.5);
@@ -91,7 +91,7 @@ public class BTAABBUtil {
 		int targetOutcode = outcode(target, aabbHalfExtent);
 		if ((sourceOutcode & targetOutcode) == 0) {
 			double lambdaEnter = 0;
-			double lambdaExit = param_inout.value;
+			double lambdaExit = param_inout.x;
 			Vector3D r = new Vector3D(target);
 			r.sub(source);
 			double normSign = 1;
@@ -115,7 +115,7 @@ public class BTAABBUtil {
 				normSign = -1;
 			}
 			if (lambdaEnter <= lambdaExit) {
-				param_inout.value = lambdaEnter;
+				param_inout.x = lambdaEnter;
 				normal.set(hitNormal);
 				return true;
 			}

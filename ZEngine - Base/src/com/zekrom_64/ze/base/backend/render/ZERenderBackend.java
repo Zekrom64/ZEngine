@@ -13,6 +13,10 @@ import com.zekrom_64.ze.base.backend.render.obj.ZETexture;
 import com.zekrom_64.ze.base.backend.render.obj.ZETexture.ZETextureUsage;
 import com.zekrom_64.ze.base.backend.render.obj.ZETextureDimension;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipeline;
+import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBindLayout;
+import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBindLayoutBuilder;
+import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBindPool;
+import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBindType;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBuilder;
 import com.zekrom_64.ze.base.backend.render.shader.ZEShaderCompiler;
 import com.zekrom_64.ze.base.image.ZEPixelFormat;
@@ -171,6 +175,26 @@ public interface ZERenderBackend<B extends ZERenderBackend<?>> {
 	 * @param pipeline Pipeline
 	 */
 	public void destroyPipeline(ZEPipeline pipeline);
+	
+	public ZEPipelineBindLayoutBuilder createPipelineBindLayoutBuilder();
+	
+	public void destroyPipelineBindLayout(ZEPipelineBindLayout pipelineBindLayout);
+	
+	public static class ZEBindingCount {
+		
+		public ZEPipelineBindType bindingType;
+		public int bindingCount;
+		
+		public ZEBindingCount(ZEPipelineBindType bindType, int bindCount) {
+			bindingType = bindType;
+			bindingCount = bindCount;
+		}
+		
+	}
+	
+	public ZEPipelineBindPool createBindPool(ZEBindingCount[] allocBindings);
+	
+	public void destroyBindPool(ZEPipelineBindPool bindPool);
 	
 	// -----------
 	// | SHADERS |

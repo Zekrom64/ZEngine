@@ -79,5 +79,10 @@ public class Matrix2x2D implements Matrix2x2<Double>, MatrixDouble {
 		}
 		return 0;
 	}
+	
+	public void set(Matrix2x2D m) {
+		m0x0 = m.m0x0; m0x1 = m.m0x1;
+		m1x0 = m.m1x0; m1x1 = m.m1x1;
+	}
 
 }

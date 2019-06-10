@@ -26,6 +26,11 @@ public class Vector2I extends ScalarInt implements Vector2<Integer> {
 		y = values[1];
 	}
 	
+	public void set(Vector2I v) {
+		this.x = v.x;
+		this.y = v.y;
+	}
+	
 	public void set(int x, int y) {
 		this.x = x;
 		this.y = y;

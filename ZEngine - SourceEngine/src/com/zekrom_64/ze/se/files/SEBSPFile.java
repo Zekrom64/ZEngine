@@ -1,12 +1,12 @@
 package com.zekrom_64.ze.se.files;
 
-import javax.vecmath.Vector3f;
+import com.zekrom_64.mathlib.tuple.impl.Vector3F;
 
 public class SEBSPFile {
 	
 	public class SEBSPFilePlane {
 		
-		public final Vector3f normal = new Vector3f();
+		public final Vector3F normal = new Vector3F();
 		public float dist;
 		public int type;
 		
@@ -244,7 +244,7 @@ public class SEBSPFile {
 	
 	public class SEBSPFileTextureDataEntry {
 		
-		public Vector3f reflectivity = new Vector3f();
+		public Vector3F reflectivity = new Vector3F();
 		public int nameStringTableID;
 		public int width, height;
 		public int view_width, view_height;
@@ -271,7 +271,7 @@ public class SEBSPFile {
 	
 	public class SEBSPFileModelLump {
 		
-		public Vector3f mins = new Vector3f(), maxs = new Vector3f();
+		public Vector3F mins = new Vector3F(), maxs = new Vector3F();
 		public float[] origin = new float[3];
 		public int headnode;
 		public int firstface, numfaces;
@@ -324,7 +324,7 @@ public class SEBSPFile {
 	
 	public class SEBSPFileDispInfoLump {
 		
-		public Vector3f startPosition = new Vector3f();
+		public Vector3F startPosition = new Vector3F();
 		public int dispVertStart;
 		public int dispTriStart;
 		public int power;

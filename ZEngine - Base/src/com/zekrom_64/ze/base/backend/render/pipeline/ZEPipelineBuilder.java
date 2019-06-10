@@ -5,10 +5,30 @@ import java.util.Set;
 import com.zekrom_64.mathlib.shape.Rectangle;
 import com.zekrom_64.mathlib.shape.RectanglePosSizeDouble;
 import com.zekrom_64.ze.base.backend.render.obj.ZECompareOp;
+import com.zekrom_64.ze.base.backend.render.obj.ZERenderPass;
 import com.zekrom_64.ze.base.backend.render.shader.ZEShaderProgram;
 import com.zekrom_64.ze.base.image.ZEPixelFormat;
 
 public interface ZEPipelineBuilder {
+	
+	// ----------
+	// | LAYOUT |
+	// ----------
+	
+	/** Sets the layout of this pipeline.
+	 * 
+	 * @param layout Pipeline layout
+	 */
+	public void setLayout(ZEPipelineLayout layout);
+	
+	/** Sets the render pass to use this pipeline with. The render pass
+	 * serves as a template of attachments, and a compatible render pass
+	 * may be used instead.
+	 * 
+	 * @param renderPass The template render pass
+	 * @param subpass The subpass the pipeline will be used with
+	 */
+	public void setTemplateRenderPass(ZERenderPass renderPass, int subpass);
 	
 	// -----------
 	// | SHADERS |
@@ -451,5 +471,13 @@ public interface ZEPipelineBuilder {
 	 * @return Built pipeline
 	 */
 	public ZEPipeline build();
+	
+	/** Builds a pipeline with a 'base' pipeline. Switching between
+	 * a base and derived pipeline may be more efficient.
+	 * 
+	 * @param base Base pipeline
+	 * @return Built pipeline
+	 */
+	public ZEPipeline build(ZEPipeline base);
 	
 }

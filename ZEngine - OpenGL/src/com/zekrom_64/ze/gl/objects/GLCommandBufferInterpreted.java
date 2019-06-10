@@ -23,6 +23,7 @@ import org.lwjgl.opengl.GL41;
 import org.lwjgl.opengl.GL45;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
+import org.lwjgl.system.libc.LibCStdlib;
 import org.lwjgl.system.libc.LibCString;
 
 import com.zekrom_64.mathlib.shape.Rectangle;
@@ -148,8 +149,12 @@ public class GLCommandBufferInterpreted extends GLCommandBuffer {
 	private void glFramebufferTexture(int target, int attachment, GLTexture tex, int mipLevel, int depth, int arrayIndex) {
 		GLExtensions exts = backend.getExtensions();
 		switch(tex.getDimension()) {
+		case CUBE: // Special case for single cubemap textures
+			// Use glFramebufferTextureLayer if possible
+			if (exts.framebufferTextureLayer) exts.glFramebufferTextureLayer(target, attachment, tex.textureObject, mipLevel, arrayIndex);
+			// Fall back to glFramebufferTexture2D with GL_TEXTURE_CUBE_MAP_*
+			else exts.glFramebufferTexture2D(target, attachment, GLValues.getGLTextureUseTarget(tex.getDimension(), arrayIndex), tex.textureObject, mipLevel);
 		case DIM_2D_ARRAY:
-		case CUBE:
 		case CUBE_ARRAY:
 			exts.glFramebufferTextureLayer(target, attachment, tex.textureObject, mipLevel, arrayIndex);
 			break;
@@ -178,6 +183,7 @@ public class GLCommandBufferInterpreted extends GLCommandBuffer {
 		private int subpass = -1;
 		private boolean defaultFramebuffer;
 		private GLTexture[] attachments = new GLTexture[0];
+		private ZETextureLayer[] attachmentLayers = new ZETextureLayer[0];
 		
 		@Override
 		public void beginPass(ZERenderPass renderPass, ZEFramebuffer framebuffer,
@@ -212,23 +218,25 @@ public class GLCommandBufferInterpreted extends GLCommandBuffer {
 				}
 				defaultFramebuffer = true;
 				attachments = new GLTexture[0];
+				attachmentLayers = new ZETextureLayer[0];
 			} else { // Framebuffer with attachments
 				buildingCommands.add(() -> {
 					exts.glBindFramebuffer(GL30.GL_FRAMEBUFFER, ((GLFramebuffer)framebuffer).framebufferObject);
 					backend.checkErrorFine();
 				});
 				attachments = ((GLFramebuffer)framebuffer).attachments;
+				attachmentLayers = ((GLFramebuffer)framebuffer).attachmentLayers;
 				for(int i = 0; i < attachments.length; i++) {
 					GLTexture tex = attachments[i];
+					ZETextureLayer texlayer = attachmentLayers[i];
 					boolean isDepth = tex.getPixelFormat().depthType != null;
 					boolean isStencil = tex.getPixelFormat().stencilType != null;
 					final float depth = clearValues[i].depth;
 					final int stencil = clearValues[i].stencil;
-					// TODO: Array texture support
 					if (isDepth || isStencil) { // Depth and stencil formats are kind of weird
 						if (isDepth && !isStencil) {
 							buildingCommands.add(() -> {
-								exts.glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_ATTACHMENT, GL11.GL_TEXTURE_2D, tex.textureObject, 0);
+								glFramebufferTexture(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_ATTACHMENT, tex, texlayer.mipLevel, texlayer.baseArrayLayer, texlayer.baseArrayLayer);
 								backend.checkErrorFine();
 								GL11.glClearDepth(depth);
 								backend.checkErrorFine();
@@ -237,7 +245,7 @@ public class GLCommandBufferInterpreted extends GLCommandBuffer {
 							});
 						} else if (isStencil && !isDepth) {
 							buildingCommands.add(() -> {
-								exts.glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_STENCIL_ATTACHMENT, GL11.GL_TEXTURE_2D, tex.textureObject, 0);
+								glFramebufferTexture(GL30.GL_FRAMEBUFFER, GL30.GL_STENCIL_ATTACHMENT, tex, texlayer.mipLevel, texlayer.baseArrayLayer, texlayer.baseArrayLayer);
 								backend.checkErrorFine();
 								GL11.glClearStencil(stencil);
 								backend.checkErrorFine();
@@ -246,7 +254,7 @@ public class GLCommandBufferInterpreted extends GLCommandBuffer {
 							});
 						} else {
 							buildingCommands.add(() -> {
-								exts.glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_STENCIL_ATTACHMENT, GL11.GL_TEXTURE_2D, tex.textureObject, 0);
+								glFramebufferTexture(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_STENCIL_ATTACHMENT, tex, texlayer.mipLevel, texlayer.baseArrayLayer, texlayer.baseArrayLayer);
 								backend.checkErrorFine();
 								GL11.glClearDepth(depth);
 								backend.checkErrorFine();
@@ -258,7 +266,7 @@ public class GLCommandBufferInterpreted extends GLCommandBuffer {
 						}
 					} else { // Clear the color attachment
 						buildingCommands.add(() -> {
-							exts.glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_COLOR_ATTACHMENT0, GL11.GL_TEXTURE_2D, tex.textureObject, 0);
+							glFramebufferTexture(GL30.GL_FRAMEBUFFER, GL30.GL_COLOR_ATTACHMENT0, tex, texlayer.mipLevel, texlayer.baseArrayLayer, texlayer.baseArrayLayer);
 							backend.checkErrorFine();
 						});
 						buildingCommands.add(clearColorToCommand(tex, clearValues[i].color));
@@ -282,17 +290,30 @@ public class GLCommandBufferInterpreted extends GLCommandBuffer {
 			if (!defaultFramebuffer) { // Default framebuffer cannot be remapped
 				buildingCommands.add(() -> {
 					Integer depthStencil = subpass.depthStencilAttachment;
-					//TODO: Array texture support
 					if (depthStencil == null)
 						exts.glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_STENCIL_ATTACHMENT, GL11.GL_TEXTURE_2D, 0, 0);
-					else
-						exts.glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_STENCIL_ATTACHMENT, GL11.GL_TEXTURE_2D, attachments[depthStencil].textureObject, 0);
+					else {
+						GLTexture tex = attachments[depthStencil];
+						ZETextureLayer layer = attachmentLayers[depthStencil];
+						boolean isDepth = tex.getPixelFormat().depthType != null;
+						boolean isStencil = tex.getPixelFormat().stencilType != null;
+						if (isDepth && isStencil) glFramebufferTexture(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_STENCIL_ATTACHMENT, tex, layer.mipLevel, layer.baseArrayLayer, layer.baseArrayLayer);
+						else if (isDepth && !isStencil) {
+							glFramebufferTexture(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_ATTACHMENT, tex, layer.mipLevel, layer.baseArrayLayer, layer.baseArrayLayer);
+							exts.glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_STENCIL_ATTACHMENT, GL11.GL_TEXTURE_2D, 0, 0);
+						} else if (!isDepth && isStencil) {
+							glFramebufferTexture(GL30.GL_FRAMEBUFFER, GL30.GL_STENCIL_ATTACHMENT, tex, layer.mipLevel, layer.baseArrayLayer, layer.baseArrayLayer);
+							exts.glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_ATTACHMENT, GL11.GL_TEXTURE_2D, 0, 0);
+						}
+					}
 					for(int i = 0; i < subpass.colorAttachments.length; i++) {
 						Integer color = subpass.colorAttachments[i];
 						if (color == null)
 							exts.glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_COLOR_ATTACHMENT0+i, GL11.GL_TEXTURE_2D, 0, 0);
-						else
-							exts.glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_COLOR_ATTACHMENT0+i, GL11.GL_TEXTURE_2D, attachments[color].textureObject, 0);
+						else {
+							ZETextureLayer layer = attachmentLayers[color];
+							glFramebufferTexture(GL30.GL_FRAMEBUFFER, GL30.GL_COLOR_ATTACHMENT0+i, attachments[color], layer.mipLevel, layer.baseArrayLayer, layer.baseArrayLayer);
+						}
 					}
 				});
 			}
@@ -621,6 +642,7 @@ public class GLCommandBufferInterpreted extends GLCommandBuffer {
 		public void blitTexture(ZETexture srcTex, ZETextureLayer srcLayer, ZETextureLayout srcLayout, Vector3I srcPos, Vector3I srcSize,
 				ZETexture dstTex, ZETextureLayer dstLayer, ZETextureLayout dstLayout, Vector3I dstPos, Vector3I dstSize,
 				ZEFilter filter) {
+			/** Complete */
 			GLTexture glsrcobj = ((GLTexture)srcTex);
 			GLTexture gldstobj = ((GLTexture)dstTex);
 			int glsrc = glsrcobj.textureObject;
@@ -667,10 +689,21 @@ public class GLCommandBufferInterpreted extends GLCommandBuffer {
 					});
 				} else {
 					// We fall back to using pixel buffer objects
-					buildingCommands.add(() -> {
-						int pbo = GL15.glGenBuffers();
-						// TODO: Pixel buffer blit
-					});
+					Vector3I srcFullSize = new Vector3I(srcTex.getWidth(), srcTex.getHeight(), srcTex.getArrayLayers());
+					limitCoordsForDimension(null, srcFullSize, glsrcobj, 0, srcTex.getArrayLayers());
+					
+					int target = GLValues.getGLTextureBindTarget(srcTex.getDimension());
+					
+					if (_srcSize.equals(srcFullSize)) {
+						// We can use glGetTexImage if the source is the full image
+						buildingCommands.add(() -> {
+							int pbo = GL15.glGenBuffers();
+							int boundBuf = GL11.glGetInteger(GL21.GL_PIXEL_PACK_BUFFER_BINDING);
+							GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, pbo);
+							GL11.glGetTexImage(target, srcm, gldstobj.getGLFormat(), gldstobj.getGLType(), 0);
+							GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, boundBuf);
+						});
+					}
 				}
 			} else { // Scaled blit
 				if (exts.framebufferBlit && srcTex.getDimension().numSampleDimensions > 1) {
@@ -695,7 +728,7 @@ public class GLCommandBufferInterpreted extends GLCommandBuffer {
 						exts.glDeleteFramebuffers(fbo);
 					});
 					// Else, give up and throw an exception
-				} else throw new GLException("Blitting operation not supported");
+				} else throw new GLException("Blitting operation not supported"); // TODO: Implement manual blitting?
 			}
 		}
 		
@@ -886,9 +919,13 @@ public class GLCommandBufferInterpreted extends GLCommandBuffer {
 		@Override
 		public void imageToBuffer(ZETexture src, Vector3I srcPos, Vector3I srcSize, ZETextureLayer srcLayer,
 				ZEBuffer dst, int dstOffset, int dstRowLength, int dstHeight) {
+			/** Complete */
+			GLExtensions exts = backend.getExtensions();
+			
 			ZEPixelFormat pxfmt = src.getPixelFormat();
 			ZETextureDimension dim = src.getDimension();
-			int gltex = ((GLTexture)src).textureObject;
+			GLTexture gltexobj = (GLTexture)src;
+			int gltex = gltexobj.textureObject;
 			int glbuf = ((GLBuffer)dst).bufferObject;
 			int target = GLValues.getGLTextureBindTarget(dim);
 			final int format = GLValues.getGLTextureFormat(pxfmt);
@@ -903,25 +940,120 @@ public class GLCommandBufferInterpreted extends GLCommandBuffer {
 					&& srca == 0 && srcac == src.getArrayLayers()) {
 				// If it is the full texture, use pixel buffers
 				buildingCommands.add(() -> {
+					int boundBuf = GL11.glGetInteger(GL21.GL_PIXEL_PACK_BUFFER_BINDING);
+					backend.checkErrorFine();
 					GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, glbuf);
+					backend.checkErrorFine();
 					GL11.glPixelStorei(GL11.GL_PACK_ROW_LENGTH, dstRowLength);
+					backend.checkErrorFine();
 					GL11.glPixelStorei(GL12.GL_PACK_IMAGE_HEIGHT, dstHeight);
+					backend.checkErrorFine();
 					GL11.glBindTexture(target, gltex);
+					backend.checkErrorFine();
 					GL11.glGetTexImage(target, srcm, format, type, dstOffset);
+					backend.checkErrorFine();
 					GL11.glPixelStorei(GL11.GL_PACK_ROW_LENGTH, 0);
+					backend.checkErrorFine();
 					GL11.glPixelStorei(GL12.GL_PACK_IMAGE_HEIGHT, 0);
+					backend.checkErrorFine();
+					GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, boundBuf);
+					backend.checkErrorFine();
+					backend.checkErrorCoarse("Failed to transfer from image to buffer");
 				});
-			} else if (backend.getCapabilities().glGetTextureSubImage != 0 &&
+			} else if (exts.textureSubImage &&
 					(dim.numSampleDimensions < 2 || dstRowLength == src.getWidth()) &&
 					(dim.numSampleDimensions < 3 || dstHeight == src.getHeight() * src.getWidth())) {
 				buildingCommands.add(() -> {
 					// Else we have to do it the hard way, because apparently having glGetTextureSubImage work with buffers is too easy
 					ByteBuffer mem = GL45.glMapNamedBuffer(glbuf, GL15.GL_WRITE_ONLY);
+					backend.checkErrorFine();
 					GL45.glGetTextureSubImage(gltex, 0, srcx, srcy, srcz, srcw, srch, srcd, format, type, mem.capacity() - dstOffset, MemoryUtil.memAddress(mem) + dstOffset);
+					backend.checkErrorFine();
 					GL45.glUnmapNamedBuffer(glbuf);
+					backend.checkErrorFine();
+					backend.checkErrorCoarse("Failed to transfer from image to buffer");
 				});
-			} else { // And if all else fails its back to the hell of texture blitting
-				// TODO: Manual texture blitting
+			} else { // And if all else fails its back to the hell of manual texture blitting
+				limitCoordsForDimension(srcPos, srcSize, gltexobj, srca, srcac);
+				int pxsize = src.getPixelFormat().sizeOf;
+				
+				int srcx2 = srcPos.x, srcy2 = srcPos.y, srcz2 = srcPos.z;
+				int srcw2 = srcSize.x, srch2 = srcSize.y, srcd2 = srcSize.z;
+
+				long bytes = pxsize * src.getWidth() * (src.getHeight() != 0 ? src.getHeight() : 1) *
+						(src.getDepth() != 0 ? src.getDepth() : 1);
+				
+				int pixelsPerLayer = srcw2 * srch2;
+				
+				int texbinding = GLValues.getGLTextureBinding(dim);
+				
+				buildingCommands.add(() -> {
+					ByteBuffer pixels = LibCStdlib.malloc(bytes);
+					try {
+						// Bind source texture
+						int boundTex = GL11.glGetInteger(texbinding);
+						GL11.glBindTexture(target, gltex);
+						backend.checkErrorFine();
+						GL11.glGetTexImage(target, srcm, gltexobj.getGLFormat(), gltexobj.getGLType(), pixels);
+						backend.checkErrorFine();
+						
+						// Map buffer
+						ByteBuffer dstbuf;
+						int boundBuf = 0;
+						if (exts.mapNamedBuffer) {
+							dstbuf = exts.glMapNamedBuffer(glbuf, GL15.GL_READ_ONLY);
+							backend.checkErrorFine();
+						} else {
+							boundBuf = GL11.glGetInteger(GL15.GL_ARRAY_BUFFER_BINDING);
+							backend.checkErrorFine();
+							GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, glbuf);
+							backend.checkErrorFine();
+							dstbuf = GL15.glMapBuffer(GL15.GL_ARRAY_BUFFER, GL15.GL_READ_ONLY);
+							backend.checkErrorFine();
+						}
+						
+						// Seek to offset
+						dstbuf.position(dstOffset);
+						
+						// For each row in the texture
+						for(int z = 0; z < srcd2; z++) {
+							int dstLayerPos = dstbuf.position();
+							for(int y = 0; y < srch2; y++) {
+								// Select row in memory
+								pixels.position(pxsize *
+										srcx2 +
+										((srcy2 + y) * srcw2) +
+										((srcz2 + z) * pixelsPerLayer)
+								);
+								pixels.limit(pixels.position() + srcw2 * pxsize);
+								
+								// Copy to position in destination buffer
+								int dstRowPos = dstbuf.position();
+								dstbuf.put(pixels);
+								dstbuf.position(dstRowPos + (dstRowLength * pxsize));
+							}
+							dstbuf.position(dstLayerPos + (dstRowLength * dstHeight * pxsize));
+						}
+						
+						// Unmap buffer
+						if (exts.mapNamedBuffer) {
+							exts.glUnmapNamedBuffer(glbuf);
+							backend.checkErrorFine();
+						} else {
+							GL15.glUnmapBuffer(GL15.GL_ARRAY_BUFFER);
+							backend.checkErrorFine();
+							GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, boundBuf);
+							backend.checkErrorFine();
+						}
+						
+						// Unbind texture
+						GL11.glBindTexture(target, boundTex);
+						backend.checkErrorFine();
+						backend.checkErrorCoarse("Failed to transfer from image to buffer");
+					} finally {
+						LibCStdlib.free(pixels);
+					}
+				});
 			}
 		}
 
@@ -1129,23 +1261,28 @@ public class GLCommandBufferInterpreted extends GLCommandBuffer {
 
 		@Override
 		public void bindPipelineBindSet(ZEPipelineBindSet bindSet) {
-			// TODO: Bind uniforms
+			buildingCommands.add(() -> {
+				backend.setCurrentBindSet((GLPipelineBindSet)bindSet);
+				backend.checkErrorCoarse("Failed to bind pipeline bind set");
+			});
 		}
 
 		@Override
 		public void waitForEvents(ZEPipelineStage[] readyStages, ZEPipelineStage[] waitingStages,
 				ZERenderEvent[] events, ZEPipelineBarrier... barriers) {
 			/** Complete */
-			CountDownLatch cdl = new CountDownLatch(events.length);
-			for(ZERenderEvent e : events) {
-				GLRenderEvent gle = (GLRenderEvent)e;
-				synchronized(gle.latches) {
-					gle.latches.add(cdl);
+			buildingCommands.add(() -> {
+				CountDownLatch cdl = new CountDownLatch(events.length);
+				for(ZERenderEvent e : events) {
+					GLRenderEvent gle = (GLRenderEvent)e;
+					synchronized(gle.latches) {
+						gle.latches.add(cdl);
+					}
 				}
-			}
-			try {
-				cdl.await();
-			} catch (InterruptedException e1) { }
+				try {
+					cdl.await();
+				} catch (InterruptedException e1) { }
+			});
 		}
 
 		@Override

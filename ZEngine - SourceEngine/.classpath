@@ -4,6 +4,6 @@
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/ZEngine - Base"/>
 	<classpathentry kind="lib" path="/Libraries/lib/bridj/bridj-0.7.0.jar" sourcepath="/Libraries/lib/bridj/bridj-0.7.0-sources.jar"/>
-	<classpathentry kind="lib" path="/Libraries/lib/vecmath-1.5.2.jar"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/MathLib"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

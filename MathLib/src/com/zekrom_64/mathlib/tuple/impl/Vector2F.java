@@ -25,6 +25,11 @@ public class Vector2F extends ScalarFloat {
 		y = values[1];
 	}
 	
+	public void set(Vector2F v) {
+		this.x = v.x;
+		this.y = v.y;
+	}
+	
 	public void set(float x, float y) {
 		this.x = x;
 		this.y = y;

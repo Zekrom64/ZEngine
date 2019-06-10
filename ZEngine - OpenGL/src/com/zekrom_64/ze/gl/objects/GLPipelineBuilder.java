@@ -10,10 +10,12 @@ import org.lwjgl.opengl.GL43;
 
 import com.zekrom_64.mathlib.shape.Rectangle;
 import com.zekrom_64.ze.base.backend.render.obj.ZECompareOp;
+import com.zekrom_64.ze.base.backend.render.obj.ZERenderPass;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEFrontBack;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEGeometryType;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipeline;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBuilder;
+import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineLayout;
 import com.zekrom_64.ze.base.backend.render.shader.ZEShaderProgram;
 import com.zekrom_64.ze.base.image.ZEPixelFormat;
 import com.zekrom_64.ze.gl.GLException;
@@ -29,6 +31,12 @@ public class GLPipelineBuilder implements ZEPipelineBuilder {
 	public GLPipelineBuilder(GLRenderBackend backend) {
 		pipeline = new GLPipeline(backend);
 	}
+
+	@Override
+	public void setLayout(ZEPipelineLayout layout) { }
+
+	@Override
+	public void setTemplateRenderPass(ZERenderPass renderPass, int subpass) { }
 	
 	@Override
 	public void setShaderProgram(ZEShaderProgram program) {
@@ -211,6 +219,11 @@ public class GLPipelineBuilder implements ZEPipelineBuilder {
 	@Override
 	public ZEPipeline build() {
 		return pipeline.clone();
+	}
+
+	@Override
+	public ZEPipeline build(ZEPipeline base) {
+		return build();
 	}
 
 }

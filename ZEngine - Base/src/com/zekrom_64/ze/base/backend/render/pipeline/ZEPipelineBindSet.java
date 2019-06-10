@@ -1,8 +1,5 @@
 package com.zekrom_64.ze.base.backend.render.pipeline;
 
-import java.nio.FloatBuffer;
-import java.nio.IntBuffer;
-
 import com.zekrom_64.mathlib.matrix.impl.Matrix2x2F;
 import com.zekrom_64.mathlib.matrix.impl.Matrix3x3F;
 import com.zekrom_64.mathlib.matrix.impl.Matrix4x4F;
@@ -23,12 +20,6 @@ import com.zekrom_64.ze.base.backend.render.obj.ZETexture;
  *
  */
 public interface ZEPipelineBindSet {
-
-	/** Gets the pool this bind set is allocated from.
-	 * 
-	 * @return Bind pool
-	 */
-	public ZEPipelineBindPool getPool();
 	
 	/** Creates a new update for this bind set.
 	 * 
@@ -63,6 +54,20 @@ public interface ZEPipelineBindSet {
 		 * @return Number of buffered writes
 		 */
 		public int getWriteCount();
+		
+		/** If the write is writing to an array, sets the element of the
+		 * array to write to.
+		 * 
+		 * @param write Update write index
+		 * @param element Array element index
+		 */
+		public void setWriteArrayElement(int write, int element);
+		
+		/** Clears the array element index to write to.
+		 * 
+		 * @param write Update write index
+		 */
+		public void clearWriteArrayElement(int write);
 		
 		// Primitive writes
 		
@@ -176,34 +181,6 @@ public interface ZEPipelineBindSet {
 		 * @param v Vector to write
 		 */
 		public default void write(int writeIndex, int binding, Vector4I v) { write(writeIndex, binding, v.x, v.y, v.z, v.w); }
-		/** Writes an array of floats to the binding. Requires {@link
-		 * com.zekrom_64.ze.base.backend.render.ZERenderBackend#FEATURE_BIND_SET_PRIMTIVE_WRITE FEATURE_BIND_SET_PRIMITIVE_WRITE}.
-		 * @param writeIndex Update write index
-		 * @param binding Binding location
-		 * @param v Array to write
-		 */
-		public void write(int writeIndex, int binding, float[] v);
-		/** Writes an array of floats to the binding. Requires {@link
-		 * com.zekrom_64.ze.base.backend.render.ZERenderBackend#FEATURE_BIND_SET_PRIMTIVE_WRITE FEATURE_BIND_SET_PRIMITIVE_WRITE}.
-		 * @param writeIndex Update write index
-		 * @param binding Binding location
-		 * @param v Array to write
-		 */
-		public void write(int writeIndex, int binding, FloatBuffer v);
-		/** Writes an array of ints to the binding. Requires {@link
-		 * com.zekrom_64.ze.base.backend.render.ZERenderBackend#FEATURE_BIND_SET_PRIMTIVE_WRITE FEATURE_BIND_SET_PRIMITIVE_WRITE}.
-		 * @param writeIndex Update write index
-		 * @param binding Binding location
-		 * @param v Array to write
-		 */
-		public void write(int writeIndex, int binding, int[] v);
-		/** Writes an array of ints to the binding. Requires {@link
-		 * com.zekrom_64.ze.base.backend.render.ZERenderBackend#FEATURE_BIND_SET_PRIMTIVE_WRITE FEATURE_BIND_SET_PRIMITIVE_WRITE}.
-		 * @param writeIndex Update write index
-		 * @param binding Binding location
-		 * @param v Array to write
-		 */
-		public void write(int writeIndex, int binding, IntBuffer v);
 		/** Writes a 2x2 float matrix to the binding. Requires {@link
 		 * com.zekrom_64.ze.base.backend.render.ZERenderBackend#FEATURE_BIND_SET_PRIMTIVE_WRITE FEATURE_BIND_SET_PRIMITIVE_WRITE}.
 		 * @param writeIndex Update write index
@@ -229,14 +206,14 @@ public interface ZEPipelineBindSet {
 		// Normal writes
 		
 		/** Writes data from the given buffer to the bound object starting at a byte
-		 * offset from the start of the buffer and writing a number of bytes.
+		 * offset from the start of the buffer.
 		 * 
 		 * @param writeIndex Update write index
 		 * @param binding Binding location
 		 * @param bufferType The type of buffer binding to write
 		 * @param buffer The buffer containing the data
 		 * @param offset The offset into the buffer to start reading
-		 * @param size The number of bytes to write, -1 writes the full size of the data structure
+		 * @param size The number of bytes to use from the buffer
 		 */
 		public void write(int writeIndex, int binding, ZEPipelineBindType bufferType, ZEBuffer buffer, long offset, long size);
 		
@@ -247,8 +224,14 @@ public interface ZEPipelineBindSet {
 		 * @param textureType The type of texture binding to write
 		 * @param sampler The sampler to use with the binding
 		 * @param texture The texture to use with the binding
+		 * @param mipLevel The mipmap level to use with non-sampled images
 		 */
-		public void write(int writeIndex, int binding, ZEPipelineBindType textureType, ZESampler sampler, ZETexture texture);
+		public void write(int writeIndex, int binding, ZEPipelineBindType textureType, ZESampler sampler, ZETexture texture, int mipLevel);
+		
+		/** Executes all the updates buffered in this update.
+		 * 
+		 */
+		public void update();
 		
 	}
 	

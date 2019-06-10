@@ -25,6 +25,11 @@ public class Vector2D extends ScalarDouble {
 		y = values[1];
 	}
 	
+	public void set(Vector2D v) {
+		this.x = v.x;
+		this.y = v.y;
+	}
+	
 	public void set(double x, double y) {
 		this.x = x;
 		this.y = y;

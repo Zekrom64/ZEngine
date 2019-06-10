@@ -126,5 +126,11 @@ public class Matrix3x3F extends Matrix2x2F implements Matrix2x2<Float> {
 		}
 		return 0;
 	}
+	
+	public void set(Matrix3x3F m) {
+		m0x0 = m.m0x0; m0x1 = m.m0x1; m0x2 = m.m0x2;
+		m1x0 = m.m1x0; m1x1 = m.m1x1; m1x2 = m.m1x2;
+		m2x0 = m.m2x0; m2x1 = m.m2x1; m2x2 = m.m2x2;
+	}
 
 }

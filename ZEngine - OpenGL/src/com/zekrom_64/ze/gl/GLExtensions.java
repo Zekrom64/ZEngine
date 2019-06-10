@@ -110,6 +110,10 @@ public class GLExtensions {
 		scissorArray = caps.OpenGL41;
 		
 		scissorIndexed = caps.OpenGL41;
+		
+		bindBufferRange = caps.OpenGL30 || caps.GL_ARB_uniform_buffer_object;
+		
+		getTextureSubImage = caps.OpenGL45;
 	}
 	
 	// Framebuffers
@@ -524,6 +528,23 @@ public class GLExtensions {
 	public void glScissorIndexed(int index, int left, int bottom, int width, int height) {
 		if (caps.OpenGL41) GL41.glScissorIndexed(index, left, bottom, width, height);
 		else throw new GLException("glScissorIndexed is not supported");
+	}
+	
+	// Bind buffer range
+	
+	public final boolean bindBufferRange;
+	
+	public void glBindBufferRange(int target, int index, int buffer, long offset, long size) {
+		if (caps.OpenGL30 || caps.GL_ARB_uniform_buffer_object) GL30.glBindBufferRange(target, index, buffer, offset, size);
+		else throw new GLException("glBindBufferRange is not supported");
+	}
+	
+	// Get texture sub image
+	
+	public final boolean getTextureSubImage;
+	
+	public void glGetTextureSubImage(int texture, int level, int xoffset, int yoffset, int zoffset, int width, int height, int depth, int format, int type, ByteBuffer pixels) {
+		GL45.glGetTextureSubImage(texture, level, xoffset, yoffset, zoffset, width, height, depth, format, type, pixels);
 	}
 	
 }

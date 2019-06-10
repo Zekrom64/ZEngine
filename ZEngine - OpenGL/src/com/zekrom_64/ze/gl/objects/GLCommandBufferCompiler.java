@@ -39,6 +39,13 @@ import com.zekrom_64.ze.base.util.ZEPrimitiveType;
 import com.zekrom_64.ze.gl.GLException;
 import com.zekrom_64.ze.gl.GLRenderBackend;
 
+/** Compiler for converting a series of render work commands into
+ * java bytecode.
+ * 
+ * @author Zekrom_64
+ * @deprecated Incomplete and experimental, do not use yet
+ */
+@Deprecated
 public class GLCommandBufferCompiler extends ClassLoader implements ZERenderWorkRecorder {
 
 	private static volatile int compilerNameVar = 0;
