@@ -3,6 +3,7 @@ package com.zekrom_64.ze.vulkan;
 import org.lwjgl.vulkan.VK10;
 
 import com.zekrom_64.ze.base.backend.render.obj.ZEBuffer.ZEBufferUsage;
+import com.zekrom_64.ze.base.backend.render.obj.ZETexture.ZETextureAspect;
 import com.zekrom_64.ze.base.backend.render.obj.ZETexture.ZETextureUsage;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEFrontBack;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineStage;
@@ -78,6 +79,18 @@ public class VKValues {
 			}
 		}
 		return flags;
+	}
+	
+	public static int getVKImageAspects(ZETextureAspect[] aspects) {
+		int mask = 0;
+		for(ZETextureAspect a : aspects) {
+			switch(a) {
+			case COLOR: mask |= VK10.VK_IMAGE_ASPECT_COLOR_BIT; break;
+			case DEPTH: mask |= VK10.VK_IMAGE_ASPECT_DEPTH_BIT; break;
+			case STENCIL: mask |= VK10.VK_IMAGE_ASPECT_STENCIL_BIT; break;
+			}
+		}
+		return mask;
 	}
 	
 }

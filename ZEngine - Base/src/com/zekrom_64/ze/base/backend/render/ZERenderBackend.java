@@ -2,9 +2,11 @@ package com.zekrom_64.ze.base.backend.render;
 
 import com.zekrom_64.ze.base.backend.render.obj.ZEBuffer;
 import com.zekrom_64.ze.base.backend.render.obj.ZEBuffer.ZEBufferUsage;
+import com.zekrom_64.ze.base.backend.render.obj.ZEFramebuffer;
 import com.zekrom_64.ze.base.backend.render.obj.ZEFramebufferBuilder;
 import com.zekrom_64.ze.base.backend.render.obj.ZERenderEvent;
 import com.zekrom_64.ze.base.backend.render.obj.ZERenderFence;
+import com.zekrom_64.ze.base.backend.render.obj.ZERenderPass;
 import com.zekrom_64.ze.base.backend.render.obj.ZERenderPassBuilder;
 import com.zekrom_64.ze.base.backend.render.obj.ZERenderSemaphore;
 import com.zekrom_64.ze.base.backend.render.obj.ZERenderThread;
@@ -18,6 +20,8 @@ import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBindLayoutBuilder
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBindPool;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBindType;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBuilder;
+import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineLayout;
+import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineLayoutBuilder;
 import com.zekrom_64.ze.base.backend.render.shader.ZEShaderCompiler;
 import com.zekrom_64.ze.base.image.ZEPixelFormat;
 
@@ -39,8 +43,6 @@ public interface ZERenderBackend<B extends ZERenderBackend<?>> {
 	public static final String FEATURE_MULTITHREAD_RENDERING = "ze.feature.multithread.render";
 	/** The render backend supports synchronization tools. */
 	public static final String FEATURE_MULTITHREAD_SYNCHRONIZATION = "ze.features.multithread.synchronization";
-	/** The render backend supports multiple pipeline objects. */
-	public static final String FEATURE_MULTIPLE_PIPELINES = "ze.feature.multi.pipeline";
 	/** The render backend supports multiple framebuffer objects. */
 	public static final String FEATURE_MULTIPLE_FRAMEBUFFERS = "ze.feature.multi.framebuffer";
 	
@@ -163,26 +165,52 @@ public interface ZERenderBackend<B extends ZERenderBackend<?>> {
 	// | PIPELINES |
 	// -------------
 	
-	/** Creates a new pipeline builder if the backend supports multiple pipeline objects. If the backend does
-	 * not support multiple pipeline objects, null is returned.
+	/** Creates a new pipeline builder.
 	 * 
 	 * @return Pipeline builder
 	 */
 	public ZEPipelineBuilder createPipelineBuilder();
 	
-	/** Destroys a pipeline.
+	/** Destroys a set of pipelines.
 	 * 
-	 * @param pipeline Pipeline
+	 * @param pipelines Pipelines to destroy
 	 */
-	public void destroyPipeline(ZEPipeline pipeline);
+	public void destroyPipelines(ZEPipeline ... pipelines);
 	
+	/** Creates a new pipeline layout builder.
+	 * 
+	 * @return Pipeline layout builder
+	 */
+	public ZEPipelineLayoutBuilder createPipelineLayoutBuilder();
+	
+	/** Destroys a set of pipeline layouts.
+	 * 
+	 * @param layouts Pipeline layouts to destroy
+	 */
+	public void destroyPipelineLayouts(ZEPipelineLayout ... layouts);
+	
+	/** Creates a new pipeline bind layout builder.
+	 * 
+	 * @return Pipeline bind layout builder
+	 */
 	public ZEPipelineBindLayoutBuilder createPipelineBindLayoutBuilder();
 	
-	public void destroyPipelineBindLayout(ZEPipelineBindLayout pipelineBindLayout);
+	/** Destroys a set of pipeline bind layouts
+	 * 
+	 * @param pipelineBindLayouts Pipeline bind layouts to destroy
+	 */
+	public void destroyPipelineBindLayouts(ZEPipelineBindLayout ... pipelineBindLayouts);
 	
+	/** A binding count maps a maximum number of bindings to a given binding type.
+	 * 
+	 * @author Zekrom_64
+	 *
+	 */
 	public static class ZEBindingCount {
 		
+		/** The type of binding. */
 		public ZEPipelineBindType bindingType;
+		/** The maximum number of bindings of the given type. */
 		public int bindingCount;
 		
 		public ZEBindingCount(ZEPipelineBindType bindType, int bindCount) {
@@ -192,9 +220,19 @@ public interface ZERenderBackend<B extends ZERenderBackend<?>> {
 		
 	}
 	
-	public ZEPipelineBindPool createBindPool(ZEBindingCount[] allocBindings);
+	/** Creates a new pipeline binding pool.
+	 * 
+	 * @param maxAllocSets The maximum number of sets that the pool can allocate
+	 * @param allocBindings Array of binding counts for the maximum number of allocations per type of binding
+	 * @return Pipeline binding pool
+	 */
+	public ZEPipelineBindPool createBindPool(int maxAllocSets, ZEBindingCount ... allocBindings);
 	
-	public void destroyBindPool(ZEPipelineBindPool bindPool);
+	/** Destroys a set of bind pools.
+	 * 
+	 * @param bindPools Bind pools to destroy
+	 */
+	public void destroyBindPools(ZEPipelineBindPool ... bindPools);
 	
 	// -----------
 	// | SHADERS |
@@ -216,6 +254,12 @@ public interface ZERenderBackend<B extends ZERenderBackend<?>> {
 	 */
 	public ZEFramebufferBuilder createFramebufferBuilder();
 	
+	/** Destroys a set of framebuffers.
+	 * 
+	 * @param framebuffers Framebuffers to destroy
+	 */
+	public void destroyFramebuffers(ZEFramebuffer ... framebuffers);
+	
 	// -----------------
 	// | RENDER PASSES |
 	// -----------------
@@ -225,6 +269,12 @@ public interface ZERenderBackend<B extends ZERenderBackend<?>> {
 	 * @return Render pass builder
 	 */
 	public ZERenderPassBuilder createRenderPassBuilder();
+	
+	/** Destroys a set of render passes.
+	 * 
+	 * @param renderPasses Render passes to destroy
+	 */
+	public void destroyRenderPasses(ZERenderPass ... renderPasses);
 	
 	// ------------------
 	// | MEMORY BUFFERS |
@@ -309,7 +359,6 @@ public interface ZERenderBackend<B extends ZERenderBackend<?>> {
 	 * @param width Width
 	 * @param height Height
 	 * @param depth Depth
-	 * @param arrayLevels Array level count
 	 * @param format Pixel format
 	 * @param params Extra texture parameters
 	 * @return Texture

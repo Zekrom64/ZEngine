@@ -9,6 +9,9 @@ import org.lwjgl.system.MemoryUtil;
 import org.lwjgl.vulkan.VK10;
 import org.lwjgl.vulkan.VkDevice;
 
+import com.zekrom_64.ze.base.backend.render.obj.ZESampler;
+import com.zekrom_64.ze.base.backend.render.obj.ZESamplerBuilder;
+import com.zekrom_64.ze.base.backend.render.obj.ZESamplerSettings;
 import com.zekrom_64.ze.base.backend.render.obj.ZETexture;
 import com.zekrom_64.ze.base.backend.render.obj.ZETextureDimension;
 import com.zekrom_64.ze.base.image.ZEPixelFormat;
@@ -34,7 +37,6 @@ public class VKTexture implements ZETexture {
 	private ByteBuffer memBuf;
 	private VkDevice memDevice;
 	private boolean hostAccessible;
-	private int memPitch;
 	private long memSize;
 	private long memOffset;
 	
@@ -50,7 +52,6 @@ public class VKTexture implements ZETexture {
 		dimension = dim;
 		memDevice = dev;
 		hostAccessible = hostAccess;
-		memPitch = pitch;
 	}
 
 	@Override
@@ -113,11 +114,6 @@ public class VKTexture implements ZETexture {
 	public ZEPixelFormat getPixelFormat() {
 		return pxfmt;
 	}
-
-	@Override
-	public int getMemoryRowPitch() {
-		return memPitch;
-	}
 	
 	public static int getVKFormat(ZEPixelFormat pxfmt) {
 		switch(pxfmt) {
@@ -155,6 +151,11 @@ public class VKTexture implements ZETexture {
 		case R64G64_FLOAT: return VK10.VK_FORMAT_R64G64_SFLOAT;
 		case R64G64B64_FLOAT: return VK10.VK_FORMAT_R64G64B64_SFLOAT;
 		case R64G64B64A64_FLOAT: return VK10.VK_FORMAT_R64G64B64A64_SFLOAT;
+		case D16_UINT: return VK10.VK_FORMAT_D16_UNORM;
+		case D24_UINT_S8_UINT: return VK10.VK_FORMAT_D24_UNORM_S8_UINT;
+		case D32_FLOAT: return VK10.VK_FORMAT_D32_SFLOAT;
+		case D32_FLOAT_S8_UINT: return VK10.VK_FORMAT_D32_SFLOAT_S8_UINT;
+		case S8_UINT: return VK10.VK_FORMAT_S8_UINT;
 		}
 		return -1;
 	}
@@ -172,6 +173,54 @@ public class VKTexture implements ZETexture {
 	@Override
 	public ZETextureDimension getDimension() {
 		return dimension;
+	}
+
+	@Override
+	public int getArrayLayers() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public int getMipmapLevels() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public ZETextureMemoryLayout getMemoryLayout() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public ZETextureUsage[] getValidUsages() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public ZESamplerSettings getDefaultSamplerSettings() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public ZESampler getDefaultSampler() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public ZESamplerBuilder createSamplerBuilder() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public ZESampler duplicateSampler(ZESampler other) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

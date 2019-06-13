@@ -11,6 +11,9 @@ public interface VectorFloat extends VectorNumeric<Float> {
 	@Override
 	public default void set(int i, Float val) { setFloat(i, val); }
 	
+	@Override
+	public default void setDouble(int i, double val) { setFloat(i, (float)val); }
+	
 	public float getFloat(int i);
 	
 	public void setFloat(int i, float val);

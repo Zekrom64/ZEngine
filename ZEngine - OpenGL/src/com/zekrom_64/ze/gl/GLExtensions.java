@@ -132,6 +132,12 @@ public class GLExtensions {
 		else throw new GLException("glDeleteFramebuffers is not supported");
 	}
 	
+	public void glDeleteFramebuffers(int[] framebuffers) {
+		if (caps.OpenGL30 || caps.GL_ARB_framebuffer_object) GL30.glDeleteFramebuffers(framebuffers);
+		else if (caps.GL_EXT_framebuffer_object) EXTFramebufferObject.glDeleteFramebuffersEXT(framebuffers);
+		else throw new GLException("glDeleteFramebuffers is not supported");
+	}
+	
 	public int glGenFramebuffers() {
 		if (caps.OpenGL30 || caps.GL_ARB_framebuffer_object) return GL30.glGenFramebuffers();
 		else if (caps.GL_EXT_framebuffer_object) return EXTFramebufferObject.glGenFramebuffersEXT();
@@ -545,6 +551,10 @@ public class GLExtensions {
 	
 	public void glGetTextureSubImage(int texture, int level, int xoffset, int yoffset, int zoffset, int width, int height, int depth, int format, int type, ByteBuffer pixels) {
 		GL45.glGetTextureSubImage(texture, level, xoffset, yoffset, zoffset, width, height, depth, format, type, pixels);
+	}
+	
+	public void glGetTextureSubImage(int texture, int level, int xoffset, int yoffset, int zoffset, int width, int height, int depth, int format, int type, int bufSize, long pixels) {
+		GL45.nglGetTextureSubImage(texture, level, xoffset, yoffset, zoffset, width, height, depth, format, type, bufSize, pixels);
 	}
 	
 }

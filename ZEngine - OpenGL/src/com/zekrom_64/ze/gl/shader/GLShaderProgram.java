@@ -21,11 +21,13 @@ public class GLShaderProgram implements ZEShaderProgram {
 	public static class GLUniform {
 		
 		public final String name;
-		public final int binding;
+		public final int location;
+		public final int blockBinding;
 		
-		public GLUniform(String name, int binding) {
+		public GLUniform(String name, int location, int blockBinding) {
 			this.name = name;
-			this.binding = binding;
+			this.location = location;
+			this.blockBinding = blockBinding;
 		}
 		
 	}

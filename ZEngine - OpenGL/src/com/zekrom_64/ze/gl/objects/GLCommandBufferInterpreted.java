@@ -778,11 +778,11 @@ public class GLCommandBufferInterpreted extends GLCommandBuffer {
 			} else if (exts.mapNamedBuffer) {
 				// Fall back to buffer mapping and CPU-side modification
 				buildingCommands.add(() -> {
-					ByteBuffer mbuf = GL45.glMapNamedBuffer(glbuf, GL15.GL_WRITE_ONLY);
+					ByteBuffer mbuf = exts.glMapNamedBuffer(glbuf, GL15.GL_WRITE_ONLY);
 					backend.checkErrorFine();
 					mbuf.position(offset * valueSize);
 					for(int i = 0; i < count; i++) mbuf.put(value2).rewind();
-					GL45.glUnmapNamedBuffer(glbuf);
+					exts.glUnmapNamedBuffer(glbuf);
 					backend.checkErrorFine();
 					backend.checkErrorCoarse("Failed to clear buffer");
 				});
@@ -850,6 +850,8 @@ public class GLCommandBufferInterpreted extends GLCommandBuffer {
 
 				if (_size.z == 0) _size.z = 1;
 				
+				Runnable clearColorCmd = clearColorToCommand(gltexobj, color);
+				
 				buildingCommands.add(() -> {
 					int boundFBO = GL11.glGetInteger(GL30.GL_FRAMEBUFFER_BINDING);
 					backend.checkErrorFine();
@@ -864,8 +866,13 @@ public class GLCommandBufferInterpreted extends GLCommandBuffer {
 							glFramebufferTexture(GL30.GL_DRAW_FRAMEBUFFER, GL30.GL_COLOR_ATTACHMENT0, gltexobj, mipBase + m,
 									arrayBase + i, _start.z + i);
 							backend.checkErrorFine();
-							if (pxfmt.elementType.isFloating) GL30.glClearBufferfv(GL11.GL_COLOR, 0, pClearColor.asFloatBuffer());
-							else GL30.glClearBufferiv(GL11.GL_COLOR, 0, pClearColor.asIntBuffer());
+							if (exts.caps.OpenGL30) {
+								if (pxfmt.elementType.isFloating) GL30.glClearBufferfv(GL11.GL_COLOR, 0, pClearColor.asFloatBuffer());
+								else GL30.glClearBufferiv(GL11.GL_COLOR, 0, pClearColor.asIntBuffer());
+							} else {
+								clearColorCmd.run();
+								GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
+							}
 							backend.checkErrorFine();
 						}
 					}
@@ -960,16 +967,16 @@ public class GLCommandBufferInterpreted extends GLCommandBuffer {
 					backend.checkErrorFine();
 					backend.checkErrorCoarse("Failed to transfer from image to buffer");
 				});
-			} else if (exts.textureSubImage &&
+			} else if (exts.textureSubImage && exts.mapNamedBuffer &&
 					(dim.numSampleDimensions < 2 || dstRowLength == src.getWidth()) &&
 					(dim.numSampleDimensions < 3 || dstHeight == src.getHeight() * src.getWidth())) {
 				buildingCommands.add(() -> {
 					// Else we have to do it the hard way, because apparently having glGetTextureSubImage work with buffers is too easy
-					ByteBuffer mem = GL45.glMapNamedBuffer(glbuf, GL15.GL_WRITE_ONLY);
+					ByteBuffer mem = exts.glMapNamedBuffer(glbuf, GL15.GL_WRITE_ONLY);
 					backend.checkErrorFine();
-					GL45.glGetTextureSubImage(gltex, 0, srcx, srcy, srcz, srcw, srch, srcd, format, type, mem.capacity() - dstOffset, MemoryUtil.memAddress(mem) + dstOffset);
+					exts.glGetTextureSubImage(gltex, 0, srcx, srcy, srcz, srcw, srch, srcd, format, type, mem.capacity() - dstOffset, MemoryUtil.memAddress(mem) + dstOffset);
 					backend.checkErrorFine();
-					GL45.glUnmapNamedBuffer(glbuf);
+					exts.glUnmapNamedBuffer(glbuf);
 					backend.checkErrorFine();
 					backend.checkErrorCoarse("Failed to transfer from image to buffer");
 				});

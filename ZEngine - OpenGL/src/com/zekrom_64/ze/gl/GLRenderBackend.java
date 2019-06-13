@@ -18,9 +18,11 @@ import com.zekrom_64.ze.base.backend.render.ZERenderCommandBuffer;
 import com.zekrom_64.ze.base.backend.render.ZERenderOutput;
 import com.zekrom_64.ze.base.backend.render.obj.ZEBuffer;
 import com.zekrom_64.ze.base.backend.render.obj.ZEBuffer.ZEBufferUsage;
+import com.zekrom_64.ze.base.backend.render.obj.ZEFramebuffer;
 import com.zekrom_64.ze.base.backend.render.obj.ZEFramebufferBuilder;
 import com.zekrom_64.ze.base.backend.render.obj.ZERenderEvent;
 import com.zekrom_64.ze.base.backend.render.obj.ZERenderFence;
+import com.zekrom_64.ze.base.backend.render.obj.ZERenderPass;
 import com.zekrom_64.ze.base.backend.render.obj.ZERenderPassBuilder;
 import com.zekrom_64.ze.base.backend.render.obj.ZERenderSemaphore;
 import com.zekrom_64.ze.base.backend.render.obj.ZERenderThread;
@@ -33,17 +35,21 @@ import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBindLayout;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBindLayoutBuilder;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBindPool;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBuilder;
+import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineLayout;
+import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineLayoutBuilder;
 import com.zekrom_64.ze.base.backend.render.shader.ZEShaderCompiler;
 import com.zekrom_64.ze.base.image.ZEPixelFormat;
 import com.zekrom_64.ze.gl.objects.GLBuffer;
 import com.zekrom_64.ze.gl.objects.GLCommandBuffer;
 import com.zekrom_64.ze.gl.objects.GLCommandBufferInterpreted;
+import com.zekrom_64.ze.gl.objects.GLFramebuffer;
 import com.zekrom_64.ze.gl.objects.GLFramebufferBuilder;
 import com.zekrom_64.ze.gl.objects.GLPipeline;
 import com.zekrom_64.ze.gl.objects.GLPipelineBindLayoutBuilder;
 import com.zekrom_64.ze.gl.objects.GLPipelineBindPool;
 import com.zekrom_64.ze.gl.objects.GLPipelineBindSet;
 import com.zekrom_64.ze.gl.objects.GLPipelineBuilder;
+import com.zekrom_64.ze.gl.objects.GLPipelineLayoutBuilder;
 import com.zekrom_64.ze.gl.objects.GLRenderEvent;
 import com.zekrom_64.ze.gl.objects.GLRenderFence;
 import com.zekrom_64.ze.gl.objects.GLRenderPassBuilder;
@@ -179,6 +185,10 @@ public class GLRenderBackend implements ZERenderBackend<GLRenderBackend> {
 		return currentPipeline;
 	}
 	
+	/** Sets the current bind set for the OpenGL pipeline.
+	 * 
+	 * @param bindSet Bind set to bind
+	 */
 	public void setCurrentBindSet(GLPipelineBindSet bindSet) {
 		context.executeExclusivly(() -> {
 			if (bindSet != null) {
@@ -245,8 +255,6 @@ public class GLRenderBackend implements ZERenderBackend<GLRenderBackend> {
 		if (capabilities == null) return false;
 		switch(feature) {
 		case ZERenderBackend.FEATURE_MULTITHREAD_SYNCHRONIZATION:
-			return true; // Done in software
-		case ZERenderBackend.FEATURE_MULTIPLE_PIPELINES:
 			return true; // Done in software
 		case ZERenderBackend.FEATURE_MULTIPLE_FRAMEBUFFERS:
 			return extensions.framebufferObjects;
@@ -339,9 +347,29 @@ public class GLRenderBackend implements ZERenderBackend<GLRenderBackend> {
 	}
 
 	@Override
+	public void destroyFramebuffers(ZEFramebuffer... framebuffers) {
+		int[] fbos = new int[framebuffers.length];
+		for(int i = 0; i < fbos.length; i++) fbos[i] = ((GLFramebuffer)framebuffers[i]).framebufferObject;
+		synchronized(releasables) {
+			extensions.glDeleteFramebuffers(fbos);
+		}
+	}
+
+	@Override
 	public ZERenderPassBuilder createRenderPassBuilder() {
 		return new GLRenderPassBuilder();
 	}
+
+	@Override
+	public void destroyRenderPasses(ZERenderPass... renderPasses) { }
+
+	@Override
+	public ZEPipelineLayoutBuilder createPipelineLayoutBuilder() {
+		return new GLPipelineLayoutBuilder();
+	}
+
+	@Override
+	public void destroyPipelineLayouts(ZEPipelineLayout... layouts) { }
 
 	@Override
 	public ZEPipelineBuilder createPipelineBuilder() {
@@ -349,7 +377,7 @@ public class GLRenderBackend implements ZERenderBackend<GLRenderBackend> {
 	}
 
 	@Override
-	public void destroyPipeline(ZEPipeline pipeline) { } // Pipeline is just a collection of settings, doesn't need to be destroyed
+	public void destroyPipelines(ZEPipeline ... pipelines) { } // Pipeline is just a collection of settings, doesn't need to be destroyed
 
 	@Override
 	public ZEPipelineBindLayoutBuilder createPipelineBindLayoutBuilder() {
@@ -357,15 +385,15 @@ public class GLRenderBackend implements ZERenderBackend<GLRenderBackend> {
 	}
 
 	@Override
-	public void destroyPipelineBindLayout(ZEPipelineBindLayout pipelineBindLayout) { }
+	public void destroyPipelineBindLayouts(ZEPipelineBindLayout ... pipelineBindLayouts) { }
 
 	@Override
-	public ZEPipelineBindPool createBindPool(ZEBindingCount[] allocBindings) {
+	public ZEPipelineBindPool createBindPool(int maxAllocSets, ZEBindingCount ... allocBindings) {
 		return new GLPipelineBindPool(this);
 	}
 
 	@Override
-	public void destroyBindPool(ZEPipelineBindPool bindPool) { }
+	public void destroyBindPools(ZEPipelineBindPool ... bindPools) { }
 
 	@Override
 	public ZEShaderCompiler getShaderCompiler() {
@@ -406,7 +434,9 @@ public class GLRenderBackend implements ZERenderBackend<GLRenderBackend> {
 	public void freeBuffers(ZEBuffer... buffers) {
 		int[] bufIDs = new int[buffers.length];
 		for(int i = 0; i < buffers.length; i++) bufIDs[i] = ((GLBuffer)buffers[i]).bufferObject;
-		releasables.add(() -> GL15.glDeleteBuffers(bufIDs));
+		synchronized(releasables) {
+			releasables.add(() -> GL15.glDeleteBuffers(bufIDs));
+		}
 	}
 
 	@Override
@@ -433,7 +463,9 @@ public class GLRenderBackend implements ZERenderBackend<GLRenderBackend> {
 	public void destroyTextures(ZETexture... textures) {
 		int[] texs = new int[textures.length];
 		for(int i = 0; i < texs.length; i++) texs[i] = ((GLTexture)textures[i]).textureObject;
-		releasables.add(() -> GL11.glDeleteTextures(texs));
+		synchronized(releasables) {
+			releasables.add(() -> GL11.glDeleteTextures(texs));
+		}
 	}
 
 	@Override
@@ -448,7 +480,9 @@ public class GLRenderBackend implements ZERenderBackend<GLRenderBackend> {
 		for(GLSampler s : glsamplers) {
 			if (s.samplerObject != 0) smplrs[i++] = s.samplerObject;
 		}
-		releasables.add(() -> extensions.glDeleteSamplers(smplrs));
+		synchronized(releasables) {
+			releasables.add(() -> extensions.glDeleteSamplers(smplrs));
+		}
 	}
 
 	@Override

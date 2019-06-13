@@ -1,5 +1,6 @@
 package com.zekrom_64.ze.base.util;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
@@ -39,6 +40,18 @@ public class ZEIOUtil {
 		int read = 0;
 		while((read = s.read(buffer))!=-1) queue.put(buffer, 0, read);
 		return queue.toByteArray();
+	}
+	
+	/** Gets the extension of a file given its path, (eg. "foo.txt" returns "txt").
+	 * 
+	 * @param path File path
+	 * @return File extension
+	 */
+	public static String getFileExtension(String path) {
+		int dotidx = path.lastIndexOf('.');
+		int sepidx = path.lastIndexOf(File.separatorChar);
+		if (dotidx <= sepidx) return "";
+		return path.substring(dotidx+1);
 	}
 	
 }

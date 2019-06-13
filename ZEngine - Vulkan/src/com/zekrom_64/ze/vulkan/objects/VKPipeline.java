@@ -6,16 +6,8 @@ public class VKPipeline implements ZEPipeline {
 
 	public final long pipeline;
 	
-	@Override
-	public ZEVertexInput[] getVertexInputs() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public ZEPipelineBindPoint[] getBindPoints() {
-		// TODO Auto-generated method stub
-		return null;
+	public VKPipeline(long pipeline) {
+		this.pipeline = pipeline;
 	}
 
 }

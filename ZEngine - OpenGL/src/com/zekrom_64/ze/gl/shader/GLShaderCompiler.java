@@ -19,6 +19,7 @@ import com.zekrom_64.ze.base.backend.render.shader.ZEShader;
 import com.zekrom_64.ze.base.backend.render.shader.ZEShaderCompiler;
 import com.zekrom_64.ze.base.backend.render.shader.ZEShaderProgram;
 import com.zekrom_64.ze.gl.GLException;
+import com.zekrom_64.ze.gl.GLExtensions;
 import com.zekrom_64.ze.gl.GLNativeContext;
 import com.zekrom_64.ze.gl.GLRenderBackend;
 import com.zekrom_64.ze.gl.shader.GLShaderProgram.GLAttribute;
@@ -112,6 +113,8 @@ public class GLShaderCompiler implements ZEShaderCompiler {
 			GLShader gls = (GLShader)modules[i];
 			shaders[i] = gls.shaderObject;
 		}
+		GLExtensions exts = backend.getExtensions();
+		
 		context.bindExclusively();
 		try {
 			int prgm = GL20.glCreateProgram();
@@ -160,7 +163,9 @@ public class GLShaderCompiler implements ZEShaderCompiler {
 					IntBuffer pType = sp.mallocInt(1);
 					for(int i = 0; i < numUniforms; i++) {
 						String name = GL20.glGetActiveUniform(prgm, i, maxUniformLength, pSize, pType);
-						uniforms.add(new GLUniform(name, i));
+						int blockBinding = -1;
+						if (exts.uniformBufferObject) blockBinding = exts.glGetUniformBlockIndex(prgm, name);
+						uniforms.add(new GLUniform(name, i, blockBinding));
 					}
 				}
 			}

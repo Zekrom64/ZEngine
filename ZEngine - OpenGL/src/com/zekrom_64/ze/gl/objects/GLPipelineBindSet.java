@@ -6,6 +6,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.lwjgl.opengl.GL20;
+import org.lwjgl.opengl.GL31;
+import org.lwjgl.opengl.GL43;
 
 import com.zekrom_64.mathlib.matrix.impl.Matrix2x2F;
 import com.zekrom_64.mathlib.matrix.impl.Matrix3x3F;
@@ -89,12 +91,12 @@ public class GLPipelineBindSet implements ZEPipelineBindSet {
 		
 		public ZEPipelineBindType bindType;
 		
-		public ZEBuffer buffer;
+		public GLBuffer buffer;
 		public long bufferOffset;
 		public long bufferSize;
 		
-		public ZETexture texture;
-		public ZESampler textureSampler;
+		public GLTexture texture;
+		public GLSampler textureSampler;
 		public int textureMipLevel;
 		
 		public void set(GLUniformWrite other) {
@@ -113,7 +115,7 @@ public class GLPipelineBindSet implements ZEPipelineBindSet {
 		}
 		
 		private int getLocation() {
-			
+			return -1; // TODO: Compute location correctly
 		}
 		
 		public void write() {
@@ -125,8 +127,10 @@ public class GLPipelineBindSet implements ZEPipelineBindSet {
 				case BUFFER:
 					switch(bindType) {
 					case STORAGE_BUFFER:
+						exts.glBindBufferRange(GL43.GL_SHADER_STORAGE_BUFFER, binding, buffer.bufferObject, bufferOffset, bufferSize);
 						break;
 					case UNIFORM_BUFFER:
+						exts.glBindBufferRange(GL31.GL_UNIFORM_BUFFER, binding, buffer.bufferObject, bufferOffset, bufferSize);
 						break;
 					default: break;
 					}
@@ -311,7 +315,7 @@ public class GLPipelineBindSet implements ZEPipelineBindSet {
 			w.binding = binding;
 			w.writeType = GLUniformWriteType.BUFFER;
 			w.bindType = bufferType;
-			w.buffer = buffer;
+			w.buffer = (GLBuffer)buffer;
 			w.bufferOffset = offset;
 			w.bufferSize = size;
 		}
@@ -323,8 +327,8 @@ public class GLPipelineBindSet implements ZEPipelineBindSet {
 			w.binding = binding;
 			w.writeType = GLUniformWriteType.BUFFER;
 			w.bindType = textureType;
-			w.texture = texture;
-			w.textureSampler = sampler;
+			w.texture = (GLTexture)texture;
+			w.textureSampler = (GLSampler)sampler;
 			w.textureMipLevel = mipLevel;
 		}
 

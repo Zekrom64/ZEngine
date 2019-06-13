@@ -4,6 +4,7 @@ import java.awt.Canvas;
 import java.nio.IntBuffer;
 
 import org.bridj.Pointer;
+import org.bridj.jawt.JAWTUtils;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GLX;
 import org.lwjgl.opengl.WGL;
@@ -17,7 +18,6 @@ import com.zekrom_64.ze.nat.lin.X11;
 import com.zekrom_64.ze.nat.win.WinTypes.HDC;
 import com.zekrom_64.ze.nat.win.WinTypes.HGLRC;
 
-import sun.awt.X11.XComponentPeer;
 import sun.awt.windows.WComponentPeer;
 
 /** Replacement for LWJGL 2 AWTGLCanvas that can render in OpenGL in an AWT canvas. It attempts
@@ -52,8 +52,7 @@ public class GLCanvas extends Canvas implements GLContext {
 	@SuppressWarnings({ "unchecked", "deprecation" })
 	public void initGLShared(long ctx) {
 		if (Platform.get()==Platform.WINDOWS) {
-			WComponentPeer peer = (WComponentPeer)this.getPeer();
-			long hWnd = peer.getHWnd();
+			long hWnd = JAWTUtils.getNativePeerHandle(this);
 			
 			if (glcontext!=0) {
 				WGL.wglDeleteContext(glcontext);
@@ -92,8 +91,7 @@ public class GLCanvas extends Canvas implements GLContext {
 			if (vi.address()==0) return;
 			glcontext = GLX.glXCreateContext(dpy, vi, ctx, true);
 			
-			XComponentPeer peer = (XComponentPeer)this.getPeer();
-			win = peer.getContentWindow();
+			win = JAWTUtils.getNativePeerHandle(this);
 		}
 	}
 	

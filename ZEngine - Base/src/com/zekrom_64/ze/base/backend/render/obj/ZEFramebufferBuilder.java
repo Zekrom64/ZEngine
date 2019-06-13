@@ -1,5 +1,7 @@
 package com.zekrom_64.ze.base.backend.render.obj;
 
+import com.zekrom_64.ze.base.backend.render.obj.ZETexture.ZETextureLayer;
+
 public interface ZEFramebufferBuilder {
 	
 	/** Sets the size of the framebuffer.
@@ -12,8 +14,9 @@ public interface ZEFramebufferBuilder {
 	/** Sets the array of attachments to use in the framebuffer.
 	 * 
 	 * @param textures Textures to use as attachments
+	 * @param layers Layers of textures to attach
 	 */
-	public ZEFramebufferBuilder setAttachments(ZETexture ... textures);
+	public ZEFramebufferBuilder setAttachments(ZETexture[] textures, ZETextureLayer[] layers);
 	
 	/** Sets the render pass that defines what render passes the framebuffer will
 	 * be compatible with. Render passes are compatible if, for every attachment

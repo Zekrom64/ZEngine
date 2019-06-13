@@ -23,7 +23,9 @@ public class LWJGLU3 {
 	 * it into the JVM.
 	 *
 	 * @param natives Native library to load
+	 * @deprecated LWJGL now self-extracts and loads natives
 	 */
+	@Deprecated
 	public static void extractAndLoadNatives(String natives) {
 		extractAndLoadNatives(natives, ClassLoader.getSystemClassLoader());
 	}
@@ -33,11 +35,14 @@ public class LWJGLU3 {
 	 *
 	 * @param natives Native library toload
 	 * @param loader Classloader to get native library
+	 * @deprecated LWJGL now self-extracts and loads natives
 	 */
+	@Deprecated
 	public static void extractAndLoadNatives(String natives, ClassLoader loader) {
 		extractAndLoadNatives(new File("natives"), natives, loader);
 	}
-	
+
+	@Deprecated
 	public static void extractAndLoadNatives(File nativesFolder, String ... natives) {
 		StringBuilder sb = new StringBuilder();
 		for(int i = 0; i < natives.length; i++) {
@@ -46,14 +51,17 @@ public class LWJGLU3 {
 		}
 		extractAndLoadNatives(nativesFolder, sb.toString());
 	}
-	
+
+	@Deprecated
 	public static void extractAndLoadNatives(File nativesFolder, String natives) {
 		extractAndLoadNatives(nativesFolder, natives, ClassLoader.getSystemClassLoader());
 	}
 	
 	/** Version of {@link extractAndLoadNatives} that takes a natives folder and class loader.
 	 *
+	 * @deprecated LWJGL now self-extracts and loads natives
 	 */
+	@Deprecated
 	public static void extractAndLoadNatives(File nativesFolder, String natives, ClassLoader loader) {
 		if (!(nativesFolder.exists() && nativesFolder.isDirectory())) {
 			if (!nativesFolder.mkdirs()) throw new RuntimeException("Failed to create folder for LWJGL natives");

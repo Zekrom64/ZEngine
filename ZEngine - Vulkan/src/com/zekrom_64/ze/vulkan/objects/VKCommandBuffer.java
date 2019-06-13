@@ -24,20 +24,20 @@ import com.zekrom_64.mathlib.tuple.impl.Vector3I;
 import com.zekrom_64.ze.base.backend.render.ZERenderCommandBuffer;
 import com.zekrom_64.ze.base.backend.render.ZERenderWorkRecorder;
 import com.zekrom_64.ze.base.backend.render.obj.ZEBuffer;
+import com.zekrom_64.ze.base.backend.render.obj.ZEColorClearValue;
 import com.zekrom_64.ze.base.backend.render.obj.ZEFramebuffer;
-import com.zekrom_64.ze.base.backend.render.obj.ZEIndexBuffer;
 import com.zekrom_64.ze.base.backend.render.obj.ZERenderEvent;
 import com.zekrom_64.ze.base.backend.render.obj.ZERenderPass;
+import com.zekrom_64.ze.base.backend.render.obj.ZESampler.ZEFilter;
 import com.zekrom_64.ze.base.backend.render.obj.ZETexture;
+import com.zekrom_64.ze.base.backend.render.obj.ZETexture.ZETextureLayer;
 import com.zekrom_64.ze.base.backend.render.obj.ZETexture.ZETextureLayout;
-import com.zekrom_64.ze.base.backend.render.obj.ZEVertexBuffer;
+import com.zekrom_64.ze.base.backend.render.obj.ZETexture.ZETextureRange;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEFrontBack;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipeline;
-import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipeline.ZEVertexInput;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBindSet;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBuilder.ZEViewport;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineStage;
-import com.zekrom_64.ze.base.image.ZEPixelFormat;
 import com.zekrom_64.ze.base.util.ZEPrimitiveType;
 import com.zekrom_64.ze.vulkan.VKRenderBackend;
 import com.zekrom_64.ze.vulkan.VKValues;
@@ -58,9 +58,8 @@ public class VKCommandBuffer implements ZERenderCommandBuffer {
 		}
 
 		@Override
-		public void beginPass(ZERenderPass bindSet, ZEFramebuffer framebuffer) {
+		public void beginPass(ZERenderPass renderPass, ZEFramebuffer framebuffer, ZEAttachmentClearValue[] clearValues) {
 			// TODO Auto-generated method stub
-			VK10.vkCmdBeginRenderPass(commandBuffer, pRenderPassBegin, contents);
 		}
 
 		@Override
@@ -98,22 +97,13 @@ public class VKCommandBuffer implements ZERenderCommandBuffer {
 		}
 
 		@Override
-		public void bindVertexBuffer(ZEVertexInput bindPoint, ZEVertexBuffer buffer) {
-			try(MemoryStack sp = MemoryStack.stackPush()) {
-				LongBuffer pBuffers = sp.longs(((VKVertexBuffer)buffer).buffer);
-				LongBuffer pOffsets = sp.longs(((VKVertexInput)bindPoint).bindingOffset);
-				VK10.vkCmdBindVertexBuffers(commandBuffer, 0, pBuffers, pOffsets);
-			}
-		}
-
-		@Override
-		public void bindVertexBuffers(ZEVertexInput bindPoint, ZEVertexBuffer... buffers) {
+		public void bindVertexBuffers(int firstBindPoint, ZEBuffer ... buffers) {
 			try(MemoryStack sp = MemoryStack.stackPush()) {
 				int count = buffers.length;
 				LongBuffer pBuffers = sp.mallocLong(count);
-				for(int i = 0; i < count; i++) pBuffers.put(((VKVertexBuffer)buffers[i]).buffer);
+				for(int i = 0; i < count; i++) pBuffers.put(((VKBuffer)buffers[i]).buffer);
 				LongBuffer pOffsets = sp.mallocLong(count);
-				for(int i = 0; i < count; i++) pOffsets.put(((VKVertexInput)bindPoint).bindingOffset + i);
+				for(int i = 0; i < count; i++) pOffsets.put(firstBindPoint + i);
 				pBuffers.rewind();
 				pOffsets.rewind();
 				VK10.vkCmdBindVertexBuffers(commandBuffer, 0, pBuffers, pOffsets);
@@ -121,15 +111,14 @@ public class VKCommandBuffer implements ZERenderCommandBuffer {
 		}
 
 		@Override
-		public void bindIndexBuffer(ZEIndexBuffer buffer) {
-			ZEPrimitiveType indexType = buffer.getIndexType();
+		public void bindIndexBuffer(ZEBuffer buffer, ZEPrimitiveType indexType) {
 			int vkIndexType = -1;
 			switch(indexType) {
 			case UINT: vkIndexType = VK10.VK_INDEX_TYPE_UINT32; break;
 			case USHORT: vkIndexType = VK10.VK_INDEX_TYPE_UINT16; break;
 			default: throw new VulkanException("Cannot use index buffer of primitive type " + indexType + " with Vulkan");
 			}
-			VK10.vkCmdBindIndexBuffer(commandBuffer, ((VKIndexBuffer)buffer).buffer.buffer, 0, vkIndexType);
+			VK10.vkCmdBindIndexBuffer(commandBuffer, ((VKBuffer)buffer).buffer, 0, vkIndexType);
 		}
 
 		@Override
@@ -172,18 +161,24 @@ public class VKCommandBuffer implements ZERenderCommandBuffer {
 		}
 
 		@Override
-		public void blitTexture(ZETexture srcTex, ZETexture dstTex, Vector3I src, Vector3I dst, Vector3I size) {
+		public void blitTexture(ZETexture srcTex, ZETextureLayer srcLayer, ZETextureLayout srcLayout, Vector3I srcPos, Vector3I srcSize,
+				ZETexture dstTex, ZETextureLayer dstLayer, ZETextureLayout dstLayout, Vector3I dstPos, Vector3I dstSize,
+				ZEFilter filter) {
 			try (MemoryStack sp = MemoryStack.stackPush()) {
 				VkImageCopy.Buffer region = VkImageCopy.mallocStack(1, sp);
 				VkImageSubresourceLayers subresource = VkImageSubresourceLayers.mallocStack(sp);
 				subresource.set(VK10.VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1);
 				VkOffset3D offsetSrc = VkOffset3D.mallocStack(sp), offsetDst = VkOffset3D.mallocStack(sp);
-				offsetSrc.set(src.x, src.y, src.z);
-				offsetDst.set(dst.x, dst.y, dst.z);
+				offsetSrc.set(srcPos.x, srcPos.y, srcPos.z);
+				offsetDst.set(dstPos.x, dstPos.y, dstPos.z);
 				VkExtent3D extent = VkExtent3D.mallocStack(sp);
-				extent.set(size.x, size.y, size.z);
-				region.get(0).set(subresource, offsetSrc, subresource, offsetDst, extent);
-				VK10.vkCmdCopyImage(commandBuffer, ((VKTexture)srcTex).image, ((VKTexture)srcTex).imageLayout, ((VKTexture)dstTex).image, ((VKTexture)dstTex).imageLayout, region);
+				if (srcSize.equals(dstSize)) {
+					extent.set(srcSize.x, srcSize.y, srcSize.z);
+					region.get(0).set(subresource, offsetSrc, subresource, offsetDst, extent);
+					//VK10.vkCmdCopyImage(commandBuffer, ((VKTexture)srcTex).image, ((VKTexture)srcTex).imageLayout, ((VKTexture)dstTex).image, ((VKTexture)dstTex).imageLayout, region);
+				} else {
+					// TODO
+				}
 			}
 		}
 
@@ -213,15 +208,16 @@ public class VKCommandBuffer implements ZERenderCommandBuffer {
 		}
 
 		@Override
-		public void clearTexture(ZETexture tex, Vector3I start, Vector3I size, ZEPixelFormat format, ByteBuffer color) {
+		public void clearTexture(ZETexture tex, Vector3I start, Vector3I size, ZETextureRange range, ZEColorClearValue color) {
 			try (MemoryStack sp = MemoryStack.stackPush()) {
-				VkImageSubresourceRange range = VkImageSubresourceRange.mallocStack(sp);
-				VK10.vkCmdClearColorImage(commandBuffer, ((VKTexture)tex).image, 0, null, range);
+				VkImageSubresourceRange vkrange = VkImageSubresourceRange.mallocStack(sp);
+				// TODO
+				VK10.vkCmdClearColorImage(commandBuffer, ((VKTexture)tex).image, 0, null, vkrange);
 			}
 		}
 
 		@Override
-		public void imageToBuffer(ZETexture src, Vector3I srcPos, Vector3I srcSize, ZEBuffer dst, int dstOffset,
+		public void imageToBuffer(ZETexture src, Vector3I srcPos, Vector3I srcSize, ZETextureLayer srcLayer, ZEBuffer dst, int dstOffset,
 				int dstRowLength, int dstHeight) {
 			try(MemoryStack sp = MemoryStack.stackPush()) {
 				VkImageSubresourceLayers subresource = VkImageSubresourceLayers.mallocStack(sp);
@@ -230,15 +226,15 @@ public class VKCommandBuffer implements ZERenderCommandBuffer {
 				VkExtent3D extent = VkExtent3D.mallocStack(sp);
 				offset.set(srcPos.x, srcPos.y, srcPos.z);
 				extent.set(srcSize.x, srcSize.y, srcSize.z);
-				subresource.set(VK10.VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1);
-				region.get(9).set(dstOffset, dstRowLength, dstHeight, subresource, offset, extent);
+				subresource.set(VKValues.getVKImageAspects(srcLayer.aspects), srcLayer.mipLevel, srcLayer.baseArrayLayer, srcLayer.arrayLayerCount);
+				region.get(0).set(dstOffset, dstRowLength, dstHeight, subresource, offset, extent);
 				VK10.vkCmdCopyImageToBuffer(commandBuffer, ((VKTexture)src).image, ((VKTexture)src).imageLayout, ((VKBuffer)dst).buffer, region);
 			}
 		}
 
 		@Override
 		public void bufferToImage(ZEBuffer src, int srcOffset, int srcRowLength, int srcHeight, ZETexture dst,
-				Vector3I dstPos, Vector3I dstSize) {
+				Vector3I dstPos, Vector3I dstSize, ZETextureLayer dstLayer) {
 			try (MemoryStack sp = MemoryStack.stackPush()) {
 				VkImageSubresourceLayers subresource = VkImageSubresourceLayers.mallocStack(sp);
 				VkBufferImageCopy.Buffer region = VkBufferImageCopy.mallocStack(1, sp);
@@ -246,7 +242,7 @@ public class VKCommandBuffer implements ZERenderCommandBuffer {
 				VkExtent3D extent = VkExtent3D.mallocStack(sp);
 				offset.set(dstPos.x, dstPos.y, dstPos.z);
 				extent.set(dstSize.x, dstSize.y, dstSize.z);
-				subresource.set(VK10.VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1);
+				subresource.set(VKValues.getVKImageAspects(dstLayer.aspects), dstLayer.mipLevel, dstLayer.baseArrayLayer, dstLayer.arrayLayerCount);
 				region.get(0).set(srcOffset, srcRowLength, srcHeight, subresource, offset, extent);
 				VK10.vkCmdCopyBufferToImage(commandBuffer, ((VKBuffer)src).buffer, ((VKTexture)dst).image, ((VKTexture)dst).imageLayout, region);
 			}
@@ -259,7 +255,7 @@ public class VKCommandBuffer implements ZERenderCommandBuffer {
 
 		@Override
 		public void transitionTextureLayout(ZETexture tex, ZETextureLayout oldLayout, ZETextureLayout newLayout) {
-			
+			// TODO
 		}
 
 		@Override
@@ -316,9 +312,9 @@ public class VKCommandBuffer implements ZERenderCommandBuffer {
 					pEvents,
 					VKValues.getVKPipelineStages(waitingStages),
 					VKValues.getVKPipelineStages(signalStages),
-					pMemoryBarriers,
-					pBufferMemoryBarriers,
-					pImageMemoryBarriers
+					null,
+					null,
+					null
 				);
 			}
 		}
@@ -339,6 +335,12 @@ public class VKCommandBuffer implements ZERenderCommandBuffer {
 		@Override
 		public void pipelineBarrier(ZEPipelineStage[] readyStages, ZEPipelineStage[] waitingStages,
 				ZEPipelineBarrier... barriers) {
+			// TODO Auto-generated method stub
+			
+		}
+
+		@Override
+		public void generateMipmaps(ZETexture tex) {
 			// TODO Auto-generated method stub
 			
 		}

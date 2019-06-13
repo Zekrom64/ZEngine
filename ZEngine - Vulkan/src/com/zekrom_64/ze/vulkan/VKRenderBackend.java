@@ -18,21 +18,28 @@ import com.zekrom_64.ze.base.backend.render.ZERenderCommandBuffer;
 import com.zekrom_64.ze.base.backend.render.ZERenderOutput;
 import com.zekrom_64.ze.base.backend.render.obj.ZEBuffer;
 import com.zekrom_64.ze.base.backend.render.obj.ZEBuffer.ZEBufferUsage;
-import com.zekrom_64.ze.base.backend.render.obj.ZEGraphicsMemory;
-import com.zekrom_64.ze.base.backend.render.obj.ZEIndexBuffer;
+import com.zekrom_64.ze.base.backend.render.obj.ZEFramebuffer;
+import com.zekrom_64.ze.base.backend.render.obj.ZEFramebufferBuilder;
 import com.zekrom_64.ze.base.backend.render.obj.ZERenderEvent;
 import com.zekrom_64.ze.base.backend.render.obj.ZERenderFence;
+import com.zekrom_64.ze.base.backend.render.obj.ZERenderPass;
+import com.zekrom_64.ze.base.backend.render.obj.ZERenderPassBuilder;
 import com.zekrom_64.ze.base.backend.render.obj.ZERenderSemaphore;
 import com.zekrom_64.ze.base.backend.render.obj.ZERenderThread;
+import com.zekrom_64.ze.base.backend.render.obj.ZESampler;
 import com.zekrom_64.ze.base.backend.render.obj.ZETexture;
+import com.zekrom_64.ze.base.backend.render.obj.ZETexture.ZETextureUsage;
 import com.zekrom_64.ze.base.backend.render.obj.ZETextureDimension;
-import com.zekrom_64.ze.base.backend.render.obj.ZEVertexBuffer;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipeline;
+import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBindLayout;
+import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBindLayoutBuilder;
+import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBindPool;
 import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineBuilder;
+import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineLayout;
+import com.zekrom_64.ze.base.backend.render.pipeline.ZEPipelineLayoutBuilder;
 import com.zekrom_64.ze.base.backend.render.shader.ZEShader;
 import com.zekrom_64.ze.base.backend.render.shader.ZEShaderCompiler;
 import com.zekrom_64.ze.base.image.ZEPixelFormat;
-import com.zekrom_64.ze.base.util.ZEPrimitiveType;
 import com.zekrom_64.ze.vulkan.objects.VKBuffer;
 import com.zekrom_64.ze.vulkan.objects.VKFence;
 import com.zekrom_64.ze.vulkan.objects.VKRenderEvent;
@@ -50,11 +57,7 @@ public class VKRenderBackend implements ZERenderBackend<VKRenderBackend> {
 	static {
 		String[] features = new String[] {
 				ZERenderBackend.FEATURE_CACHEABLE_PIPELINE,
-				ZERenderBackend.FEATURE_GENERIC_BUFFER,
-				ZERenderBackend.FEATURE_GENERIC_IMAGE,
-				ZERenderBackend.FEATURE_GENERIC_MEMORY,
 				ZERenderBackend.FEATURE_MULTIPLE_FRAMEBUFFERS,
-				ZERenderBackend.FEATURE_MULTIPLE_PIPELINES,
 				ZERenderBackend.FEATURE_MULTITHREAD_RENDERING,
 				ZERenderBackend.FEATURE_MULTITHREAD_SYNCHRONIZATION,
 				ZERenderBackend.FEATURE_SHADER_COMPUTE_AVAILALE,
@@ -158,11 +161,6 @@ public class VKRenderBackend implements ZERenderBackend<VKRenderBackend> {
 	}
 
 	@Override
-	public ZEPipeline getDefaultPipeline() {
-		return null;
-	}
-
-	@Override
 	public ZEPipelineBuilder createPipelineBuilder() {
 		// TODO Auto-generated method stub
 		return null;
@@ -187,9 +185,9 @@ public class VKRenderBackend implements ZERenderBackend<VKRenderBackend> {
 	}
 
 	@Override
-	public ZEBuffer allocateBuffer(int size, int flags, ZEBufferUsage ... usages) {
+	public ZEBuffer allocateBuffer(long size, ZEBufferUsage[] usages, ZEBufferParameter ... params) {
 		try (MemoryStack sp = MemoryStack.stackPush()) {
-			boolean concurrent = (flags & ZERenderBackend.FLAG_BUFFER_QUEUE_SHARED) != 0;
+			boolean concurrent = false;
 			IntBuffer pQueueFamilyIndices = null;
 			if (concurrent) {
 				// TODO: Fill with queue family indices
@@ -218,7 +216,7 @@ public class VKRenderBackend implements ZERenderBackend<VKRenderBackend> {
 					VK10.VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
 					0,
 					size,
-					memoryTypeIndex
+					0 // TODO
 			);
 			
 			long[] pMem = new long[1];
@@ -234,7 +232,7 @@ public class VKRenderBackend implements ZERenderBackend<VKRenderBackend> {
 				VK10.vkFreeMemory(device.logicalDevice, pMem[0], context.allocCallbacks);
 			}
 			
-			return new VKBuffer(device.logicalDevice, pBuffer[0], size, pMem[0], 0, flags);
+			return new VKBuffer(device.logicalDevice, pBuffer[0], size, pMem[0], 0, 0, usages);
 		}
 	}
 	
@@ -247,13 +245,8 @@ public class VKRenderBackend implements ZERenderBackend<VKRenderBackend> {
 	}
 
 	@Override
-	public ZEVertexBuffer createVertexBuffer(ZEGraphicsMemory buffer) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public ZETexture createTexture(ZETextureDimension dim, int width, int height, int depth, ZEPixelFormat format) {
+	public ZETexture createTexture(ZETextureDimension dim, int width, int height, int depth,
+			ZEPixelFormat format, ZETextureUsage[] usages, ZETextureParameter ... params) {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -269,15 +262,9 @@ public class VKRenderBackend implements ZERenderBackend<VKRenderBackend> {
 	}
 
 	@Override
-	public void destroyPipeline(ZEPipeline pipeline) {
+	public void destroyPipelines(ZEPipeline ... pipelines) {
 		// TODO Auto-generated method stub
 		
-	}
-
-	@Override
-	public ZEIndexBuffer createIndexBuffer(ZEGraphicsMemory buffer, ZEPrimitiveType indexType) {
-		// TODO Auto-generated method stub
-		return null;
 	}
 
 	@Override
@@ -370,6 +357,78 @@ public class VKRenderBackend implements ZERenderBackend<VKRenderBackend> {
 		for(int i = 0; i < fences.length; i++) vkfences[i] = ((VKFence)fences[i]).fence;
 		int err = VK10.vkResetFences(device.logicalDevice, vkfences);
 		if (err != VK10.VK_SUCCESS) throw new VulkanException("Failed to reset fences", err);
+	}
+
+	@Override
+	public float getLimitFloat(String limit) {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public ZEPipelineLayoutBuilder createPipelineLayoutBuilder() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void destroyPipelineLayouts(ZEPipelineLayout... layouts) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public ZEPipelineBindLayoutBuilder createPipelineBindLayoutBuilder() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void destroyPipelineBindLayouts(ZEPipelineBindLayout... pipelineBindLayouts) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public ZEPipelineBindPool createBindPool(int maxAllocSets, ZEBindingCount... allocBindings) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void destroyBindPools(ZEPipelineBindPool... bindPools) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public ZEFramebufferBuilder createFramebufferBuilder() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void destroyFramebuffers(ZEFramebuffer... framebuffers) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public ZERenderPassBuilder createRenderPassBuilder() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void destroyRenderPasses(ZERenderPass... renderPasses) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void destroySamplers(ZESampler... samplers) {
+		// TODO Auto-generated method stub
+		
 	}
 
 }

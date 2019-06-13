@@ -109,6 +109,16 @@ public interface ZETexture extends ZEGraphicsMemory {
 		 */
 		public int arrayLayerCount = Integer.MAX_VALUE;
 		
+		public ZETextureRange() {}
+		
+		public ZETextureRange(ZETextureRange other) {
+			aspects = other.aspects;
+			baseMipLevel = other.baseMipLevel;
+			mipLevelCount = other.mipLevelCount;
+			baseArrayLayer = other.baseArrayLayer;
+			arrayLayerCount = other.arrayLayerCount;
+		}
+		
 	}
 	
 	/** A texture layer selects a single part of a texture as described in {@link ZETextureRange}.
@@ -129,6 +139,15 @@ public interface ZETexture extends ZEGraphicsMemory {
 		 * selects all array layers.
 		 */
 		public int arrayLayerCount = Integer.MAX_VALUE;
+		
+		public ZETextureLayer() {}
+		
+		public ZETextureLayer(ZETextureLayer other) {
+			aspects = other.aspects;
+			mipLevel = other.mipLevel;
+			baseArrayLayer = other.baseArrayLayer;
+			arrayLayerCount = other.arrayLayerCount;
+		}
 		
 	}
 	

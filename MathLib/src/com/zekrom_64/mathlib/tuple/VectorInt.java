@@ -1,6 +1,6 @@
 package com.zekrom_64.mathlib.tuple;
 
-public interface VectorInt extends VectorNumeric<Integer> {
+public interface VectorInt extends VectorNumeric<Integer>, VectorBinary<Integer> {
 
 	@Override
 	public default Class<?> type() { return int.class; }
@@ -14,5 +14,15 @@ public interface VectorInt extends VectorNumeric<Integer> {
 	public int getInt(int i);
 	
 	public void setInt(int i, int val);
+
+	@Override
+	public default double getDouble(int i) {
+		return getInt(i);
+	}
+
+	@Override
+	public default void setDouble(int i, double val) {
+		setInt(i, (int)val);
+	}
 	
 }
