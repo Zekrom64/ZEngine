@@ -26,6 +26,11 @@
 			<locationURI>PROJECT_LOC/lib/bridj/bridj-0.7.0</locationURI>
 		</link>
 		<link>
+			<name>libref/jackson-core</name>
+			<type>2</type>
+			<locationURI>PROJECT_LOC/lib/fasterxml/jackson-core-2.9.9</locationURI>
+		</link>
+		<link>
 			<name>libref/lwjgl</name>
 			<type>2</type>
 			<locationURI>PROJECT_LOC/lib/lwjgl/lwjgl-3.2.2</locationURI>

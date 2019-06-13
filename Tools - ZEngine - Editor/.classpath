@@ -46,5 +46,13 @@
 	<classpathentry combineaccessrules="false" kind="src" path="/ZEngine - GLFW"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/ZEngine - Base"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/ZEngine - Vulkan"/>
+	<classpathentry kind="lib" path="/Libraries/libref/lwjgl/lwjgl-assimp-natives-linux.jar"/>
+	<classpathentry kind="lib" path="/Libraries/libref/lwjgl/lwjgl-assimp-natives-macos.jar"/>
+	<classpathentry kind="lib" path="/Libraries/libref/lwjgl/lwjgl-assimp-natives-windows.jar"/>
+	<classpathentry kind="lib" path="/Libraries/libref/lwjgl/lwjgl-assimp.jar" sourcepath="/Libraries/libref/lwjgl/lwjgl-assimp-sources.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:platform:/resource/Libraries/libref/lwjgl/lwjgl-assimp-javadoc.jar!/"/>
+		</attributes>
+	</classpathentry>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
